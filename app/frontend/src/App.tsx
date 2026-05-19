@@ -1,8 +1,9 @@
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { LanguageProvider, hasLanguagePreference } from '@/contexts/LanguageContext';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
@@ -14,12 +15,26 @@ import DuasCollection from './pages/DuasCollection';
 import QiblaFinder from './pages/QiblaFinder';
 import ZakatCalculator from './pages/ZakatCalculator';
 import IslamicCalendar from './pages/IslamicCalendar';
+import Welcome from './pages/Welcome';
+import DailyRoutine from './pages/DailyRoutine';
+import FastingTracker from './pages/FastingTracker';
+import TaskManager from './pages/TaskManager';
+import Adhkar from './pages/Adhkar';
+import Finance from './pages/Finance';
 
 const queryClient = new QueryClient();
 
+function WelcomeGuard() {
+  if (!hasLanguagePreference()) {
+    return <Navigate to="/welcome" replace />;
+  }
+  return <Index />;
+}
+
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
+    <Route path="/" element={<WelcomeGuard />} />
+    <Route path="/welcome" element={<Welcome />} />
     <Route path="/login" element={<Login />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />
@@ -30,6 +45,11 @@ const AppRoutes = () => (
     <Route path="/qibla" element={<QiblaFinder />} />
     <Route path="/zakat" element={<ZakatCalculator />} />
     <Route path="/calendar" element={<IslamicCalendar />} />
+    <Route path="/daily-routine" element={<DailyRoutine />} />
+    <Route path="/fasting" element={<FastingTracker />} />
+    <Route path="/tasks" element={<TaskManager />} />
+    <Route path="/adhkar" element={<Adhkar />} />
+    <Route path="/finance" element={<Finance />} />
   </Routes>
 );
 
@@ -38,9 +58,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </LanguageProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

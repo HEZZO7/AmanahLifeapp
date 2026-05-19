@@ -1,8 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 
 interface HijriInfo {
@@ -13,6 +13,7 @@ interface HijriInfo {
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [hijriDate, setHijriDate] = useState<HijriInfo | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
@@ -85,7 +86,7 @@ export default function HomePage() {
     fetchPrayer();
   }, []);
 
-  // Daily verse (rotating based on day of year)
+  // Daily verse
   useEffect(() => {
     const verses = [
       { arabic: 'إِنَّ مَعَ الْعُسْرِ يُسْرًا', translation: 'Indeed, with hardship comes ease.', reference: 'Quran 94:6' },
@@ -117,7 +118,7 @@ export default function HomePage() {
           break;
         }
       } else {
-        if (i === 0) continue; // Today might not have data yet
+        if (i === 0) continue;
         break;
       }
     }
@@ -126,8 +127,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a2e1f]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14b8a6]"></div>
       </div>
     );
   }
@@ -135,24 +136,24 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 pb-20">
+    <div className="min-h-screen bg-[#0a2e1f] pb-20">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#14b8a6] to-[#0d9488] flex items-center justify-center shadow-sm">
               <span className="text-white text-sm font-bold">A</span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">AmanahLife</h1>
+            <h1 className="text-xl font-bold text-white">AmanahLife</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-9 h-9 rounded-full bg-[#0f3d2a] flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#14b8a6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-gray-600 hover:text-gray-900">
-              Sign Out
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-gray-400 hover:text-white hover:bg-[#1a4d35]">
+              {t('signOut')}
             </Button>
           </div>
         </div>
@@ -163,74 +164,73 @@ export default function HomePage() {
         {/* Welcome + Hijri Date */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Assalamu Alaikum! 👋</h2>
-            <p className="text-gray-500 mt-1">Your Islamic life companion</p>
+            <h2 className="text-2xl font-bold text-white">{t('assalamuAlaikum')}</h2>
+            <p className="text-gray-400 mt-1">{t('islamicCompanion')}</p>
           </div>
           {hijriDate && (
-            <div className="text-right bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100">
-              <p className="text-xs text-emerald-600 font-medium">{hijriDate.day} {hijriDate.month}</p>
-              <p className="text-[10px] text-emerald-500">{hijriDate.year} AH</p>
+            <div className="text-right bg-[#0f3d2a] px-3 py-2 rounded-xl border border-[#1a4d35]">
+              <p className="text-xs text-[#d4a853] font-medium">{hijriDate.day} {hijriDate.month}</p>
+              <p className="text-[10px] text-gray-400">{hijriDate.year} AH</p>
             </div>
           )}
         </div>
 
         {/* Top Widgets Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Next Prayer Widget */}
           {nextPrayer && (
-            <Card className="border-0 shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white cursor-pointer hover:shadow-lg transition-all" onClick={() => navigate('/prayer-times')}>
-              <CardContent className="p-4">
-                <p className="text-blue-100 text-xs">Next Prayer</p>
-                <p className="text-xl font-bold mt-0.5">{nextPrayer.name}</p>
-                <p className="text-blue-200 text-sm">{nextPrayer.time}</p>
-              </CardContent>
-            </Card>
+            <div
+              className="bg-gradient-to-r from-[#14b8a6] to-[#0d9488] rounded-2xl p-4 cursor-pointer hover:shadow-lg transition-all"
+              onClick={() => navigate('/prayer-times')}
+            >
+              <p className="text-teal-100 text-xs">{t('nextPrayer')}</p>
+              <p className="text-xl font-bold text-white mt-0.5">{nextPrayer.name}</p>
+              <p className="text-teal-200 text-sm">{nextPrayer.time}</p>
+            </div>
           )}
 
-          {/* Streak Widget */}
-          <Card className="border-0 shadow-md bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-            <CardContent className="p-4">
-              <p className="text-amber-100 text-xs">Prayer Streak</p>
-              <p className="text-xl font-bold mt-0.5">{streak} {streak === 1 ? 'day' : 'days'} 🔥</p>
-              <p className="text-amber-200 text-sm">Keep it going!</p>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-r from-[#d4a853] to-[#c49a48] rounded-2xl p-4">
+            <p className="text-amber-100 text-xs">{t('prayerStreak')}</p>
+            <p className="text-xl font-bold text-white mt-0.5">{streak} {streak === 1 ? 'day' : t('days')} 🔥</p>
+            <p className="text-amber-200 text-sm">{t('keepGoing')}</p>
+          </div>
 
-          {/* Daily Dhikr Progress */}
-          <Card className="border-0 shadow-md bg-gradient-to-r from-teal-500 to-emerald-500 text-white cursor-pointer hover:shadow-lg transition-all" onClick={() => navigate('/dhikr')}>
-            <CardContent className="p-4">
-              <p className="text-teal-100 text-xs">Today's Dhikr</p>
-              <p className="text-xl font-bold mt-0.5">
-                {localStorage.getItem(`dhikr_total_${new Date().toDateString()}`) || '0'}
-              </p>
-              <p className="text-teal-200 text-sm">Tap to continue</p>
-            </CardContent>
-          </Card>
+          <div
+            className="bg-gradient-to-r from-[#0f3d2a] to-[#1a4d35] rounded-2xl p-4 border border-[#1a4d35] cursor-pointer hover:border-[#14b8a6] transition-all"
+            onClick={() => navigate('/dhikr')}
+          >
+            <p className="text-gray-400 text-xs">{t('todaysDhikr')}</p>
+            <p className="text-xl font-bold text-[#14b8a6] mt-0.5">
+              {localStorage.getItem(`dhikr_total_${new Date().toDateString()}`) || '0'}
+            </p>
+            <p className="text-gray-500 text-sm">{t('tapToContinue')}</p>
+          </div>
         </div>
 
         {/* Daily Verse */}
         {dailyVerse && (
-          <Card className="mb-6 border border-purple-100 bg-purple-50/50">
-            <CardContent className="p-5 text-center">
-              <p className="text-xs text-purple-500 font-medium mb-2">📖 Verse of the Day</p>
-              <p className="text-xl font-arabic text-gray-800 leading-relaxed mb-2">{dailyVerse.arabic}</p>
-              <p className="text-sm text-gray-600 italic">{dailyVerse.translation}</p>
-              <p className="text-xs text-purple-500 mt-2">{dailyVerse.reference}</p>
-            </CardContent>
-          </Card>
+          <div className="mb-6 bg-[#0f3d2a] rounded-2xl border border-[#1a4d35] p-5 text-center">
+            <p className="text-xs text-[#d4a853] font-medium mb-2">📖 {t('verseOfDay')}</p>
+            <p className="text-xl font-arabic text-white leading-relaxed mb-2">{dailyVerse.arabic}</p>
+            <p className="text-sm text-gray-400 italic">{dailyVerse.translation}</p>
+            <p className="text-xs text-[#d4a853] mt-2">{dailyVerse.reference}</p>
+          </div>
         )}
 
         {/* Quick Actions Grid */}
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-semibold text-gray-400 mb-3">{t('quickActions')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction icon="🕌" title="Prayer Times" description="Track daily prayers" color="bg-blue-50 border-blue-200 hover:bg-blue-100" onClick={() => navigate('/prayer-times')} />
-          <QuickAction icon="📖" title="Quran" description="Read & bookmark" color="bg-purple-50 border-purple-200 hover:bg-purple-100" onClick={() => navigate('/quran')} />
-          <QuickAction icon="🤲" title="Duas" description="Supplications" color="bg-amber-50 border-amber-200 hover:bg-amber-100" onClick={() => navigate('/duas')} />
-          <QuickAction icon="📿" title="Dhikr" description="Remembrance" color="bg-teal-50 border-teal-200 hover:bg-teal-100" onClick={() => navigate('/dhikr')} />
-          <QuickAction icon="🧭" title="Qibla" description="Find direction" color="bg-orange-50 border-orange-200 hover:bg-orange-100" onClick={() => navigate('/qibla')} />
-          <QuickAction icon="💰" title="Zakat" description="Calculator" color="bg-green-50 border-green-200 hover:bg-green-100" onClick={() => navigate('/zakat')} />
-          <QuickAction icon="📅" title="Calendar" description="Hijri dates" color="bg-indigo-50 border-indigo-200 hover:bg-indigo-100" onClick={() => navigate('/calendar')} />
-          <QuickAction icon="🌙" title="Ramadan" description="Coming soon" color="bg-pink-50 border-pink-200" comingSoon />
+          <QuickAction icon="🕌" title={t('prayer')} description="Track daily prayers" onClick={() => navigate('/prayer-times')} />
+          <QuickAction icon="📖" title={t('quran')} description="Read & bookmark" onClick={() => navigate('/quran')} />
+          <QuickAction icon="🤲" title={t('duas')} description="Supplications" onClick={() => navigate('/duas')} />
+          <QuickAction icon="📿" title={t('dhikr')} description="Remembrance" onClick={() => navigate('/dhikr')} />
+          <QuickAction icon="🌅" title={t('dailyRoutine')} description="Daily habits" onClick={() => navigate('/daily-routine')} />
+          <QuickAction icon="🌙" title={t('fasting')} description="Track fasting" onClick={() => navigate('/fasting')} />
+          <QuickAction icon="✅" title={t('tasks')} description="Manage tasks" onClick={() => navigate('/tasks')} />
+          <QuickAction icon="📿" title={t('adhkar')} description="Morning & Evening" onClick={() => navigate('/adhkar')} />
+          <QuickAction icon="💰" title={t('finance')} description="Track finances" onClick={() => navigate('/finance')} />
+          <QuickAction icon="🧭" title={t('qibla')} description="Find direction" onClick={() => navigate('/qibla')} />
+          <QuickAction icon="💎" title={t('zakat')} description="Calculator" onClick={() => navigate('/zakat')} />
+          <QuickAction icon="📅" title={t('calendar')} description="Hijri dates" onClick={() => navigate('/calendar')} />
         </div>
       </main>
 
@@ -239,19 +239,14 @@ export default function HomePage() {
   );
 }
 
-function QuickAction({ icon, title, description, color, onClick, comingSoon }: { icon: string; title: string; description: string; color: string; onClick?: () => void; comingSoon?: boolean }) {
+function QuickAction({ icon, title, description, onClick }: { icon: string; title: string; description: string; onClick?: () => void }) {
   return (
     <div
-      className={`p-4 rounded-xl border ${color} ${onClick ? 'cursor-pointer active:scale-95' : 'opacity-60'} transition-all relative`}
+      className="p-4 rounded-2xl bg-[#0f3d2a] border border-[#1a4d35] hover:border-[#14b8a6] cursor-pointer active:scale-95 transition-all"
       onClick={onClick}
     >
-      {comingSoon && (
-        <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-          Soon
-        </span>
-      )}
       <div className="text-2xl mb-2">{icon}</div>
-      <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
+      <h3 className="font-semibold text-white text-sm">{title}</h3>
       <p className="text-xs text-gray-500 mt-0.5">{description}</p>
     </div>
   );
