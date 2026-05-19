@@ -15,7 +15,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-md border-t border-[#1a4d35] shadow-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border shadow-lg">
       <div className="max-w-lg mx-auto flex items-center justify-around h-16 px-2">
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
@@ -25,8 +25,8 @@ export default function BottomNav() {
               onClick={() => navigate(item.path)}
               className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
                 isActive
-                  ? 'bg-[#14b8a6]/20 scale-105'
-                  : 'hover:bg-[#1a4d35] active:scale-95'
+                  ? 'bg-primary/20 scale-105'
+                  : 'hover:bg-secondary active:scale-95'
               }`}
             >
               <span className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`}>
@@ -34,7 +34,7 @@ export default function BottomNav() {
               </span>
               <span
                 className={`text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-[#14b8a6]' : 'text-gray-400'
+                  isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
                 {item.label}

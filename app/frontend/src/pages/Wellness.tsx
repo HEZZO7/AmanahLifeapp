@@ -61,14 +61,14 @@ export default function Wellness() {
   const last7 = getLast7Days();
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] dark:bg-[#0a2e1f] pb-20">
-      <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-white">💚 {t('wellness')}</h1>
+          <h1 className="text-xl font-bold text-foreground">💚 {t('wellness')}</h1>
           {!todayEntry && (
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-[#14b8a6] text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+              className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               + {t('logToday')}
             </button>
@@ -79,16 +79,16 @@ export default function Wellness() {
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Log Form */}
         {showForm && (
-          <div className="bg-[#0f3d2a] rounded-2xl p-4 mb-4 border border-[#1a4d35]">
+          <div className="bg-card rounded-2xl p-4 mb-4 border border-border">
             {/* Mood */}
             <div className="mb-4">
-              <label className="text-sm text-gray-400 mb-2 block">{t('mood')}</label>
+              <label className="text-sm text-muted-foreground mb-2 block">{t('mood')}</label>
               <div className="flex justify-between">
                 {MOOD_EMOJIS.map((emoji, i) => (
                   <button
                     key={i}
                     onClick={() => setMood(i + 1)}
-                    className={`text-2xl p-2 rounded-xl transition-all ${mood === i + 1 ? 'bg-[#14b8a6]/20 scale-125' : 'opacity-50'}`}
+                    className={`text-2xl p-2 rounded-xl transition-all ${mood === i + 1 ? 'bg-primary/20 scale-125' : 'opacity-50'}`}
                   >
                     {emoji}
                   </button>
@@ -98,7 +98,7 @@ export default function Wellness() {
 
             {/* Sleep */}
             <div className="mb-4">
-              <label className="text-sm text-gray-400 mb-1 block">{t('sleep')}: {sleepHours} {t('hours')}</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t('sleep')}: {sleepHours} {t('hours')}</label>
               <input
                 type="range"
                 min="0"
@@ -111,7 +111,7 @@ export default function Wellness() {
 
             {/* Hydration */}
             <div className="mb-4">
-              <label className="text-sm text-gray-400 mb-1 block">{t('hydration')}: {hydration} {t('cups')}</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t('hydration')}: {hydration} {t('cups')}</label>
               <input
                 type="range"
                 min="0"
@@ -124,7 +124,7 @@ export default function Wellness() {
 
             {/* Stress */}
             <div className="mb-4">
-              <label className="text-sm text-gray-400 mb-1 block">{t('stress')}: {stress}/5</label>
+              <label className="text-sm text-muted-foreground mb-1 block">{t('stress')}: {stress}/5</label>
               <input
                 type="range"
                 min="1"
@@ -135,7 +135,7 @@ export default function Wellness() {
               />
             </div>
 
-            <button onClick={logToday} className="w-full bg-[#14b8a6] text-white py-2.5 rounded-lg text-sm font-medium">
+            <button onClick={logToday} className="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-medium">
               {t('save')}
             </button>
           </div>
@@ -143,11 +143,11 @@ export default function Wellness() {
 
         {/* Today's Score */}
         {todayEntry && (
-          <div className="bg-[#0f3d2a] rounded-2xl p-4 mb-4 border border-[#1a4d35]">
-            <h3 className="text-sm text-gray-400 mb-3">{t('wellnessScore')} — {t('today')}</h3>
+          <div className="bg-card rounded-2xl p-4 mb-4 border border-border">
+            <h3 className="text-sm text-muted-foreground mb-3">{t('wellnessScore')} — {t('today')}</h3>
             <div className="text-center mb-4">
               <span className="text-4xl font-bold text-[#d4a853]">{getWellnessScore(todayEntry)}</span>
-              <span className="text-gray-400 text-sm">/100</span>
+              <span className="text-muted-foreground text-sm">/100</span>
             </div>
             <div className="grid grid-cols-4 gap-3">
               <MetricCircle label={t('mood')} value={todayEntry.mood} max={5} emoji={MOOD_EMOJIS[todayEntry.mood - 1]} />
@@ -159,8 +159,8 @@ export default function Wellness() {
         )}
 
         {/* 7-Day Trend */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
-          <h3 className="text-sm text-gray-400 mb-3">{t('weeklyTrend')}</h3>
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h3 className="text-sm text-muted-foreground mb-3">{t('weeklyTrend')}</h3>
           <div className="flex items-end justify-between gap-1 h-32">
             {last7.map((entry, i) => {
               const score = entry.mood > 0 ? getWellnessScore(entry) : 0;
@@ -168,12 +168,12 @@ export default function Wellness() {
               const dayLabel = new Date(entry.date).toLocaleDateString('en', { weekday: 'short' }).slice(0, 2);
               return (
                 <div key={i} className="flex flex-col items-center flex-1">
-                  <span className="text-[10px] text-gray-500 mb-1">{score > 0 ? score : ''}</span>
+                  <span className="text-[10px] text-muted-foreground mb-1">{score > 0 ? score : ''}</span>
                   <div
-                    className={`w-full rounded-t-lg transition-all ${score > 0 ? 'bg-gradient-to-t from-[#14b8a6] to-[#d4a853]' : 'bg-[#1a4d35]'}`}
+                    className={`w-full rounded-t-lg transition-all ${score > 0 ? 'bg-gradient-to-t from-[#14b8a6] to-[#d4a853]' : 'bg-secondary'}`}
                     style={{ height: `${height}%` }}
                   />
-                  <span className="text-[10px] text-gray-500 mt-1">{dayLabel}</span>
+                  <span className="text-[10px] text-muted-foreground mt-1">{dayLabel}</span>
                 </div>
               );
             })}
@@ -195,7 +195,7 @@ function MetricCircle({ label, value, max, emoji, inverted }: { label: string; v
           <path
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             fill="none"
-            stroke="#1a4d35"
+            stroke="hsl(var(--border))"
             strokeWidth="3"
           />
           <path
@@ -208,8 +208,8 @@ function MetricCircle({ label, value, max, emoji, inverted }: { label: string; v
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-sm">{emoji}</span>
       </div>
-      <span className="text-[10px] text-gray-400">{label}</span>
-      <span className="text-xs text-white font-medium">{value}/{max}</span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <span className="text-xs text-foreground font-medium">{value}/{max}</span>
     </div>
   );
 }

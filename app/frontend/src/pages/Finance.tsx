@@ -79,35 +79,35 @@ export default function Finance() {
   const savingsRate = monthlyIncome > 0 ? Math.round(((monthlyIncome - monthlyExpense) / monthlyIncome) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
-      <header className="sticky top-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-sm border-b border-[#1a4d35] px-4 py-4">
-        <h1 className="text-xl font-bold text-white">{t('finance')}</h1>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
+        <h1 className="text-xl font-bold text-foreground">{t('finance')}</h1>
       </header>
 
       <div className="px-4 py-4 space-y-4">
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#0f3d2a] rounded-2xl p-3 border border-[#1a4d35] text-center">
-            <p className="text-[10px] text-gray-400">{t('monthlyIncome')}</p>
-            <p className="text-lg font-bold text-[#14b8a6]">${monthlyIncome.toFixed(0)}</p>
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <p className="text-[10px] text-muted-foreground">{t('monthlyIncome')}</p>
+            <p className="text-lg font-bold text-primary">${monthlyIncome.toFixed(0)}</p>
           </div>
-          <div className="bg-[#0f3d2a] rounded-2xl p-3 border border-[#1a4d35] text-center">
-            <p className="text-[10px] text-gray-400">{t('monthlyExpense')}</p>
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <p className="text-[10px] text-muted-foreground">{t('monthlyExpense')}</p>
             <p className="text-lg font-bold text-red-400">${monthlyExpense.toFixed(0)}</p>
           </div>
-          <div className="bg-[#0f3d2a] rounded-2xl p-3 border border-[#1a4d35] text-center">
-            <p className="text-[10px] text-gray-400">{t('savingsRate')}</p>
+          <div className="bg-card rounded-2xl p-3 border border-border text-center">
+            <p className="text-[10px] text-muted-foreground">{t('savingsRate')}</p>
             <p className="text-lg font-bold text-[#d4a853]">{savingsRate}%</p>
           </div>
         </div>
 
         {/* Savings Rate Visual */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
+        <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-400">{t('savingsRate')}</span>
+            <span className="text-sm text-muted-foreground">{t('savingsRate')}</span>
             <span className="text-sm text-[#d4a853] font-semibold">{savingsRate}%</span>
           </div>
-          <div className="w-full h-3 bg-[#1a4d35] rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full bg-[#d4a853] rounded-full transition-all"
               style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
@@ -116,28 +116,28 @@ export default function Finance() {
         </div>
 
         {/* Transactions */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
-          <h2 className="text-white font-semibold mb-3">{t('transactions')}</h2>
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h2 className="text-foreground font-semibold mb-3">{t('transactions')}</h2>
           {transactions.length === 0 && (
-            <p className="text-center text-gray-500 py-4 text-sm">No transactions yet</p>
+            <p className="text-center text-muted-foreground py-4 text-sm">No transactions yet</p>
           )}
           <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-hide">
             {transactions.slice(0, 20).map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-2 rounded-xl bg-[#0a2e1f]">
+              <div key={tx.id} className="flex items-center justify-between p-2 rounded-xl bg-background">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{CATEGORY_ICONS[tx.category]}</span>
                   <div>
-                    <p className="text-white text-sm">{tx.description}</p>
-                    <p className="text-gray-500 text-[10px]">
+                    <p className="text-foreground text-sm">{tx.description}</p>
+                    <p className="text-muted-foreground text-[10px]">
                       {new Date(tx.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-[#14b8a6]' : 'text-red-400'}`}>
+                  <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-primary' : 'text-red-400'}`}>
                     {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(0)}
                   </span>
-                  <button onClick={() => deleteTransaction(tx.id)} className="text-gray-600 hover:text-red-400 text-xs">✕</button>
+                  <button onClick={() => deleteTransaction(tx.id)} className="text-muted-foreground hover:text-red-400 text-xs">✕</button>
                 </div>
               </div>
             ))}
@@ -148,15 +148,15 @@ export default function Finance() {
       {/* Add Transaction Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-          <div className="w-full bg-[#0f3d2a] rounded-t-3xl p-6 space-y-4">
-            <h3 className="text-white font-semibold text-lg">{t('addTransaction')}</h3>
+          <div className="w-full bg-card rounded-t-3xl p-6 space-y-4">
+            <h3 className="text-foreground font-semibold text-lg">{t('addTransaction')}</h3>
 
             {/* Type Toggle */}
             <div className="flex gap-2">
               <button
                 onClick={() => setType('income')}
                 className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  type === 'income' ? 'bg-[#14b8a6] text-white' : 'bg-[#1a4d35] text-gray-400'
+                  type === 'income' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
                 }`}
               >
                 {t('income')}
@@ -164,7 +164,7 @@ export default function Finance() {
               <button
                 onClick={() => setType('expense')}
                 className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  type === 'expense' ? 'bg-red-500 text-white' : 'bg-[#1a4d35] text-gray-400'
+                  type === 'expense' ? 'bg-red-500 text-white' : 'bg-secondary text-muted-foreground'
                 }`}
               >
                 {t('expense')}
@@ -176,7 +176,7 @@ export default function Finance() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={t('amount')}
-              className="w-full p-3 rounded-xl bg-[#1a4d35] text-white placeholder-gray-500 border border-[#1a4d35] focus:border-[#14b8a6] outline-none"
+              className="w-full p-3 rounded-xl bg-secondary text-foreground placeholder-muted-foreground border border-border focus:border-primary outline-none"
             />
 
             <input
@@ -184,11 +184,11 @@ export default function Finance() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t('description')}
-              className="w-full p-3 rounded-xl bg-[#1a4d35] text-white placeholder-gray-500 border border-[#1a4d35] focus:border-[#14b8a6] outline-none"
+              className="w-full p-3 rounded-xl bg-secondary text-foreground placeholder-muted-foreground border border-border focus:border-primary outline-none"
             />
 
             <div>
-              <p className="text-gray-400 text-sm mb-2">{t('category')}</p>
+              <p className="text-muted-foreground text-sm mb-2">{t('category')}</p>
               <div className="flex flex-wrap gap-2">
                 {(['salary', 'freelance', 'investment', 'gift', 'other'] as IncomeCategory[]).map((c) => (
                   <button
@@ -197,7 +197,7 @@ export default function Finance() {
                     className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       category === c
                         ? 'bg-[#d4a853] text-white'
-                        : 'bg-[#1a4d35] text-gray-400'
+                        : 'bg-secondary text-muted-foreground'
                     }`}
                   >
                     {CATEGORY_ICONS[c]} {t(c)}
@@ -209,13 +209,13 @@ export default function Finance() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 p-3 rounded-xl bg-[#1a4d35] text-gray-400"
+                className="flex-1 p-3 rounded-xl bg-secondary text-muted-foreground"
               >
                 Cancel
               </button>
               <button
                 onClick={addTransaction}
-                className="flex-1 p-3 rounded-xl bg-[#14b8a6] text-white font-semibold"
+                className="flex-1 p-3 rounded-xl bg-primary text-white font-semibold"
               >
                 {t('addTransaction')}
               </button>
@@ -227,7 +227,7 @@ export default function Finance() {
       {/* FAB */}
       <button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-[#14b8a6] text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
       >
         +
       </button>

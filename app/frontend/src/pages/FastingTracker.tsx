@@ -75,56 +75,56 @@ export default function FastingTracker() {
   const fastedDays = monthDays.filter((d) => d.fasted).length;
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
-      <header className="sticky top-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-sm border-b border-[#1a4d35] px-4 py-4">
-        <h1 className="text-xl font-bold text-white">{t('fasting')}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{fastedDays}/30 {t('days')} {t('completed')}</p>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
+        <h1 className="text-xl font-bold text-foreground">{t('fasting')}</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">{fastedDays}/30 {t('days')} {t('completed')}</p>
       </header>
 
       <div className="px-4 py-4 space-y-4">
         {/* Today's Status */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
-          <h2 className="text-white font-semibold mb-3">{t('today')}</h2>
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h2 className="text-foreground font-semibold mb-3">{t('today')}</h2>
           <div className="grid grid-cols-3 gap-3">
             <button
               onClick={toggleSuhoor}
               className={`p-3 rounded-xl text-center transition-all ${
-                suhoor ? 'bg-[#14b8a6]/20 border border-[#14b8a6]' : 'bg-[#1a4d35] border border-[#1a4d35]'
+                suhoor ? 'bg-primary/20 border border-primary' : 'bg-secondary border border-border'
               }`}
             >
               <span className="text-2xl block mb-1">🌙</span>
-              <span className={`text-xs ${suhoor ? 'text-[#14b8a6]' : 'text-gray-400'}`}>{t('suhoor')}</span>
+              <span className={`text-xs ${suhoor ? 'text-primary' : 'text-muted-foreground'}`}>{t('suhoor')}</span>
             </button>
             <button
               onClick={toggleFasting}
               className={`p-3 rounded-xl text-center transition-all ${
-                fasting ? 'bg-[#d4a853]/20 border border-[#d4a853]' : 'bg-[#1a4d35] border border-[#1a4d35]'
+                fasting ? 'bg-[#d4a853]/20 border border-[#d4a853]' : 'bg-secondary border border-border'
               }`}
             >
               <span className="text-2xl block mb-1">☀️</span>
-              <span className={`text-xs ${fasting ? 'text-[#d4a853]' : 'text-gray-400'}`}>{t('fasting')}</span>
+              <span className={`text-xs ${fasting ? 'text-[#d4a853]' : 'text-muted-foreground'}`}>{t('fasting')}</span>
             </button>
             <button
               onClick={toggleIftar}
               className={`p-3 rounded-xl text-center transition-all ${
-                iftar ? 'bg-[#14b8a6]/20 border border-[#14b8a6]' : 'bg-[#1a4d35] border border-[#1a4d35]'
+                iftar ? 'bg-primary/20 border border-primary' : 'bg-secondary border border-border'
               }`}
             >
               <span className="text-2xl block mb-1">🌅</span>
-              <span className={`text-xs ${iftar ? 'text-[#14b8a6]' : 'text-gray-400'}`}>{t('iftar')}</span>
+              <span className={`text-xs ${iftar ? 'text-primary' : 'text-muted-foreground'}`}>{t('iftar')}</span>
             </button>
           </div>
         </div>
 
         {/* 30-Day Grid */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
-          <h2 className="text-white font-semibold mb-3">30-Day Progress</h2>
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h2 className="text-foreground font-semibold mb-3">30-Day Progress</h2>
           <div className="grid grid-cols-10 gap-1.5">
             {monthDays.map((day, i) => (
               <div
                 key={i}
                 className={`w-full aspect-square rounded-md ${
-                  day.fasted ? 'bg-[#14b8a6]' : 'bg-[#1a4d35]'
+                  day.fasted ? 'bg-primary' : 'bg-secondary'
                 }`}
                 title={day.date}
               />
@@ -133,23 +133,23 @@ export default function FastingTracker() {
         </div>
 
         {/* Quran Pages */}
-        <div className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
-          <h2 className="text-white font-semibold mb-3">{t('quranPages')}</h2>
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h2 className="text-foreground font-semibold mb-3">{t('quranPages')}</h2>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold text-[#d4a853]">{quranPages}</p>
-              <p className="text-xs text-gray-400">{t('goal')}: 20 {t('pages')}</p>
+              <p className="text-xs text-muted-foreground">{t('goal')}: 20 {t('pages')}</p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => addPages(-1)}
-                className="w-10 h-10 rounded-full bg-[#1a4d35] text-white flex items-center justify-center hover:bg-[#14b8a6]/20"
+                className="w-10 h-10 rounded-full bg-secondary text-foreground flex items-center justify-center hover:bg-primary/20"
               >
                 -
               </button>
               <button
                 onClick={() => addPages(1)}
-                className="w-10 h-10 rounded-full bg-[#14b8a6] text-white flex items-center justify-center hover:bg-[#0d9488]"
+                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[#0d9488]"
               >
                 +
               </button>
@@ -162,7 +162,7 @@ export default function FastingTracker() {
             </div>
           </div>
           {/* Progress bar */}
-          <div className="mt-3 w-full h-2 bg-[#1a4d35] rounded-full overflow-hidden">
+          <div className="mt-3 w-full h-2 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full bg-[#d4a853] rounded-full transition-all"
               style={{ width: `${Math.min(100, (quranPages / 20) * 100)}%` }}

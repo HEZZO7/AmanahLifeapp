@@ -95,10 +95,7 @@
     @apply bg-background text-foreground;
   }
 
-  .dark body {
-    background-color: #0a2e1f;
-    color: #f3f4f6;
-  }
+
 }
 
 @layer utilities {

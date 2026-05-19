@@ -183,8 +183,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a2e1f]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#14b8a6]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -192,21 +192,21 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-10 h-10 object-contain" />
-            <h1 className="text-xl font-bold text-white">AmanahLife</h1>
+            <h1 className="text-xl font-bold text-foreground">AmanahLife</h1>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full bg-[#0f3d2a] flex items-center justify-center">
-              <svg className="w-5 h-5 text-[#14b8a6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full bg-card flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </button>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-gray-400 hover:text-white hover:bg-[#1a4d35]">
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground hover:bg-secondary">
               {t('signOut')}
             </Button>
           </div>
@@ -218,13 +218,13 @@ export default function HomePage() {
         {/* Welcome + Hijri Date */}
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">{t('assalamuAlaikum')}</h2>
-            <p className="text-gray-400 mt-1">{t('islamicCompanion')}</p>
+            <h2 className="text-2xl font-bold text-foreground">{t('assalamuAlaikum')}</h2>
+            <p className="text-muted-foreground mt-1">{t('islamicCompanion')}</p>
           </div>
           {hijriDate && (
-            <div className="text-right bg-[#0f3d2a] px-3 py-2 rounded-xl border border-[#1a4d35]">
+            <div className="text-right bg-card px-3 py-2 rounded-xl border border-border">
               <p className="text-xs text-[#d4a853] font-medium">{hijriDate.day} {hijriDate.month}</p>
-              <p className="text-[10px] text-gray-400">{hijriDate.year} AH</p>
+              <p className="text-[10px] text-muted-foreground">{hijriDate.year} AH</p>
             </div>
           )}
         </div>
@@ -236,7 +236,7 @@ export default function HomePage() {
             placeholder={`🔍 ${t('search')}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0f3d2a] border border-[#1a4d35] rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[#14b8a6]"
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:border-primary"
           />
         </div>
 
@@ -255,33 +255,33 @@ export default function HomePage() {
 
         {/* Daily Summary */}
         <div className="grid grid-cols-4 gap-2 mb-4">
-          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
-            <p className="text-[10px] text-gray-500">{t('tasks')}</p>
-            <p className="text-sm font-bold text-white">{dailySummary.tasksDone}/{dailySummary.tasksTotal}</p>
+          <div className="bg-card rounded-xl p-2.5 text-center border border-border">
+            <p className="text-[10px] text-muted-foreground">{t('tasks')}</p>
+            <p className="text-sm font-bold text-foreground">{dailySummary.tasksDone}/{dailySummary.tasksTotal}</p>
           </div>
-          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
-            <p className="text-[10px] text-gray-500">{t('prayer')}</p>
-            <p className="text-sm font-bold text-white">{dailySummary.prayersDone}/5</p>
+          <div className="bg-card rounded-xl p-2.5 text-center border border-border">
+            <p className="text-[10px] text-muted-foreground">{t('prayer')}</p>
+            <p className="text-sm font-bold text-foreground">{dailySummary.prayersDone}/5</p>
           </div>
-          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
-            <p className="text-[10px] text-gray-500">{t('goals')}</p>
+          <div className="bg-card rounded-xl p-2.5 text-center border border-border">
+            <p className="text-[10px] text-muted-foreground">{t('goals')}</p>
             <p className="text-sm font-bold text-[#d4a853]">{dailySummary.activeGoals}</p>
           </div>
-          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
-            <p className="text-[10px] text-gray-500">{t('savings')}</p>
-            <p className="text-sm font-bold text-[#14b8a6]">{dailySummary.balance >= 0 ? '+' : ''}{dailySummary.balance}</p>
+          <div className="bg-card rounded-xl p-2.5 text-center border border-border">
+            <p className="text-[10px] text-muted-foreground">{t('savings')}</p>
+            <p className="text-sm font-bold text-primary">{dailySummary.balance >= 0 ? '+' : ''}{dailySummary.balance}</p>
           </div>
         </div>
 
         {/* Quick Shortcuts */}
         <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
-          <button onClick={() => navigate('/tasks')} className="bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+          <button onClick={() => navigate('/tasks')} className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
             ✅ {t('todaysTasks')}
           </button>
           <button onClick={() => navigate('/goals')} className="bg-[#d4a853]/10 border border-[#d4a853]/30 text-[#d4a853] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
             🎯 {t('activeGoals')}
           </button>
-          <button onClick={() => navigate('/finance')} className="bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+          <button onClick={() => navigate('/finance')} className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
             💰 {t('recentTransactions')}
           </button>
         </div>
@@ -306,29 +306,29 @@ export default function HomePage() {
           </div>
 
           <div
-            className="bg-gradient-to-r from-[#0f3d2a] to-[#1a4d35] rounded-2xl p-4 border border-[#1a4d35] cursor-pointer hover:border-[#14b8a6] transition-all"
+            className="bg-gradient-to-r from-card to-secondary rounded-2xl p-4 border border-border cursor-pointer hover:border-primary transition-all"
             onClick={() => navigate('/dhikr')}
           >
-            <p className="text-gray-400 text-xs">{t('todaysDhikr')}</p>
-            <p className="text-xl font-bold text-[#14b8a6] mt-0.5">
+            <p className="text-muted-foreground text-xs">{t('todaysDhikr')}</p>
+            <p className="text-xl font-bold text-primary mt-0.5">
               {localStorage.getItem(`dhikr_total_${new Date().toDateString()}`) || '0'}
             </p>
-            <p className="text-gray-500 text-sm">{t('tapToContinue')}</p>
+            <p className="text-muted-foreground text-sm">{t('tapToContinue')}</p>
           </div>
         </div>
 
         {/* Daily Verse */}
         {dailyVerse && (
-          <div className="mb-6 bg-[#0f3d2a] rounded-2xl border border-[#1a4d35] p-5 text-center">
+          <div className="mb-6 bg-card rounded-2xl border border-border p-5 text-center">
             <p className="text-xs text-[#d4a853] font-medium mb-2">📖 {t('verseOfDay')}</p>
-            <p className="text-xl font-arabic text-white leading-relaxed mb-2">{dailyVerse.arabic}</p>
-            <p className="text-sm text-gray-400 italic">{dailyVerse.translation}</p>
+            <p className="text-xl font-arabic text-foreground leading-relaxed mb-2">{dailyVerse.arabic}</p>
+            <p className="text-sm text-muted-foreground italic">{dailyVerse.translation}</p>
             <p className="text-xs text-[#d4a853] mt-2">{dailyVerse.reference}</p>
           </div>
         )}
 
         {/* Quick Actions Grid */}
-        <h3 className="text-sm font-semibold text-gray-400 mb-3">{t('quickActions')}</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('quickActions')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {filteredNavItems.map(item => (
             <QuickAction key={item.path} icon={item.icon} title={item.title} description={item.description} onClick={() => navigate(item.path)} />
@@ -344,12 +344,12 @@ export default function HomePage() {
 function QuickAction({ icon, title, description, onClick }: { icon: string; title: string; description: string; onClick?: () => void }) {
   return (
     <div
-      className="p-4 rounded-2xl bg-[#0f3d2a] border border-[#1a4d35] hover:border-[#14b8a6] cursor-pointer active:scale-95 transition-all"
+      className="p-4 rounded-2xl bg-card border border-border hover:border-primary cursor-pointer active:scale-95 transition-all"
       onClick={onClick}
     >
       <div className="text-2xl mb-2">{icon}</div>
-      <h3 className="font-semibold text-white text-sm">{title}</h3>
-      <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+      <h3 className="font-semibold text-foreground text-sm">{title}</h3>
+      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
     </div>
   );
 }

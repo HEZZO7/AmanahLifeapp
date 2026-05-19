@@ -86,10 +86,10 @@ export default function TaskManager() {
   const completedCount = filteredTasks.filter((t) => t.completed).length;
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
-      <header className="sticky top-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-sm border-b border-[#1a4d35] px-4 py-4">
-        <h1 className="text-xl font-bold text-white">{t('tasks')}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
+        <h1 className="text-xl font-bold text-foreground">{t('tasks')}</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
           {completedCount}/{filteredTasks.length} {t('completed')}
         </p>
       </header>
@@ -105,8 +105,8 @@ export default function TaskManager() {
               onClick={() => setSelectedDate(day.toDateString())}
               className={`flex-shrink-0 w-12 py-2 rounded-xl text-center transition-all ${
                 isSelected
-                  ? 'bg-[#14b8a6] text-white'
-                  : 'bg-[#0f3d2a] text-gray-400 hover:bg-[#1a4d35]'
+                  ? 'bg-primary text-white'
+                  : 'bg-card text-muted-foreground hover:bg-secondary'
               }`}
             >
               <p className="text-[10px]">{dayNames[day.getDay()]}</p>
@@ -125,7 +125,7 @@ export default function TaskManager() {
             className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               filter === cat
                 ? 'bg-[#d4a853] text-white'
-                : 'bg-[#0f3d2a] text-gray-400 hover:bg-[#1a4d35]'
+                : 'bg-card text-muted-foreground hover:bg-secondary'
             }`}
           >
             {cat === 'all' ? t('all') : `${CATEGORY_ICONS[cat]} ${t(cat)}`}
@@ -136,27 +136,27 @@ export default function TaskManager() {
       {/* Tasks List */}
       <div className="px-4 py-3 space-y-2">
         {filteredTasks.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No tasks for this day</p>
+          <p className="text-center text-muted-foreground py-8">No tasks for this day</p>
         )}
         {filteredTasks.map((task) => (
           <div
             key={task.id}
             className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${
               task.completed
-                ? 'bg-[#14b8a6]/5 border-[#14b8a6]/20 opacity-60'
-                : 'bg-[#0f3d2a] border-[#1a4d35]'
+                ? 'bg-primary/5 border-primary/20 opacity-60'
+                : 'bg-card border-border'
             }`}
           >
             <button
               onClick={() => toggleTask(task.id)}
               className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                task.completed ? 'border-[#14b8a6] bg-[#14b8a6]' : 'border-gray-500'
+                task.completed ? 'border-primary bg-primary' : 'border-muted-foreground'
               }`}
             >
               {task.completed && <span className="text-white text-xs">✓</span>}
             </button>
             <div className="flex-1 min-w-0">
-              <p className={`text-white text-sm ${task.completed ? 'line-through' : ''}`}>{task.title}</p>
+              <p className={`text-foreground text-sm ${task.completed ? 'line-through' : ''}`}>{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs">{CATEGORY_ICONS[task.category]}</span>
                 <span
@@ -169,7 +169,7 @@ export default function TaskManager() {
             </div>
             <button
               onClick={() => deleteTask(task.id)}
-              className="text-gray-500 hover:text-red-400 text-sm"
+              className="text-muted-foreground hover:text-red-400 text-sm"
             >
               ✕
             </button>
@@ -180,17 +180,17 @@ export default function TaskManager() {
       {/* Add Task Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-          <div className="w-full bg-[#0f3d2a] rounded-t-3xl p-6 space-y-4">
-            <h3 className="text-white font-semibold text-lg">{t('addTask')}</h3>
+          <div className="w-full bg-card rounded-t-3xl p-6 space-y-4">
+            <h3 className="text-foreground font-semibold text-lg">{t('addTask')}</h3>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('title')}
-              className="w-full p-3 rounded-xl bg-[#1a4d35] text-white placeholder-gray-500 border border-[#1a4d35] focus:border-[#14b8a6] outline-none"
+              className="w-full p-3 rounded-xl bg-secondary text-foreground placeholder-muted-foreground border border-border focus:border-primary outline-none"
             />
             <div>
-              <p className="text-gray-400 text-sm mb-2">{t('priority')}</p>
+              <p className="text-muted-foreground text-sm mb-2">{t('priority')}</p>
               <div className="flex gap-2">
                 {(['high', 'medium', 'low'] as Priority[]).map((p) => (
                   <button
@@ -199,7 +199,7 @@ export default function TaskManager() {
                     className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       priority === p
                         ? 'text-white'
-                        : 'bg-[#1a4d35] text-gray-400'
+                        : 'bg-secondary text-muted-foreground'
                     }`}
                     style={priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : {}}
                   >
@@ -209,7 +209,7 @@ export default function TaskManager() {
               </div>
             </div>
             <div>
-              <p className="text-gray-400 text-sm mb-2">{t('category')}</p>
+              <p className="text-muted-foreground text-sm mb-2">{t('category')}</p>
               <div className="flex gap-2">
                 {(['worship', 'work', 'personal', 'health'] as Category[]).map((c) => (
                   <button
@@ -218,7 +218,7 @@ export default function TaskManager() {
                     className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       category === c
                         ? 'bg-[#d4a853] text-white'
-                        : 'bg-[#1a4d35] text-gray-400'
+                        : 'bg-secondary text-muted-foreground'
                     }`}
                   >
                     {CATEGORY_ICONS[c]} {t(c)}
@@ -229,13 +229,13 @@ export default function TaskManager() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 p-3 rounded-xl bg-[#1a4d35] text-gray-400"
+                className="flex-1 p-3 rounded-xl bg-secondary text-muted-foreground"
               >
                 Cancel
               </button>
               <button
                 onClick={addTask}
-                className="flex-1 p-3 rounded-xl bg-[#14b8a6] text-white font-semibold"
+                className="flex-1 p-3 rounded-xl bg-primary text-white font-semibold"
               >
                 {t('addTask')}
               </button>
@@ -247,7 +247,7 @@ export default function TaskManager() {
       {/* FAB */}
       <button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-[#14b8a6] text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
       >
         +
       </button>

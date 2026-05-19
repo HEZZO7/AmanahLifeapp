@@ -107,10 +107,10 @@ export default function Adhkar() {
   const totalDone = currentCategory.items.reduce((sum, item) => sum + Math.min(progress[item.id] || 0, item.count), 0);
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
-      <header className="sticky top-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-sm border-b border-[#1a4d35] px-4 py-4">
-        <h1 className="text-xl font-bold text-white">{t('adhkar')}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{totalDone}/{totalRequired} {t('completed')}</p>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
+        <h1 className="text-xl font-bold text-foreground">{t('adhkar')}</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">{totalDone}/{totalRequired} {t('completed')}</p>
       </header>
 
       {/* Category Tabs */}
@@ -121,8 +121,8 @@ export default function Adhkar() {
             onClick={() => setSelectedCategory(cat.id)}
             className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm transition-all ${
               selectedCategory === cat.id
-                ? 'bg-[#14b8a6] text-white'
-                : 'bg-[#0f3d2a] text-gray-400 hover:bg-[#1a4d35]'
+                ? 'bg-primary text-white'
+                : 'bg-card text-muted-foreground hover:bg-secondary'
             }`}
           >
             {cat.icon} {language === 'ar' ? cat.nameAr : cat.nameEn}
@@ -132,7 +132,7 @@ export default function Adhkar() {
 
       {/* Overall Progress */}
       <div className="px-4 py-2">
-        <div className="w-full h-2 bg-[#1a4d35] rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
           <div
             className="h-full bg-[#d4a853] rounded-full transition-all duration-300"
             style={{ width: `${totalRequired > 0 ? (totalDone / totalRequired) * 100 : 0}%` }}
@@ -150,30 +150,30 @@ export default function Adhkar() {
               key={item.id}
               className={`p-4 rounded-2xl border transition-all ${
                 isDone
-                  ? 'bg-[#14b8a6]/10 border-[#14b8a6]/30'
-                  : 'bg-[#0f3d2a] border-[#1a4d35]'
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-card border-border'
               }`}
             >
-              <p className="text-white font-arabic text-lg leading-relaxed mb-2 text-right">{item.arabic}</p>
-              <p className="text-gray-400 text-xs italic mb-1">{item.transliteration}</p>
-              <p className="text-gray-500 text-xs mb-3">{item.translation}</p>
+              <p className="text-foreground font-arabic text-lg leading-relaxed mb-2 text-right">{item.arabic}</p>
+              <p className="text-muted-foreground text-xs italic mb-1">{item.transliteration}</p>
+              <p className="text-muted-foreground text-xs mb-3">{item.translation}</p>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-24 h-1.5 bg-[#1a4d35] rounded-full overflow-hidden">
+                  <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#14b8a6] rounded-full transition-all"
+                      className="h-full bg-primary rounded-full transition-all"
                       style={{ width: `${(current / item.count) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-gray-400">{current}/{item.count}</span>
+                  <span className="text-xs text-muted-foreground">{current}/{item.count}</span>
                 </div>
                 <button
                   onClick={() => increment(item.id, item.count)}
                   disabled={isDone}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                     isDone
-                      ? 'bg-[#14b8a6]/20 text-[#14b8a6]'
-                      : 'bg-[#14b8a6] text-white active:scale-90'
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-primary text-white active:scale-90'
                   }`}
                 >
                   {isDone ? '✓' : '+1'}

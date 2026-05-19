@@ -80,23 +80,23 @@ export default function Planner() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] dark:bg-[#0a2e1f] pb-20">
-      <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-white">📅 {t('planner')}</h1>
+          <h1 className="text-xl font-bold text-foreground">📅 {t('planner')}</h1>
           {hijriDate && <span className="text-xs text-[#d4a853]">{hijriDate}</span>}
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* View Tabs */}
-        <div className="flex bg-[#0f3d2a] rounded-xl p-1 mb-4 border border-[#1a4d35]">
+        <div className="flex bg-card rounded-xl p-1 mb-4 border border-border">
           {(['agenda', 'weekly', 'monthly'] as ViewMode[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                view === v ? 'bg-[#14b8a6] text-white' : 'text-gray-400'
+                view === v ? 'bg-primary text-white' : 'text-muted-foreground'
               }`}
             >
               {t(v)}
@@ -108,26 +108,26 @@ export default function Planner() {
         {view === 'agenda' && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm text-gray-400">{t('today')} — {new Date().toLocaleDateString()}</h3>
-              <span className="text-xs text-[#14b8a6]">{todayTasks.length} {t('tasks').toLowerCase()}</span>
+              <h3 className="text-sm text-muted-foreground">{t('today')} — {new Date().toLocaleDateString()}</h3>
+              <span className="text-xs text-primary">{todayTasks.length} {t('tasks').toLowerCase()}</span>
             </div>
             {todayTasks.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-muted-foreground">
                 <p className="text-4xl mb-2">✨</p>
                 <p>{t('noTasks')}</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {todayTasks.map(task => (
-                  <div key={task.id} className="bg-[#0f3d2a] rounded-xl p-3 border border-[#1a4d35] flex items-center gap-3">
+                  <div key={task.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      task.completed ? 'bg-[#14b8a6]' : task.priority === 'high' ? 'bg-red-400' : task.priority === 'medium' ? 'bg-[#d4a853]' : 'bg-gray-500'
+                      task.completed ? 'bg-primary' : task.priority === 'high' ? 'bg-red-400' : task.priority === 'medium' ? 'bg-[#d4a853]' : 'bg-muted-foreground'
                     }`} />
                     <div className="flex-1">
-                      <p className={`text-sm ${task.completed ? 'text-gray-500 line-through' : 'text-white'}`}>{task.title}</p>
-                      <p className="text-[10px] text-gray-500">{task.category} • {task.priority}</p>
+                      <p className={`text-sm ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{task.category} • {task.priority}</p>
                     </div>
-                    {task.completed && <span className="text-[#14b8a6] text-xs">✓</span>}
+                    {task.completed && <span className="text-primary text-xs">✓</span>}
                   </div>
                 ))}
               </div>
@@ -145,17 +145,17 @@ export default function Planner() {
                 <div
                   key={i}
                   className={`flex items-center justify-between p-3 rounded-xl border ${
-                    isToday ? 'bg-[#14b8a6]/10 border-[#14b8a6]' : 'bg-[#0f3d2a] border-[#1a4d35]'
+                    isToday ? 'bg-primary/10 border-primary' : 'bg-card border-border'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center ${
-                      isToday ? 'bg-[#14b8a6] text-white' : 'bg-[#0a2e1f] text-gray-400'
+                      isToday ? 'bg-primary text-white' : 'bg-background text-muted-foreground'
                     }`}>
                       <span className="text-[10px]">{day.toLocaleDateString('en', { weekday: 'short' })}</span>
                       <span className="text-sm font-bold">{day.getDate()}</span>
                     </div>
-                    <span className={`text-sm ${isToday ? 'text-white font-medium' : 'text-gray-400'}`}>
+                    <span className={`text-sm ${isToday ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                       {isToday ? t('today') : day.toLocaleDateString('en', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
@@ -173,12 +173,12 @@ export default function Planner() {
         {/* Monthly View */}
         {view === 'monthly' && (
           <div>
-            <h3 className="text-center text-white font-medium mb-3">
+            <h3 className="text-center text-foreground font-medium mb-3">
               {new Date().toLocaleDateString('en', { month: 'long', year: 'numeric' })}
             </h3>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                <div key={d} className="text-center text-[10px] text-gray-500 py-1">{d}</div>
+                <div key={d} className="text-center text-[10px] text-muted-foreground py-1">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -191,7 +191,7 @@ export default function Planner() {
                   <div
                     key={i}
                     className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm ${
-                      isToday ? 'bg-[#14b8a6] text-white font-bold' : 'text-gray-400'
+                      isToday ? 'bg-primary text-white font-bold' : 'text-muted-foreground'
                     }`}
                   >
                     {day}

@@ -58,18 +58,18 @@ export default function DailyRoutine() {
   const completedCount = routines.filter((r) => r.completed).length;
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-sm border-b border-[#1a4d35] px-4 py-4">
-        <h1 className="text-xl font-bold text-white">{t('dailyRoutine')}</h1>
-        <p className="text-gray-400 text-sm mt-0.5">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
+        <h1 className="text-xl font-bold text-foreground">{t('dailyRoutine')}</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
           {completedCount}/{routines.length} {t('completed')}
         </p>
       </header>
 
       {/* Progress Bar */}
       <div className="px-4 py-4">
-        <div className="w-full h-3 bg-[#1a4d35] rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
           <div
             className="h-full bg-[#d4a853] rounded-full transition-all duration-500"
             style={{ width: `${routines.length > 0 ? (completedCount / routines.length) * 100 : 0}%` }}
@@ -84,19 +84,19 @@ export default function DailyRoutine() {
             key={routine.id}
             className={`p-4 rounded-2xl border transition-all ${
               routine.completed
-                ? 'bg-[#14b8a6]/10 border-[#14b8a6]/30'
-                : 'bg-[#0f3d2a] border-[#1a4d35]'
+                ? 'bg-primary/10 border-primary/30'
+                : 'bg-card border-border'
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{routine.icon}</span>
                 <div>
-                  <h3 className={`font-semibold text-white ${routine.completed ? 'line-through opacity-60' : ''}`}>
+                  <h3 className={`font-semibold text-foreground ${routine.completed ? 'line-through opacity-60' : ''}`}>
                     {language === 'ar' ? routine.nameAr : routine.nameEn}
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-gray-400">{routine.duration} {t('minutes')}</span>
+                    <span className="text-xs text-muted-foreground">{routine.duration} {t('minutes')}</span>
                     <span className="text-xs text-[#d4a853]">🔥 {routine.streak} {t('days')}</span>
                   </div>
                 </div>
@@ -105,8 +105,8 @@ export default function DailyRoutine() {
                 onClick={() => toggleRoutine(routine.id)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                   routine.completed
-                    ? 'bg-[#14b8a6] text-white'
-                    : 'bg-[#1a4d35] text-gray-400 hover:bg-[#14b8a6]/20'
+                    ? 'bg-primary text-white'
+                    : 'bg-secondary text-muted-foreground hover:bg-primary/20'
                 }`}
               >
                 {routine.completed ? '✓' : '○'}

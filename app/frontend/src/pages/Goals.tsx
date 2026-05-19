@@ -93,13 +93,13 @@ export default function Goals() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] dark:bg-[#0a2e1f] pb-20">
-      <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-white">🎯 {t('goals')}</h1>
+          <h1 className="text-xl font-bold text-foreground">🎯 {t('goals')}</h1>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-[#14b8a6] text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
           >
             + {t('addGoal')}
           </button>
@@ -109,18 +109,18 @@ export default function Goals() {
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Add Goal Form */}
         {showForm && (
-          <div className="bg-[#0f3d2a] rounded-2xl p-4 mb-4 border border-[#1a4d35]">
+          <div className="bg-card rounded-2xl p-4 mb-4 border border-border">
             <input
               type="text"
               placeholder={t('title')}
               value={newGoal.title}
               onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-              className="w-full bg-[#0a2e1f] border border-[#1a4d35] rounded-lg px-3 py-2 text-white text-sm mb-3 focus:outline-none focus:border-[#14b8a6]"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm mb-3 focus:outline-none focus:border-primary"
             />
             <select
               value={newGoal.category}
               onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value as Goal['category'] })}
-              className="w-full bg-[#0a2e1f] border border-[#1a4d35] rounded-lg px-3 py-2 text-white text-sm mb-3 focus:outline-none focus:border-[#14b8a6]"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm mb-3 focus:outline-none focus:border-primary"
             >
               <option value="Personal">{t('personal')}</option>
               <option value="Financial">{t('financial')}</option>
@@ -131,13 +131,13 @@ export default function Goals() {
               type="date"
               value={newGoal.targetDate}
               onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
-              className="w-full bg-[#0a2e1f] border border-[#1a4d35] rounded-lg px-3 py-2 text-white text-sm mb-3 focus:outline-none focus:border-[#14b8a6]"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm mb-3 focus:outline-none focus:border-primary"
             />
             <div className="flex gap-2">
-              <button onClick={addGoal} className="flex-1 bg-[#14b8a6] text-white py-2 rounded-lg text-sm font-medium">
+              <button onClick={addGoal} className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-medium">
                 {t('save')}
               </button>
-              <button onClick={() => setShowForm(false)} className="flex-1 bg-[#1a4d35] text-gray-300 py-2 rounded-lg text-sm">
+              <button onClick={() => setShowForm(false)} className="flex-1 bg-secondary text-muted-foreground py-2 rounded-lg text-sm">
                 {t('cancel')}
               </button>
             </div>
@@ -151,7 +151,7 @@ export default function Goals() {
               key={cat}
               onClick={() => setFilterCategory(cat)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                filterCategory === cat ? 'bg-[#14b8a6] text-white' : 'bg-[#0f3d2a] text-gray-400 border border-[#1a4d35]'
+                filterCategory === cat ? 'bg-primary text-white' : 'bg-card text-muted-foreground border border-border'
               }`}
             >
               {cat === 'All' ? t('all') : t(cat.toLowerCase())}
@@ -164,7 +164,7 @@ export default function Goals() {
               key={st}
               onClick={() => setFilterStatus(st)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                filterStatus === st ? 'bg-[#d4a853] text-white' : 'bg-[#0f3d2a] text-gray-400 border border-[#1a4d35]'
+                filterStatus === st ? 'bg-[#d4a853] text-white' : 'bg-card text-muted-foreground border border-border'
               }`}
             >
               {st === 'All' ? t('all') : st === 'Active' ? t('active') : st === 'Completed' ? t('completed') : t('paused')}
@@ -174,7 +174,7 @@ export default function Goals() {
 
         {/* Goals List */}
         {filteredGoals.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-muted-foreground">
             <p className="text-4xl mb-2">🎯</p>
             <p>{t('addGoal')}</p>
           </div>
@@ -182,22 +182,22 @@ export default function Goals() {
 
         <div className="space-y-3">
           {filteredGoals.map(goal => (
-            <div key={goal.id} className="bg-[#0f3d2a] rounded-2xl p-4 border border-[#1a4d35]">
+            <div key={goal.id} className="bg-card rounded-2xl p-4 border border-border">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{CATEGORY_ICONS[goal.category]}</span>
                   <div>
-                    <h3 className="text-white font-medium text-sm">{goal.title}</h3>
-                    <p className="text-xs text-gray-500">{goal.category} • {goal.targetDate || 'No deadline'}</p>
+                    <h3 className="text-foreground font-medium text-sm">{goal.title}</h3>
+                    <p className="text-xs text-muted-foreground">{goal.category} • {goal.targetDate || 'No deadline'}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => toggleStatus(goal.id)}
                     className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                      goal.status === 'Active' ? 'bg-[#14b8a6]/20 text-[#14b8a6]' :
+                      goal.status === 'Active' ? 'bg-primary/20 text-primary' :
                       goal.status === 'Completed' ? 'bg-[#d4a853]/20 text-[#d4a853]' :
-                      'bg-gray-600/20 text-gray-400'
+                      'bg-muted/20 text-muted-foreground'
                     }`}
                   >
                     {goal.status === 'Active' ? t('active') : goal.status === 'Completed' ? t('completed') : t('paused')}
@@ -208,11 +208,11 @@ export default function Goals() {
 
               {/* Progress Bar */}
               <div className="mb-2">
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span>{t('progress')}</span>
                   <span className="text-[#d4a853]">{goal.progress}%</span>
                 </div>
-                <div className="h-2 bg-[#0a2e1f] rounded-full overflow-hidden">
+                <div className="h-2 bg-background rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#14b8a6] to-[#d4a853] rounded-full transition-all"
                     style={{ width: `${goal.progress}%` }}
@@ -228,14 +228,14 @@ export default function Goals() {
                       key={val}
                       onClick={() => updateProgress(goal.id, val)}
                       className={`px-2 py-0.5 rounded text-[10px] ${
-                        goal.progress >= val ? 'bg-[#14b8a6]/30 text-[#14b8a6]' : 'bg-[#0a2e1f] text-gray-500'
+                        goal.progress >= val ? 'bg-primary/30 text-primary' : 'bg-background text-muted-foreground'
                       }`}
                     >
                       {val}%
                     </button>
                   ))}
                 </div>
-                <span className="text-[10px] text-gray-500">
+                <span className="text-[10px] text-muted-foreground">
                   {t('linkedTasks')}: {getLinkedTasksCount(goal.title)}
                 </span>
               </div>
