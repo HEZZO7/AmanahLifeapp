@@ -1,16 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-
-const NAV_ITEMS = [
-  { path: '/', icon: '🏠', label: 'Home' },
-  { path: '/prayer-times', icon: '🕌', label: 'Prayer' },
-  { path: '/quran', icon: '📖', label: 'Quran' },
-  { path: '/dhikr', icon: '📿', label: 'Dhikr' },
-  { path: '/duas', icon: '🤲', label: 'Duas' },
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
+
+  const NAV_ITEMS = [
+    { path: '/', icon: '🏠', label: t('home') },
+    { path: '/tasks', icon: '✅', label: t('tasks') },
+    { path: '/goals', icon: '🎯', label: t('goals') },
+    { path: '/finance', icon: '💰', label: t('finance') },
+    { path: '/settings', icon: '⚙️', label: t('settings') },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a2e1f]/95 backdrop-blur-md border-t border-[#1a4d35] shadow-lg">

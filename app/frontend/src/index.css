@@ -6,23 +6,23 @@
 
 @layer base {
   :root {
-    --background: 155 53% 11%;
-    --foreground: 0 0% 95%;
+    --background: 150 10% 98%;
+    --foreground: 155 53% 11%;
 
-    --card: 155 53% 15%;
-    --card-foreground: 0 0% 95%;
+    --card: 150 10% 96%;
+    --card-foreground: 155 53% 11%;
 
-    --popover: 155 53% 15%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 150 10% 96%;
+    --popover-foreground: 155 53% 11%;
 
     --primary: 174 64% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 155 53% 20%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 150 10% 92%;
+    --secondary-foreground: 155 53% 15%;
 
-    --muted: 155 53% 20%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 150 10% 92%;
+    --muted-foreground: 155 20% 40%;
 
     --accent: 40 60% 58%;
     --accent-foreground: 0 0% 100%;
@@ -30,19 +30,19 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 155 30% 25%;
-    --input: 155 30% 25%;
+    --border: 150 10% 88%;
+    --input: 150 10% 88%;
     --ring: 174 64% 40%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 155 53% 11%;
-    --sidebar-foreground: 0 0% 95%;
+    --sidebar-background: 150 10% 98%;
+    --sidebar-foreground: 155 53% 11%;
     --sidebar-primary: 174 64% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 155 53% 20%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 155 30% 25%;
+    --sidebar-accent: 150 10% 92%;
+    --sidebar-accent-foreground: 155 53% 15%;
+    --sidebar-border: 150 10% 88%;
     --sidebar-ring: 174 64% 40%;
   }
 
@@ -93,6 +93,9 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  .dark body {
     background-color: #0a2e1f;
     color: #f3f4f6;
   }
@@ -139,4 +142,17 @@
   .border-dark-green {
     border-color: #1a4d35;
   }
+}
+
+/* RTL utilities */
+[dir="rtl"] .rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+[dir="rtl"] .rtl\:text-right {
+  text-align: right;
+}
+
+[dir="rtl"] .rtl\:text-left {
+  text-align: left;
 }

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, hasLanguagePreference } from '@/contexts/LanguageContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
@@ -21,6 +22,10 @@ import FastingTracker from './pages/FastingTracker';
 import TaskManager from './pages/TaskManager';
 import Adhkar from './pages/Adhkar';
 import Finance from './pages/Finance';
+import Goals from './pages/Goals';
+import Wellness from './pages/Wellness';
+import Planner from './pages/Planner';
+import Settings from './pages/Settings';
 
 const queryClient = new QueryClient();
 
@@ -50,6 +55,10 @@ const AppRoutes = () => (
     <Route path="/tasks" element={<TaskManager />} />
     <Route path="/adhkar" element={<Adhkar />} />
     <Route path="/finance" element={<Finance />} />
+    <Route path="/goals" element={<Goals />} />
+    <Route path="/wellness" element={<Wellness />} />
+    <Route path="/planner" element={<Planner />} />
+    <Route path="/settings" element={<Settings />} />
   </Routes>
 );
 
@@ -58,11 +67,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
-        <LanguageProvider>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

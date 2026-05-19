@@ -36,6 +36,14 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 3: Habit/Goals Tracker (activity days, daily average, Ramadan countdown, reading progress)
 - [x] Phase 3: Morning & Evening Adhkar (categorized, count tracking, progress bar, swipeable)
 - [x] Phase 3: Financial Tracker (المالية - income categories, savings rate, transactions)
+- [ ] Phase 4: Goals Page (categories, progress tracking, task linking, status management)
+- [ ] Phase 4: Wellness Page (mood/sleep/hydration/stress logging, trend chart, wellness score)
+- [ ] Phase 4: Planner/Schedule Page (agenda, weekly/monthly calendar, Hijri+Gregorian)
+- [ ] Phase 4: Settings Page (profile, theme, language, currency, toggles, sign out)
+- [ ] Phase 4: Enhanced Homepage Dashboard (search, overdue alerts, daily summary, shortcuts)
+- [ ] Phase 4: Light/Dark Theme Toggle (proper dual theme with CSS variables)
+- [ ] Phase 4: RTL Support Enhancement (full RTL layout for Arabic)
+- [ ] Phase 4: Data Export (financial summary, transactions, goals as downloadable files)
 
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing

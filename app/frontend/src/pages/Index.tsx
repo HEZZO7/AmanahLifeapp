@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 
@@ -19,6 +19,7 @@ export default function HomePage() {
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
   const [dailyVerse, setDailyVerse] = useState<{ arabic: string; translation: string; reference: string } | null>(null);
   const [streak, setStreak] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,9 +75,7 @@ export default function HomePage() {
               }
               setNextPrayer({ name: 'Fajr (tomorrow)', time: timings.Fajr });
             },
-            () => {
-              // Location denied
-            }
+            () => { /* Location denied */ }
           );
         }
       } catch {
@@ -125,6 +124,63 @@ export default function HomePage() {
     setStreak(currentStreak);
   }, []);
 
+  // Daily summary data
+  const dailySummary = useMemo(() => {
+    const tasks = JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayTasks = tasks.filter((t: { date?: string }) => !t.date || t.date === todayStr);
+    const doneTasks = todayTasks.filter((t: { completed?: boolean }) => t.completed);
+
+    const prayerData = localStorage.getItem(`prayer_completed_${new Date().toDateString()}`);
+    const prayersDone = prayerData ? JSON.parse(prayerData).length : 0;
+
+    const goals = JSON.parse(localStorage.getItem('amanah-goals') || '[]');
+    const activeGoals = goals.filter((g: { status?: string }) => g.status === 'Active').length;
+
+    const transactions = JSON.parse(localStorage.getItem('amanah-transactions') || '[]');
+    const balance = transactions.reduce((acc: number, t: { type?: string; amount?: number }) => {
+      return acc + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0));
+    }, 0);
+
+    // Overdue tasks
+    const overdueTasks = tasks.filter((t: { date?: string; completed?: boolean }) => {
+      if (!t.date || t.completed) return false;
+      return t.date < todayStr;
+    });
+
+    return {
+      tasksDone: doneTasks.length,
+      tasksTotal: todayTasks.length,
+      prayersDone,
+      activeGoals,
+      balance,
+      overdueCount: overdueTasks.length,
+    };
+  }, []);
+
+  // Navigation items for search
+  const navItems = [
+    { icon: '🕌', title: t('prayer'), description: 'Track daily prayers', path: '/prayer-times' },
+    { icon: '📖', title: t('quran'), description: 'Read & bookmark', path: '/quran' },
+    { icon: '🤲', title: t('duas'), description: 'Supplications', path: '/duas' },
+    { icon: '📿', title: t('dhikr'), description: 'Remembrance', path: '/dhikr' },
+    { icon: '🌅', title: t('dailyRoutine'), description: 'Daily habits', path: '/daily-routine' },
+    { icon: '🌙', title: t('fasting'), description: 'Track fasting', path: '/fasting' },
+    { icon: '✅', title: t('tasks'), description: 'Manage tasks', path: '/tasks' },
+    { icon: '📿', title: t('adhkar'), description: 'Morning & Evening', path: '/adhkar' },
+    { icon: '💰', title: t('finance'), description: 'Track finances', path: '/finance' },
+    { icon: '🧭', title: t('qibla'), description: 'Find direction', path: '/qibla' },
+    { icon: '💎', title: t('zakat'), description: 'Calculator', path: '/zakat' },
+    { icon: '📅', title: t('calendar'), description: 'Hijri dates', path: '/calendar' },
+    { icon: '🎯', title: t('goals'), description: 'Track goals', path: '/goals' },
+    { icon: '💚', title: t('wellness'), description: 'Health tracking', path: '/wellness' },
+    { icon: '📋', title: t('planner'), description: 'Plan your day', path: '/planner' },
+  ];
+
+  const filteredNavItems = navItems.filter(item =>
+    !searchQuery || item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a2e1f]">
@@ -147,11 +203,11 @@ export default function HomePage() {
             <h1 className="text-xl font-bold text-white">AmanahLife</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#0f3d2a] flex items-center justify-center">
+            <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full bg-[#0f3d2a] flex items-center justify-center">
               <svg className="w-5 h-5 text-[#14b8a6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-            </div>
+            </button>
             <Button variant="ghost" size="sm" onClick={signOut} className="text-gray-400 hover:text-white hover:bg-[#1a4d35]">
               {t('signOut')}
             </Button>
@@ -162,7 +218,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Welcome + Hijri Date */}
-        <div className="mb-6 flex items-start justify-between">
+        <div className="mb-4 flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">{t('assalamuAlaikum')}</h2>
             <p className="text-gray-400 mt-1">{t('islamicCompanion')}</p>
@@ -173,6 +229,63 @@ export default function HomePage() {
               <p className="text-[10px] text-gray-400">{hijriDate.year} AH</p>
             </div>
           )}
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <input
+            type="text"
+            placeholder={`🔍 ${t('search')}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0f3d2a] border border-[#1a4d35] rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[#14b8a6]"
+          />
+        </div>
+
+        {/* Overdue Alert */}
+        {dailySummary.overdueCount > 0 && (
+          <div
+            className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3 cursor-pointer"
+            onClick={() => navigate('/tasks')}
+          >
+            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+              {dailySummary.overdueCount}
+            </span>
+            <p className="text-red-300 text-sm">{t('overdue')} {t('tasks').toLowerCase()}</p>
+          </div>
+        )}
+
+        {/* Daily Summary */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
+            <p className="text-[10px] text-gray-500">{t('tasks')}</p>
+            <p className="text-sm font-bold text-white">{dailySummary.tasksDone}/{dailySummary.tasksTotal}</p>
+          </div>
+          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
+            <p className="text-[10px] text-gray-500">{t('prayer')}</p>
+            <p className="text-sm font-bold text-white">{dailySummary.prayersDone}/5</p>
+          </div>
+          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
+            <p className="text-[10px] text-gray-500">{t('goals')}</p>
+            <p className="text-sm font-bold text-[#d4a853]">{dailySummary.activeGoals}</p>
+          </div>
+          <div className="bg-[#0f3d2a] rounded-xl p-2.5 text-center border border-[#1a4d35]">
+            <p className="text-[10px] text-gray-500">{t('savings')}</p>
+            <p className="text-sm font-bold text-[#14b8a6]">{dailySummary.balance >= 0 ? '+' : ''}{dailySummary.balance}</p>
+          </div>
+        </div>
+
+        {/* Quick Shortcuts */}
+        <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
+          <button onClick={() => navigate('/tasks')} className="bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+            ✅ {t('todaysTasks')}
+          </button>
+          <button onClick={() => navigate('/goals')} className="bg-[#d4a853]/10 border border-[#d4a853]/30 text-[#d4a853] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+            🎯 {t('activeGoals')}
+          </button>
+          <button onClick={() => navigate('/finance')} className="bg-[#14b8a6]/10 border border-[#14b8a6]/30 text-[#14b8a6] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+            💰 {t('recentTransactions')}
+          </button>
         </div>
 
         {/* Top Widgets Row */}
@@ -219,18 +332,9 @@ export default function HomePage() {
         {/* Quick Actions Grid */}
         <h3 className="text-sm font-semibold text-gray-400 mb-3">{t('quickActions')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction icon="🕌" title={t('prayer')} description="Track daily prayers" onClick={() => navigate('/prayer-times')} />
-          <QuickAction icon="📖" title={t('quran')} description="Read & bookmark" onClick={() => navigate('/quran')} />
-          <QuickAction icon="🤲" title={t('duas')} description="Supplications" onClick={() => navigate('/duas')} />
-          <QuickAction icon="📿" title={t('dhikr')} description="Remembrance" onClick={() => navigate('/dhikr')} />
-          <QuickAction icon="🌅" title={t('dailyRoutine')} description="Daily habits" onClick={() => navigate('/daily-routine')} />
-          <QuickAction icon="🌙" title={t('fasting')} description="Track fasting" onClick={() => navigate('/fasting')} />
-          <QuickAction icon="✅" title={t('tasks')} description="Manage tasks" onClick={() => navigate('/tasks')} />
-          <QuickAction icon="📿" title={t('adhkar')} description="Morning & Evening" onClick={() => navigate('/adhkar')} />
-          <QuickAction icon="💰" title={t('finance')} description="Track finances" onClick={() => navigate('/finance')} />
-          <QuickAction icon="🧭" title={t('qibla')} description="Find direction" onClick={() => navigate('/qibla')} />
-          <QuickAction icon="💎" title={t('zakat')} description="Calculator" onClick={() => navigate('/zakat')} />
-          <QuickAction icon="📅" title={t('calendar')} description="Hijri dates" onClick={() => navigate('/calendar')} />
+          {filteredNavItems.map(item => (
+            <QuickAction key={item.path} icon={item.icon} title={item.title} description={item.description} onClick={() => navigate(item.path)} />
+          ))}
         </div>
       </main>
 
