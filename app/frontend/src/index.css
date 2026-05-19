@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +100,24 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .font-arabic {
+    font-family: 'Amiri', serif;
+    direction: rtl;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Dark mode support */
+.dark body {
+  @apply bg-gray-900 text-gray-100;
 }

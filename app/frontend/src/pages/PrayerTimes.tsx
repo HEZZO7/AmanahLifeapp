@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import BottomNav from '@/components/BottomNav';
 
 interface PrayerTime {
   name: string;
@@ -138,13 +139,11 @@ export default function PrayerTimes() {
   const completedCount = [...completed].filter((n) => n !== 'Sunrise').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-            ← Back
-          </Button>
+          <div className="w-16" />
           <h1 className="text-lg font-bold text-gray-900">🕌 Prayer Times</h1>
           <div className="w-16" />
         </div>
@@ -213,6 +212,8 @@ export default function PrayerTimes() {
           ))}
         </div>
       </main>
+
+      <BottomNav />
     </div>
   );
 }

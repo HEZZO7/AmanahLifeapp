@@ -11,6 +11,9 @@ import PrayerTimes from './pages/PrayerTimes';
 import QuranReader from './pages/QuranReader';
 import DhikrCounter from './pages/DhikrCounter';
 import DuasCollection from './pages/DuasCollection';
+import QiblaFinder from './pages/QiblaFinder';
+import ZakatCalculator from './pages/ZakatCalculator';
+import IslamicCalendar from './pages/IslamicCalendar';
 
 const queryClient = new QueryClient();
 
@@ -24,6 +27,9 @@ const AppRoutes = () => (
     <Route path="/quran" element={<QuranReader />} />
     <Route path="/dhikr" element={<DhikrCounter />} />
     <Route path="/duas" element={<DuasCollection />} />
+    <Route path="/qibla" element={<QiblaFinder />} />
+    <Route path="/zakat" element={<ZakatCalculator />} />
+    <Route path="/calendar" element={<IslamicCalendar />} />
   </Routes>
 );
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import BottomNav from '@/components/BottomNav';
 
 interface Dua {
   id: string;
@@ -159,13 +160,11 @@ export default function DuasCollection() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 pb-20">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-            ← Back
-          </Button>
+          <div className="w-16" />
           <h1 className="text-lg font-bold text-gray-900">🤲 Duas</h1>
           <div className="w-16" />
         </div>
@@ -226,6 +225,8 @@ export default function DuasCollection() {
           </div>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 }

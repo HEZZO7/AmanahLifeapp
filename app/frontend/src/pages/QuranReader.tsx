@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import BottomNav from '@/components/BottomNav';
 
 interface Surah {
   number: number;
@@ -112,13 +113,17 @@ export default function QuranReader() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 pb-20">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <Button variant="ghost" size="sm" onClick={() => selectedSurah ? (setSelectedSurah(null), setAyahs([])) : navigate('/')}>
-            ← {selectedSurah ? 'Surahs' : 'Back'}
-          </Button>
+          {selectedSurah ? (
+            <Button variant="ghost" size="sm" onClick={() => { setSelectedSurah(null); setAyahs([]); }}>
+              ← Surahs
+            </Button>
+          ) : (
+            <div className="w-16" />
+          )}
           <h1 className="text-lg font-bold text-gray-900">
             📖 {selectedSurah ? selectedSurah.englishName : 'Quran'}
           </h1>
@@ -243,6 +248,8 @@ export default function QuranReader() {
           </>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 }
