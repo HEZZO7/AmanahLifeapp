@@ -64,48 +64,56 @@ export default function HomePage() {
             title="Prayer Times"
             description="Track your daily prayers"
             color="bg-blue-50 border-blue-200"
+            onClick={() => navigate('/prayer-times')}
           />
           <QuickAction
             icon="📖"
             title="Quran"
             description="Read & track progress"
             color="bg-purple-50 border-purple-200"
+            onClick={() => navigate('/quran')}
           />
           <QuickAction
             icon="🤲"
             title="Duas"
             description="Daily supplications"
             color="bg-amber-50 border-amber-200"
+            onClick={() => navigate('/duas')}
           />
           <QuickAction
             icon="📿"
             title="Dhikr"
             description="Remembrance counter"
             color="bg-teal-50 border-teal-200"
+            onClick={() => navigate('/dhikr')}
           />
           <QuickAction
             icon="🌙"
             title="Ramadan"
             description="Fasting tracker"
             color="bg-indigo-50 border-indigo-200"
+            comingSoon
           />
           <QuickAction
             icon="💰"
             title="Zakat"
             description="Calculate & track"
             color="bg-green-50 border-green-200"
+            comingSoon
           />
           <QuickAction
             icon="🧭"
             title="Qibla"
             description="Find direction"
             color="bg-orange-50 border-orange-200"
+            comingSoon
           />
           <QuickAction
             icon="📅"
             title="Habits"
             description="Build good habits"
             color="bg-pink-50 border-pink-200"
+            comingSoon
           />
         </div>
 
@@ -114,7 +122,7 @@ export default function HomePage() {
           <div className="text-4xl mb-3">🚀</div>
           <h3 className="text-lg font-semibold text-gray-900">More Features Coming Soon</h3>
           <p className="text-gray-500 mt-2 max-w-md mx-auto">
-            We're building a comprehensive Islamic life management platform. Stay tuned for prayer tracking, Quran reading, habit building, and much more!
+            Ramadan tracker, Zakat calculator, Qibla compass, and habit building features are on the way. Stay tuned!
           </p>
         </div>
       </main>
@@ -122,9 +130,17 @@ export default function HomePage() {
   );
 }
 
-function QuickAction({ icon, title, description, color }: { icon: string; title: string; description: string; color: string }) {
+function QuickAction({ icon, title, description, color, onClick, comingSoon }: { icon: string; title: string; description: string; color: string; onClick?: () => void; comingSoon?: boolean }) {
   return (
-    <div className={`p-4 rounded-xl border ${color} hover:shadow-md transition-all cursor-pointer`}>
+    <div
+      className={`p-4 rounded-xl border ${color} ${onClick ? 'hover:shadow-md cursor-pointer' : 'opacity-70'} transition-all relative`}
+      onClick={onClick}
+    >
+      {comingSoon && (
+        <span className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
+          Soon
+        </span>
+      )}
       <div className="text-2xl mb-2">{icon}</div>
       <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
       <p className="text-xs text-gray-500 mt-0.5">{description}</p>

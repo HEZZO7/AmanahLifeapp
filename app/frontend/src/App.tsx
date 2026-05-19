@@ -7,6 +7,10 @@ import Index from './pages/Index';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
+import PrayerTimes from './pages/PrayerTimes';
+import QuranReader from './pages/QuranReader';
+import DhikrCounter from './pages/DhikrCounter';
+import DuasCollection from './pages/DuasCollection';
 
 const queryClient = new QueryClient();
 
@@ -16,6 +20,10 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />
+    <Route path="/prayer-times" element={<PrayerTimes />} />
+    <Route path="/quran" element={<QuranReader />} />
+    <Route path="/dhikr" element={<DhikrCounter />} />
+    <Route path="/duas" element={<DuasCollection />} />
   </Routes>
 );
 
