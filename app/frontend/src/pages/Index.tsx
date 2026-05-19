@@ -197,9 +197,7 @@ export default function HomePage() {
       <header className="border-b border-[#1a4d35] bg-[#0a2e1f]/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#14b8a6] to-[#0d9488] flex items-center justify-center shadow-sm">
-              <span className="text-white text-sm font-bold">A</span>
-            </div>
+            <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-10 h-10 object-contain" />
             <h1 className="text-xl font-bold text-white">AmanahLife</h1>
           </div>
           <div className="flex items-center gap-3">

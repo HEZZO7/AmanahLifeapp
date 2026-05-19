@@ -18,15 +18,7 @@ export default function Welcome() {
     <div className="min-h-screen bg-[#0a2e1f] flex flex-col items-center justify-center px-6">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-24 h-24 mb-4 flex items-center justify-center">
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            <path
-              d="M50 10 C25 10, 10 30, 10 50 C10 75, 30 90, 50 90 C45 85, 30 75, 30 50 C30 30, 40 15, 50 10Z"
-              fill="#d4a853"
-            />
-            <circle cx="65" cy="35" r="5" fill="#d4a853" />
-          </svg>
-        </div>
+        <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-28 h-28 object-contain mb-4" />
         <h1 className="text-3xl font-bold text-white mb-1">AmanahLife</h1>
         <p className="text-gray-400 text-sm">رفيقك الإسلامي | Your Islamic Companion</p>
       </div>
