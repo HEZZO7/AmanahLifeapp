@@ -144,7 +144,7 @@ export default function PrayerTimes() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">🕌 Prayer Times</h1>
+          <h1 className="text-lg font-bold text-foreground">🕌 Prayer Times</h1>
           <div className="w-16" />
         </div>
       </header>
@@ -165,11 +165,11 @@ export default function PrayerTimes() {
         )}
 
         {/* Location */}
-        <p className="text-sm text-gray-500 text-center">📍 {location}</p>
+        <p className="text-sm text-muted-foreground text-center">📍 {location}</p>
 
         {/* Progress */}
         <div className="text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Today's Progress: <span className="font-bold text-emerald-600">{completedCount}/5</span> prayers
           </p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
@@ -191,10 +191,10 @@ export default function PrayerTimes() {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{prayer.icon}</span>
                   <div>
-                    <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700' : 'text-gray-900'}`}>
+                    <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700' : 'text-foreground'}`}>
                       {prayer.name}
                     </p>
-                    <p className="text-sm text-gray-500">{prayer.time}</p>
+                    <p className="text-sm text-muted-foreground">{prayer.time}</p>
                   </div>
                 </div>
                 {prayer.name !== 'Sunrise' && (

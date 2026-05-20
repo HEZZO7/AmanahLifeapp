@@ -160,12 +160,12 @@ export default function DuasCollection() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">🤲 Duas</h1>
+          <h1 className="text-lg font-bold text-foreground">🤲 Duas</h1>
           <div className="w-16" />
         </div>
       </header>
@@ -176,7 +176,7 @@ export default function DuasCollection() {
           placeholder="Search duas..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-white"
+          className="bg-card"
         />
 
         {/* Category Filter */}
@@ -186,7 +186,7 @@ export default function DuasCollection() {
               key={cat}
               size="sm"
               variant={selectedCategory === cat ? 'default' : 'outline'}
-              className={selectedCategory === cat ? 'bg-amber-600 hover:bg-amber-700 shrink-0' : 'shrink-0'}
+              className={selectedCategory === cat ? 'bg-amber-600 hover:bg-amber-700 text-white shrink-0' : 'text-foreground shrink-0'}
               onClick={() => setSelectedCategory(cat)}
             >
               {cat}
@@ -197,7 +197,7 @@ export default function DuasCollection() {
         {/* Favorites Section */}
         {selectedCategory === 'All' && favorites.size > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-amber-700 mb-2">⭐ Favorites</h3>
+            <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-2">⭐ Favorites</h3>
             <div className="space-y-3">
               {DUAS.filter((d) => favorites.has(d.id)).map((dua) => (
                 <DuaCard key={`fav-${dua.id}`} dua={dua} isFavorite={true} onToggleFavorite={toggleFavorite} />
@@ -219,7 +219,7 @@ export default function DuasCollection() {
         </div>
 
         {filteredDuas.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-muted-foreground">
             <p className="text-4xl mb-2">🔍</p>
             <p>No duas found for this search.</p>
           </div>
@@ -235,23 +235,23 @@ function DuaCard({ dua, isFavorite, onToggleFavorite }: { dua: Dua; isFavorite: 
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className={`border transition-all ${isFavorite ? 'border-amber-200 bg-amber-50/50' : ''}`}>
+    <Card className={`border transition-all ${isFavorite ? 'border-amber-200 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/20' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+          <span className="text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
             {dua.category}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onToggleFavorite(dua.id)}
-            className={isFavorite ? 'text-amber-500' : 'text-gray-400'}
+            className={isFavorite ? 'text-amber-500' : 'text-muted-foreground'}
           >
             {isFavorite ? '★' : '☆'}
           </Button>
         </div>
 
-        <p className="text-right text-xl leading-loose font-arabic text-gray-800 mb-3">
+        <p className="text-right text-xl leading-loose font-arabic text-foreground mb-3">
           {dua.arabic}
         </p>
 
@@ -259,15 +259,15 @@ function DuaCard({ dua, isFavorite, onToggleFavorite }: { dua: Dua; isFavorite: 
           className="text-left w-full"
           onClick={() => setExpanded(!expanded)}
         >
-          <p className="text-sm font-medium text-gray-700 italic">{dua.transliteration}</p>
+          <p className="text-sm font-medium text-muted-foreground italic">{dua.transliteration}</p>
           {expanded && (
             <>
-              <p className="text-sm text-gray-600 mt-2">{dua.translation}</p>
-              <p className="text-xs text-gray-400 mt-2">Reference: {dua.reference}</p>
+              <p className="text-sm text-foreground/80 mt-2">{dua.translation}</p>
+              <p className="text-xs text-muted-foreground mt-2">Reference: {dua.reference}</p>
             </>
           )}
           {!expanded && (
-            <p className="text-xs text-gray-400 mt-1">Tap to see translation</p>
+            <p className="text-xs text-muted-foreground mt-1">Tap to see translation</p>
           )}
         </button>
       </CardContent>

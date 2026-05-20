@@ -72,28 +72,28 @@ export default function ZakatCalculator() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">💰 Zakat Calculator</h1>
+          <h1 className="text-lg font-bold text-foreground">💰 Zakat Calculator</h1>
           <div className="w-16" />
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Nisab Info */}
-        <Card className="border-emerald-200 bg-emerald-50">
+        <Card className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-emerald-600 font-medium">Current Nisab Threshold</p>
-                <p className="text-lg font-bold text-emerald-800">${nisab.toFixed(2)} {currency}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">Current Nisab Threshold</p>
+                <p className="text-lg font-bold text-emerald-800 dark:text-emerald-100">${nisab.toFixed(2)} {currency}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500">Gold: {NISAB_GOLD_GRAMS}g</p>
-                <p className="text-xs text-gray-500">Silver: {NISAB_SILVER_GRAMS}g</p>
+                <p className="text-xs text-muted-foreground">Gold: {NISAB_GOLD_GRAMS}g</p>
+                <p className="text-xs text-muted-foreground">Silver: {NISAB_SILVER_GRAMS}g</p>
               </div>
             </div>
           </CardContent>
@@ -106,7 +106,7 @@ export default function ZakatCalculator() {
               key={c}
               size="sm"
               variant={currency === c ? 'default' : 'outline'}
-              className={currency === c ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              className={currency === c ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-foreground'}
               onClick={() => setCurrency(c)}
             >
               {c}
@@ -117,20 +117,20 @@ export default function ZakatCalculator() {
         {/* Assets Input */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Your Assets</CardTitle>
+            <CardTitle className="text-base text-foreground">Your Assets</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {assets.map((asset) => (
               <div key={asset.key} className="flex items-center gap-3">
                 <span className="text-xl w-8">{asset.icon}</span>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-600 block mb-1">{asset.label}</label>
+                  <label className="text-xs text-muted-foreground block mb-1">{asset.label}</label>
                   <Input
                     type="number"
                     placeholder={asset.key === 'gold' || asset.key === 'silver' ? 'grams' : `${currency}`}
                     value={asset.value}
                     onChange={(e) => updateAsset(asset.key, e.target.value)}
-                    className="bg-gray-50"
+                    className="bg-secondary"
                   />
                 </div>
               </div>
@@ -141,19 +141,19 @@ export default function ZakatCalculator() {
         {/* Liabilities */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Deductions</CardTitle>
+            <CardTitle className="text-base text-foreground">Deductions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
               <span className="text-xl w-8">📋</span>
               <div className="flex-1">
-                <label className="text-xs text-gray-600 block mb-1">Outstanding Debts & Liabilities</label>
+                <label className="text-xs text-muted-foreground block mb-1">Outstanding Debts & Liabilities</label>
                 <Input
                   type="number"
                   placeholder={currency}
                   value={liabilities}
                   onChange={(e) => { setLiabilities(e.target.value); setCalculated(false); }}
-                  className="bg-gray-50"
+                  className="bg-secondary"
                 />
               </div>
             </div>
@@ -182,20 +182,20 @@ export default function ZakatCalculator() {
             </div>
             <CardContent className="p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Assets</span>
-                <span className="font-medium">${totalAssets.toFixed(2)}</span>
+                <span className="text-muted-foreground">Total Assets</span>
+                <span className="font-medium text-foreground">${totalAssets.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Liabilities</span>
-                <span className="font-medium text-red-500">-${totalLiabilities.toFixed(2)}</span>
+                <span className="text-muted-foreground">Liabilities</span>
+                <span className="font-medium text-red-500 dark:text-red-400">-${totalLiabilities.toFixed(2)}</span>
               </div>
-              <div className="border-t pt-2 flex justify-between text-sm">
-                <span className="text-gray-600">Net Zakatable Wealth</span>
-                <span className="font-bold">${netWorth.toFixed(2)}</span>
+              <div className="border-t border-border pt-2 flex justify-between text-sm">
+                <span className="text-muted-foreground">Net Zakatable Wealth</span>
+                <span className="font-bold text-foreground">${netWorth.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Nisab Threshold</span>
-                <span className={`font-medium ${isEligible ? 'text-emerald-600' : 'text-gray-500'}`}>
+                <span className="text-muted-foreground">Nisab Threshold</span>
+                <span className={`font-medium ${isEligible ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                   ${nisab.toFixed(2)} {isEligible ? '✓' : ''}
                 </span>
               </div>
@@ -204,9 +204,9 @@ export default function ZakatCalculator() {
         )}
 
         {/* Info */}
-        <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-          <h3 className="font-semibold text-gray-800 text-sm mb-2">ℹ️ About Zakat</h3>
-          <ul className="text-xs text-gray-600 space-y-1">
+        <div className="p-4 rounded-xl bg-secondary border border-border">
+          <h3 className="font-semibold text-foreground text-sm mb-2">ℹ️ About Zakat</h3>
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li>• Zakat is 2.5% of wealth held for one lunar year above Nisab</li>
             <li>• Nisab is the minimum amount that makes one liable for Zakat</li>
             <li>• Gold prices are approximate — consult current market rates</li>

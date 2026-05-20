@@ -87,19 +87,19 @@ export default function IslamicCalendar() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">📅 Islamic Calendar</h1>
+          <h1 className="text-lg font-bold text-foreground">📅 Islamic Calendar</h1>
           <div className="w-16" />
         </div>
       </header>
@@ -120,20 +120,20 @@ export default function IslamicCalendar() {
 
         {/* Upcoming Events */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-3">Upcoming Events</h2>
+          <h2 className="text-lg font-bold text-foreground mb-3">Upcoming Events</h2>
           <div className="space-y-3">
             {getUpcomingEvents().map((event) => (
               <Card key={event.name} className="border hover:shadow-md transition-all">
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-2xl">
                     {event.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{event.name}</p>
-                    <p className="text-xs text-gray-500">{event.description}</p>
+                    <p className="font-semibold text-foreground">{event.name}</p>
+                    <p className="text-xs text-muted-foreground">{event.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-indigo-600 font-medium">
+                    <p className="text-xs text-indigo-600 dark:text-indigo-300 font-medium">
                       {event.hijriDay} {HIJRI_MONTHS[event.hijriMonth - 1]}
                     </p>
                   </div>
@@ -145,14 +145,14 @@ export default function IslamicCalendar() {
 
         {/* Month Selector */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-3">Browse by Month</h2>
+          <h2 className="text-lg font-bold text-foreground mb-3">Browse by Month</h2>
           <div className="grid grid-cols-3 gap-2">
             {HIJRI_MONTHS.map((month, i) => (
               <Button
                 key={month}
                 size="sm"
                 variant={selectedMonth === i + 1 ? 'default' : 'outline'}
-                className={`text-xs ${selectedMonth === i + 1 ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                className={`text-xs ${selectedMonth === i + 1 ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'text-foreground'}`}
                 onClick={() => setSelectedMonth(i + 1)}
               >
                 {month}
@@ -164,32 +164,32 @@ export default function IslamicCalendar() {
         {/* Events for Selected Month */}
         {selectedMonth && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">
               Events in {HIJRI_MONTHS[selectedMonth - 1]}
             </h3>
             {getEventsForMonth(selectedMonth).length > 0 ? (
               <div className="space-y-2">
                 {getEventsForMonth(selectedMonth).map((event) => (
-                  <Card key={event.name} className="border-indigo-100 bg-indigo-50/50">
+                  <Card key={event.name} className="border-indigo-100 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/20">
                     <CardContent className="p-3 flex items-center gap-3">
                       <span className="text-xl">{event.icon}</span>
                       <div>
-                        <p className="font-medium text-sm text-gray-900">{event.name}</p>
-                        <p className="text-xs text-gray-500">Day {event.hijriDay} — {event.description}</p>
+                        <p className="font-medium text-sm text-foreground">{event.name}</p>
+                        <p className="text-xs text-muted-foreground">Day {event.hijriDay} — {event.description}</p>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">No major events this month</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No major events this month</p>
             )}
           </div>
         )}
 
         {/* Info */}
-        <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-          <p className="text-xs text-gray-500 text-center">
+        <div className="p-4 rounded-xl bg-secondary border border-border">
+          <p className="text-xs text-muted-foreground text-center">
             Hijri dates are approximate and may vary by 1-2 days based on moon sighting in your region.
           </p>
         </div>

@@ -73,7 +73,7 @@ export default function DhikrCounter() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">📿 Dhikr Counter</h1>
+          <h1 className="text-lg font-bold text-foreground">📿 Dhikr Counter</h1>
           <div className="w-16" />
         </div>
       </header>
@@ -81,16 +81,16 @@ export default function DhikrCounter() {
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Daily Stats */}
         <div className="text-center">
-          <p className="text-sm text-gray-500">Today's Total</p>
+          <p className="text-sm text-muted-foreground">Today's Total</p>
           <p className="text-2xl font-bold text-emerald-600">{dailyTotal}</p>
         </div>
 
         {/* Selected Dhikr Display */}
         <Card className="border-0 shadow-lg text-center">
           <CardContent className="p-6">
-            <p className="text-3xl font-arabic text-gray-800 mb-2">{selectedPreset.arabic}</p>
-            <p className="text-sm font-medium text-gray-700">{selectedPreset.transliteration}</p>
-            <p className="text-xs text-gray-500 mt-1">{selectedPreset.meaning}</p>
+            <p className="text-3xl font-arabic text-foreground mb-2">{selectedPreset.arabic}</p>
+            <p className="text-sm font-medium text-foreground">{selectedPreset.transliteration}</p>
+            <p className="text-xs text-muted-foreground mt-1">{selectedPreset.meaning}</p>
           </CardContent>
         </Card>
 
@@ -114,8 +114,8 @@ export default function DhikrCounter() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-bold text-gray-900">{count}</span>
-              <span className="text-sm text-gray-500">/ {selectedPreset.target}</span>
+              <span className="text-4xl font-bold text-foreground">{count}</span>
+              <span className="text-sm text-muted-foreground">/ {selectedPreset.target}</span>
             </div>
           </div>
 
@@ -162,7 +162,7 @@ export default function DhikrCounter() {
                   }}
                 >
                   <p className="font-semibold text-sm">{preset.transliteration}</p>
-                  <p className="text-xs text-gray-500">{preset.meaning} • Target: {preset.target}</p>
+                  <p className="text-xs text-muted-foreground">{preset.meaning} • Target: {preset.target}</p>
                 </button>
               ))}
             </CardContent>

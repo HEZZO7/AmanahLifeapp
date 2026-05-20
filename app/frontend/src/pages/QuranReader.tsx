@@ -124,7 +124,7 @@ export default function QuranReader() {
           ) : (
             <div className="w-16" />
           )}
-          <h1 className="text-lg font-bold text-gray-900">
+          <h1 className="text-lg font-bold text-foreground">
             📖 {selectedSurah ? selectedSurah.englishName : 'Quran'}
           </h1>
           <div className="w-16" />
@@ -150,7 +150,7 @@ export default function QuranReader() {
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <p className="text-xs text-purple-600 font-medium">Continue Reading</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-foreground">
                       {JSON.parse(localStorage.getItem('quran_last_read') || '{}').name}
                     </p>
                   </div>
@@ -187,12 +187,12 @@ export default function QuranReader() {
                         {surah.number}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-900">{surah.englishName}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="font-semibold text-foreground">{surah.englishName}</p>
+                        <p className="text-xs text-muted-foreground">
                           {surah.englishNameTranslation} • {surah.numberOfAyahs} ayahs • {surah.revelationType}
                         </p>
                       </div>
-                      <p className="text-lg font-arabic text-gray-700">{surah.name}</p>
+                      <p className="text-lg font-arabic text-foreground">{surah.name}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -210,7 +210,7 @@ export default function QuranReader() {
               <div className="space-y-4">
                 {/* Bismillah */}
                 {selectedSurah.number !== 1 && selectedSurah.number !== 9 && (
-                  <p className="text-center text-2xl font-arabic text-gray-700 py-4">
+                  <p className="text-center text-2xl font-arabic text-foreground py-4">
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </p>
                 )}
@@ -233,10 +233,10 @@ export default function QuranReader() {
                             {isBookmarked ? '★' : '☆'}
                           </Button>
                         </div>
-                        <p className="text-right text-xl leading-loose font-arabic text-gray-800 mb-3">
+                        <p className="text-right text-xl leading-loose font-arabic text-foreground mb-3">
                           {ayah.text}
                         </p>
-                        <p className="text-sm text-gray-600 leading-relaxed">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           {ayah.translation}
                         </p>
                       </CardContent>
