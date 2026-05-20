@@ -26,6 +26,9 @@ import Goals from './pages/Goals';
 import Wellness from './pages/Wellness';
 import Planner from './pages/Planner';
 import Settings from './pages/Settings';
+import Subscription from './pages/Subscription';
+import AIPlanning from './pages/AIPlanning';
+import AISearch from './pages/AISearch';
 
 const queryClient = new QueryClient();
 
@@ -59,6 +62,9 @@ const AppRoutes = () => (
     <Route path="/wellness" element={<Wellness />} />
     <Route path="/planner" element={<Planner />} />
     <Route path="/settings" element={<Settings />} />
+    <Route path="/subscription" element={<Subscription />} />
+    <Route path="/ai-planning" element={<AIPlanning />} />
+    <Route path="/ai-search" element={<AISearch />} />
   </Routes>
 );
 

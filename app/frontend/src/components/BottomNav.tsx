@@ -4,14 +4,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
 
   const NAV_ITEMS = [
-    { path: '/', icon: '🏠', label: t('home') },
-    { path: '/tasks', icon: '✅', label: t('tasks') },
-    { path: '/goals', icon: '🎯', label: t('goals') },
-    { path: '/finance', icon: '💰', label: t('finance') },
-    { path: '/settings', icon: '⚙️', label: t('settings') },
+    { path: '/', icon: '🏠', label: language === 'ar' ? 'الرئيسية' : 'Dashboard' },
+    { path: '/finance', icon: '💰', label: language === 'ar' ? 'المالية' : 'Finance' },
+    { path: '/ai-search', icon: '🔍', label: language === 'ar' ? 'بحث' : 'Search' },
+    { path: '/planner', icon: '📅', label: language === 'ar' ? 'المخطط' : 'Planner' },
+    { path: '/settings', icon: '☰', label: language === 'ar' ? 'المزيد' : 'More' },
   ];
 
   return (

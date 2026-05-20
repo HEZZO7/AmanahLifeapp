@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -6,12 +7,26 @@ import BottomNav from '@/components/BottomNav';
 
 interface AppSettings {
   currency: string;
+  country: string;
   showHijri: boolean;
+  showIslamicEvents: boolean;
   ramadanMode: boolean;
   easternNumerals: boolean;
 }
 
+const COUNTRIES = [
+  { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'SAR' },
+  { code: 'QA', nameAr: 'قطر', nameEn: 'Qatar', currency: 'QAR' },
+  { code: 'AE', nameAr: 'الإمارات', nameEn: 'UAE', currency: 'AED' },
+  { code: 'KW', nameAr: 'الكويت', nameEn: 'Kuwait', currency: 'KWD' },
+  { code: 'BH', nameAr: 'البحرين', nameEn: 'Bahrain', currency: 'BHD' },
+  { code: 'OM', nameAr: 'عمان', nameEn: 'Oman', currency: 'OMR' },
+  { code: 'EG', nameAr: 'مصر', nameEn: 'Egypt', currency: 'EGP' },
+  { code: 'JO', nameAr: 'الأردن', nameEn: 'Jordan', currency: 'JOD' },
+];
+
 export default function Settings() {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -19,7 +34,9 @@ export default function Settings() {
     const stored = localStorage.getItem('amanah-settings');
     return stored ? JSON.parse(stored) : {
       currency: 'QAR',
+      country: 'QA',
       showHijri: true,
+      showIslamicEvents: true,
       ramadanMode: false,
       easternNumerals: false,
     };
@@ -32,6 +49,33 @@ export default function Settings() {
   const updateSetting = (key: keyof AppSettings, value: boolean | string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
+
+  const handleCountryChange = (countryCode: string) => {
+    const country = COUNTRIES.find(c => c.code === countryCode);
+    if (country) {
+      setSettings(prev => ({ ...prev, country: countryCode, currency: country.currency }));
+    }
+  };
+
+  const getSubscriptionTier = () => {
+    try {
+      const stored = localStorage.getItem('amanahlife_subscription');
+      if (stored) {
+        const sub = JSON.parse(stored);
+        return sub.tier || 'free';
+      }
+    } catch { /* ignore */ }
+    return 'free';
+  };
+
+  const tierNames: Record<string, { ar: string; en: string }> = {
+    free: { ar: 'مجاني', en: 'Free' },
+    balanced: { ar: 'الحياة المتوازنة', en: 'Balanced Life' },
+    family: { ar: 'أمانة العائلة', en: 'Family Trust' },
+  };
+
+  const currentTier = getSubscriptionTier();
+  const isAr = language === 'ar';
 
   const exportFinanceCSV = () => {
     const transactions = JSON.parse(localStorage.getItem('amanah-transactions') || '[]');
@@ -72,6 +116,32 @@ export default function Settings() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* Subscription Section */}
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h3 className="text-sm text-muted-foreground mb-3">{isAr ? 'الاشتراك' : 'Subscription'}</h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#c9a96e] to-[#a67c3d] flex items-center justify-center">
+                <span className="text-sm">👑</span>
+              </div>
+              <div>
+                <p className="text-foreground font-medium text-sm">
+                  {isAr ? tierNames[currentTier]?.ar : tierNames[currentTier]?.en}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isAr ? 'باقتك الحالية' : 'Current Plan'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/subscription')}
+              className="bg-[#c9a96e] hover:bg-[#b8944f] text-white text-xs font-medium px-4 py-2 rounded-xl transition-all"
+            >
+              {isAr ? 'إدارة' : 'Manage'}
+            </button>
+          </div>
+        </div>
+
         {/* Profile Section */}
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="text-sm text-muted-foreground mb-3">{t('profile')}</h3>
@@ -122,29 +192,44 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Currency */}
+        {/* Regional */}
         <div className="bg-card rounded-2xl p-4 border border-border">
-          <h3 className="text-sm text-muted-foreground mb-3">{t('currency')}</h3>
-          <select
-            value={settings.currency}
-            onChange={(e) => updateSetting('currency', e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
-          >
-            <option value="QAR">QAR - Qatari Riyal</option>
-            <option value="USD">USD - US Dollar</option>
-            <option value="SAR">SAR - Saudi Riyal</option>
-            <option value="AED">AED - UAE Dirham</option>
-            <option value="EGP">EGP - Egyptian Pound</option>
-          </select>
+          <h3 className="text-sm text-muted-foreground mb-3">{isAr ? 'الإقليمية' : 'Regional'}</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">{isAr ? 'الدولة' : 'Country'}</label>
+              <select
+                value={settings.country}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-foreground text-sm focus:outline-none focus:border-primary"
+              >
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {isAr ? c.nameAr : c.nameEn}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-foreground text-sm">{isAr ? 'العملة' : 'Currency'}</span>
+              <span className="text-muted-foreground text-sm">{settings.currency}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Toggles */}
+        {/* Islamic Calendar Toggles */}
         <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
           <ToggleRow
-            label={t('hijriCalendar')}
+            label={isAr ? 'التقويم الهجري' : 'Hijri Calendar'}
             icon="📅"
             checked={settings.showHijri}
             onChange={() => updateSetting('showHijri', !settings.showHijri)}
+          />
+          <ToggleRow
+            label={isAr ? 'المناسبات الإسلامية' : 'Islamic Events'}
+            icon="🕌"
+            checked={settings.showIslamicEvents}
+            onChange={() => updateSetting('showIslamicEvents', !settings.showIslamicEvents)}
           />
           <ToggleRow
             label={t('ramadanMode')}
