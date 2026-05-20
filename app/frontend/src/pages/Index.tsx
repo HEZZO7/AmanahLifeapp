@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import AppLogo from '@/components/AppLogo';
+import PromoBanner from '@/components/PromoBanner';
 
 interface HijriInfo {
   day: string;
@@ -229,6 +230,9 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Promotional Banner */}
+        <PromoBanner />
 
         {/* Search Bar */}
         <div className="relative mb-4">
