@@ -49,6 +49,12 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 5: AI Smart Search Page (premium - natural language search across app data)
 - [x] Phase 5: Update Settings with subscription & regional settings
 - [x] Phase 5: Update Bottom Nav (add Search, reorganize to Dashboard/Finance/Search/Planner/More)
+- [x] Phase 6: Create subscriptions table in Supabase with RLS
+- [x] Phase 6: Create Stripe checkout edge function
+- [x] Phase 6: Create Stripe webhook edge function
+- [x] Phase 6: Update frontend Subscription page to use real Stripe checkout
+- [x] Phase 6: Update frontend to read subscription status from database
+- [x] Phase 6: Lint and build verification
 
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
@@ -56,4 +62,5 @@ last_updated: 2026-05-19T05:19:47Z
 - 2026-05-19: Phase 2 complete — Bottom nav bar, enhanced homepage (Hijri date, next prayer, daily verse, streak), Qibla Finder, Zakat Calculator, Islamic Calendar, Arabic typography (Amiri font), UI polish all implemented, lint/build passing
 - 2026-05-19: Phase 3 complete — Dark green theme applied, language selection (ar/en), Daily Routine, Fasting Tracker, Task Manager, Adhkar, Financial Tracker all implemented with localStorage persistence, lint/build passing
 - 2026-05-20: Phase 5 complete — Subscription system (3 tiers with monthly/yearly toggle), Premium Gate component, AI Planning Support page, AI Smart Search page, Settings updated with subscription/regional/Islamic calendar sections, Bottom Nav reorganized (Dashboard/Finance/Search/Planner/More), lint/build passing
+- 2026-05-20: Phase 6 complete — Stripe payment integration: subscriptions table with RLS, checkout edge function, webhook edge function, frontend SubscriptionContext reads from DB, Subscription page redirects to Stripe Checkout, PremiumGate uses real subscription data, lint/build passing
 

@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
-
-interface SubscriptionState {
-  tier: 'free' | 'balanced' | 'family';
-  billing: 'monthly' | 'yearly';
-}
 
 const PLANS = [
   {
@@ -43,26 +40,87 @@ const PLANS = [
 export default function Subscription() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
+  const { tier: currentTier, billingCycle, loading: subLoading, refetch } = useSubscription();
 
-  const [subscription, setSubscription] = useState<SubscriptionState>(() => {
-    try {
-      const stored = localStorage.getItem('amanahlife_subscription');
-      if (stored) return JSON.parse(stored);
-    } catch { /* ignore */ }
-    return { tier: 'free', billing: 'monthly' };
-  });
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
 
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>(subscription.billing);
-
+  // Handle URL params for success/canceled
   useEffect(() => {
-    localStorage.setItem('amanahlife_subscription', JSON.stringify(subscription));
-  }, [subscription]);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      setMessage({
+        type: 'success',
+        text: isAr ? 'تم تفعيل اشتراكك بنجاح!' : 'Your subscription has been activated successfully!',
+      });
+      refetch();
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('canceled') === 'true') {
+      setMessage({
+        type: 'canceled',
+        text: isAr ? 'تم إلغاء عملية الدفع' : 'Payment was canceled',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [isAr, refetch]);
 
-  const selectPlan = (tier: 'free' | 'balanced' | 'family') => {
-    setSubscription({ tier, billing });
+  // Update billing toggle when subscription data loads
+  useEffect(() => {
+    setBilling(billingCycle);
+  }, [billingCycle]);
+
+  const handleUpgrade = async (tier: 'balanced' | 'family') => {
+    setCheckoutLoading(tier);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first',
+        });
+        setCheckoutLoading(null);
+        return;
+      }
+
+      const response = await fetch(
+        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_stripe_checkout',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tier,
+            billing,
+            successUrl: window.location.origin + '/subscription?success=true',
+            cancelUrl: window.location.origin + '/subscription?canceled=true',
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'حدث خطأ أثناء إنشاء جلسة الدفع' : 'Error creating checkout session',
+        });
+      }
+    } catch {
+      setMessage({
+        type: 'canceled',
+        text: isAr ? 'حدث خطأ في الاتصال' : 'Connection error occurred',
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
-  const currentPlanName = PLANS.find(p => p.id === subscription.tier);
+  const currentPlanName = PLANS.find(p => p.id === currentTier);
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
@@ -75,6 +133,19 @@ export default function Subscription() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* Status Message */}
+        {message && (
+          <div
+            className={`rounded-xl p-4 border ${
+              message.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
+            }`}
+          >
+            <p className="text-sm font-medium">{message.text}</p>
+          </div>
+        )}
+
         {/* Current Plan */}
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="text-sm text-muted-foreground mb-3">
@@ -86,10 +157,10 @@ export default function Subscription() {
             </div>
             <div>
               <p className="text-foreground font-bold text-lg">
-                {isAr ? currentPlanName?.nameAr : currentPlanName?.nameEn}
+                {subLoading ? '...' : (isAr ? currentPlanName?.nameAr : currentPlanName?.nameEn)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {subscription.billing === 'yearly' ? (isAr ? 'اشتراك سنوي' : 'Yearly Plan') : (isAr ? 'اشتراك شهري' : 'Monthly Plan')}
+                {billingCycle === 'yearly' ? (isAr ? 'اشتراك سنوي' : 'Yearly Plan') : (isAr ? 'اشتراك شهري' : 'Monthly Plan')}
               </p>
             </div>
           </div>
@@ -151,8 +222,9 @@ export default function Subscription() {
           {/* Plan Cards */}
           <div className="space-y-3">
             {PLANS.map((plan) => {
-              const isCurrent = subscription.tier === plan.id;
+              const isCurrent = currentTier === plan.id;
               const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
+              const isLoading = checkoutLoading === plan.id;
               return (
                 <div
                   key={plan.id}
@@ -201,12 +273,21 @@ export default function Subscription() {
                         {isAr ? 'باقتك الحالية' : 'Current Plan'}
                       </span>
                     </div>
+                  ) : plan.id === 'free' ? (
+                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted/30 border border-border">
+                      <span className="text-muted-foreground text-sm font-medium">
+                        {isAr ? 'الباقة الأساسية' : 'Basic Plan'}
+                      </span>
+                    </div>
                   ) : (
                     <button
-                      onClick={() => selectPlan(plan.id)}
-                      className="w-full bg-[#c9a96e] hover:bg-[#b8944f] text-white font-semibold py-2.5 rounded-xl transition-all"
+                      onClick={() => handleUpgrade(plan.id as 'balanced' | 'family')}
+                      disabled={isLoading}
+                      className="w-full bg-[#c9a96e] hover:bg-[#b8944f] text-white font-semibold py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isAr ? 'ترقية' : 'Upgrade'}
+                      {isLoading
+                        ? (isAr ? 'جاري التحميل...' : 'Loading...')
+                        : (isAr ? 'ترقية' : 'Upgrade')}
                     </button>
                   )}
                 </div>

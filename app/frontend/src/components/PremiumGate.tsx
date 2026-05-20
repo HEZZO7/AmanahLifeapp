@@ -1,11 +1,7 @@
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-interface SubscriptionState {
-  tier: 'free' | 'balanced' | 'family';
-  billing: 'monthly' | 'yearly';
-}
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 const TIER_LEVELS: Record<string, number> = {
   free: 0,
@@ -22,20 +18,18 @@ interface PremiumGateProps {
 export default function PremiumGate({ requiredTier, featureName, children }: PremiumGateProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { tier, loading } = useSubscription();
 
-  const getSubscription = (): SubscriptionState => {
-    try {
-      const stored = localStorage.getItem('amanahlife_subscription');
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // ignore
-    }
-    return { tier: 'free', billing: 'monthly' };
-  };
-
-  const subscription = getSubscription();
-  const userLevel = TIER_LEVELS[subscription.tier] || 0;
+  const userLevel = TIER_LEVELS[tier] || 0;
   const requiredLevel = TIER_LEVELS[requiredTier] || 1;
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-[#c9a96e] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (userLevel >= requiredLevel) {
     return <>{children}</>;
