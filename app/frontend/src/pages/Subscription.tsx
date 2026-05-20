@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
@@ -44,6 +44,7 @@ export default function Subscription() {
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
 
   // Handle URL params for success/canceled
@@ -120,6 +121,52 @@ export default function Subscription() {
     }
   };
 
+  const handleManageSubscription = useCallback(async () => {
+    setPortalLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first',
+        });
+        setPortalLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_stripe_portal',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            returnUrl: window.location.href,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'حدث خطأ أثناء فتح بوابة الإدارة' : 'Error opening management portal',
+        });
+      }
+    } catch {
+      setMessage({
+        type: 'canceled',
+        text: isAr ? 'حدث خطأ في الاتصال' : 'Connection error occurred',
+      });
+    } finally {
+      setPortalLoading(false);
+    }
+  }, [isAr]);
+
   const currentPlanName = PLANS.find(p => p.id === currentTier);
 
   return (
@@ -166,32 +213,33 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Manage Subscription */}
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <h3 className="text-sm text-muted-foreground mb-3">
-            {isAr ? 'إدارة الاشتراك' : 'Manage Subscription'}
-          </h3>
-          <div className="space-y-2">
-            <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#1a4a3a] hover:border-primary transition-all">
-              <span className="text-foreground text-sm">{isAr ? 'تحديث طريقة الدفع' : 'Update Payment Method'}</span>
-              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        {/* Manage Subscription - Stripe Customer Portal */}
+        {currentTier !== 'free' && (
+          <div className="bg-card rounded-2xl p-4 border border-border">
+            <h3 className="text-sm text-muted-foreground mb-2">
+              {isAr ? 'إدارة الاشتراك' : 'Manage Subscription'}
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              {isAr
+                ? 'إدارة طريقة الدفع، عرض الفواتير، أو إلغاء الاشتراك'
+                : 'Manage payment method, view invoices, or cancel subscription'}
+            </p>
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#c9a96e] text-[#c9a96e] hover:bg-[#c9a96e]/10 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#1a4a3a] hover:border-primary transition-all">
-              <span className="text-foreground text-sm">{isAr ? 'تغيير الباقة' : 'Change Plan'}</span>
-              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </button>
-            <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-red-500/30 hover:border-red-500 transition-all">
-              <span className="text-red-400 text-sm">{isAr ? 'إلغاء الاشتراك' : 'Cancel Subscription'}</span>
-              <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <span>
+                {portalLoading
+                  ? (isAr ? 'جاري التحميل...' : 'Loading...')
+                  : (isAr ? 'إدارة الاشتراك' : 'Manage Subscription')}
+              </span>
             </button>
           </div>
-        </div>
+        )}
 
         {/* Billing Toggle */}
         <div className="bg-card rounded-2xl p-4 border border-border">
