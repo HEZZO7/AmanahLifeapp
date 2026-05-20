@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import AppLogo from '@/components/AppLogo';
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function Welcome() {
     <div className="min-h-screen bg-[#0a2e1f] flex flex-col items-center justify-center px-6">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
-        <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-28 h-28 object-contain mb-4" />
+        <AppLogo className="w-28 h-28 mb-4 mx-auto" />
         <h1 className="text-3xl font-bold text-white mb-1">AmanahLife</h1>
         <p className="text-gray-400 text-sm">رفيقك الإسلامي | Your Islamic Companion</p>
       </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import AppLogo from '@/components/AppLogo';
 
 interface HijriInfo {
   day: string;
@@ -197,7 +198,7 @@ export default function HomePage() {
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-10 h-10 object-contain" />
+            <AppLogo className="w-10 h-10" />
             <h1 className="text-xl font-bold text-foreground">AmanahLife</h1>
           </div>
           <div className="flex items-center gap-3">

@@ -4,9 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import AppLogo from '@/components/AppLogo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -54,7 +55,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo & Branding */}
         <div className="text-center mb-8">
-          <img src="/assets/amanah-logo.png" alt="AmanahLife" className="w-20 h-20 object-contain mb-4" />
+          <AppLogo className="w-20 h-20 mb-4 mx-auto" />
           <h1 className="text-3xl font-bold text-gray-900">AmanahLife</h1>
           <p className="text-gray-500 mt-1">Your Islamic Life Companion</p>
         </div>
