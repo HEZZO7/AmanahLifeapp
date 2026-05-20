@@ -179,8 +179,9 @@ export default function TaskManager() {
 
       {/* Add Task Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-          <div className="w-full bg-card rounded-t-3xl p-6 space-y-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowForm(false)} />
+          <div className="relative bg-card rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 shadow-xl space-y-4">
             <h3 className="text-foreground font-semibold text-lg">{t('addTask')}</h3>
             <input
               type="text"
@@ -226,7 +227,7 @@ export default function TaskManager() {
                 ))}
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pb-2">
               <button
                 onClick={() => setShowForm(false)}
                 className="flex-1 p-3 rounded-xl bg-secondary text-muted-foreground"
