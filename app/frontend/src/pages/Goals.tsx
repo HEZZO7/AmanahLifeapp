@@ -20,7 +20,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 export default function Goals() {
-  const { t } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const [goals, setGoals] = useState<Goal[]>(() => {
     const stored = localStorage.getItem('amanah-goals');
     return stored ? JSON.parse(stored) : [];
@@ -93,7 +93,7 @@ export default function Goals() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
           <h1 className="text-xl font-bold text-foreground">🎯 {t('goals')}</h1>
@@ -176,7 +176,7 @@ export default function Goals() {
         {filteredGoals.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-4xl mb-2">🎯</p>
-            <p>{t('addGoal')}</p>
+            <p>{language === 'ar' ? 'لا توجد أهداف بعد. أضف هدفك الأول!' : 'No goals yet. Add your first goal!'}</p>
           </div>
         )}
 
@@ -188,7 +188,12 @@ export default function Goals() {
                   <span className="text-lg">{CATEGORY_ICONS[goal.category]}</span>
                   <div>
                     <h3 className="text-foreground font-medium text-sm">{goal.title}</h3>
-                    <p className="text-xs text-muted-foreground">{goal.category} • {goal.targetDate || 'No deadline'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {goal.category === 'Personal' ? t('personal') :
+                       goal.category === 'Financial' ? t('financial') :
+                       goal.category === 'Spiritual' ? t('spiritual') :
+                       t('family')} • {goal.targetDate || (language === 'ar' ? 'بدون موعد' : 'No deadline')}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-1">

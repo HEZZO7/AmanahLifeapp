@@ -17,7 +17,7 @@ interface HijriInfo {
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const [hijriDate, setHijriDate] = useState<HijriInfo | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
@@ -164,25 +164,25 @@ export default function HomePage() {
 
   // Navigation items for search
   const navItems = [
-    { icon: '🕌', title: t('prayer'), description: 'Track daily prayers', path: '/prayer-times' },
-    { icon: '📖', title: t('quran'), description: 'Read & bookmark', path: '/quran' },
-    { icon: '🤲', title: t('duas'), description: 'Supplications', path: '/duas' },
-    { icon: '📿', title: t('dhikr'), description: 'Remembrance', path: '/dhikr' },
-    { icon: '🌅', title: t('dailyRoutine'), description: 'Daily habits', path: '/daily-routine' },
-    { icon: '🌙', title: t('fasting'), description: 'Track fasting', path: '/fasting' },
-    { icon: '✅', title: t('tasks'), description: 'Manage tasks', path: '/tasks' },
-    { icon: '📿', title: t('adhkar'), description: 'Morning & Evening', path: '/adhkar' },
-    { icon: '💰', title: t('finance'), description: 'Track finances', path: '/finance' },
-    { icon: '🧭', title: t('qibla'), description: 'Find direction', path: '/qibla' },
-    { icon: '💎', title: t('zakat'), description: 'Calculator', path: '/zakat' },
-    { icon: '📅', title: t('calendar'), description: 'Hijri dates', path: '/calendar' },
-    { icon: '🎯', title: t('goals'), description: 'Track goals', path: '/goals' },
-    { icon: '💚', title: t('wellness'), description: 'Health tracking', path: '/wellness' },
-    { icon: '📋', title: t('planner'), description: 'Plan your day', path: '/planner' },
-    { icon: '👨‍👩‍👧‍👦', title: language === 'ar' ? 'ميزانية العائلة' : 'Family Budget', description: 'Budget planner', path: '/family-budget' },
-    { icon: '📊', title: language === 'ar' ? 'لوحة مالية' : 'Dashboard', description: 'Financial KPIs', path: '/financial-dashboard' },
-    { icon: '📈', title: language === 'ar' ? 'استثمار حلال' : 'Halal Invest', description: 'Islamic finance', path: '/halal-investment' },
-    { icon: '🌙', title: language === 'ar' ? 'مخطط رمضان' : 'Ramadan Plan', description: 'Ramadan & Eid', path: '/ramadan-planner' },
+    { icon: '🕌', title: t('prayer'), description: language === 'ar' ? 'تتبع الصلوات' : 'Track daily prayers', path: '/prayer-times' },
+    { icon: '📖', title: t('quran'), description: language === 'ar' ? 'قراءة وحفظ' : 'Read & bookmark', path: '/quran' },
+    { icon: '🤲', title: t('duas'), description: language === 'ar' ? 'أدعية مأثورة' : 'Supplications', path: '/duas' },
+    { icon: '📿', title: t('dhikr'), description: language === 'ar' ? 'التسبيح' : 'Remembrance', path: '/dhikr' },
+    { icon: '🌅', title: t('dailyRoutine'), description: language === 'ar' ? 'العادات اليومية' : 'Daily habits', path: '/daily-routine' },
+    { icon: '🌙', title: t('fasting'), description: language === 'ar' ? 'تتبع الصيام' : 'Track fasting', path: '/fasting' },
+    { icon: '✅', title: t('tasks'), description: language === 'ar' ? 'إدارة المهام' : 'Manage tasks', path: '/tasks' },
+    { icon: '📿', title: t('adhkar'), description: language === 'ar' ? 'الصباح والمساء' : 'Morning & Evening', path: '/adhkar' },
+    { icon: '💰', title: t('finance'), description: language === 'ar' ? 'تتبع المالية' : 'Track finances', path: '/finance' },
+    { icon: '🧭', title: t('qibla'), description: language === 'ar' ? 'تحديد الاتجاه' : 'Find direction', path: '/qibla' },
+    { icon: '💎', title: t('zakat'), description: language === 'ar' ? 'حاسبة الزكاة' : 'Calculator', path: '/zakat' },
+    { icon: '📅', title: t('calendar'), description: language === 'ar' ? 'التواريخ الهجرية' : 'Hijri dates', path: '/calendar' },
+    { icon: '🎯', title: t('goals'), description: language === 'ar' ? 'تتبع الأهداف' : 'Track goals', path: '/goals' },
+    { icon: '💚', title: t('wellness'), description: language === 'ar' ? 'تتبع الصحة' : 'Health tracking', path: '/wellness' },
+    { icon: '📋', title: t('planner'), description: language === 'ar' ? 'خطط يومك' : 'Plan your day', path: '/planner' },
+    { icon: '👨‍👩‍👧‍👦', title: language === 'ar' ? 'ميزانية العائلة' : 'Family Budget', description: language === 'ar' ? 'مخطط الميزانية' : 'Budget planner', path: '/family-budget' },
+    { icon: '📊', title: language === 'ar' ? 'لوحة مالية' : 'Dashboard', description: language === 'ar' ? 'مؤشرات مالية' : 'Financial KPIs', path: '/financial-dashboard' },
+    { icon: '📈', title: language === 'ar' ? 'استثمار حلال' : 'Halal Invest', description: language === 'ar' ? 'التمويل الإسلامي' : 'Islamic finance', path: '/halal-investment' },
+    { icon: '🌙', title: language === 'ar' ? 'مخطط رمضان' : 'Ramadan Plan', description: language === 'ar' ? 'رمضان والعيد' : 'Ramadan & Eid', path: '/ramadan-planner' },
   ];
 
   const filteredNavItems = navItems.filter(item =>
@@ -200,7 +200,7 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
@@ -232,7 +232,7 @@ export default function HomePage() {
           {hijriDate && (
             <div className="text-right bg-card px-3 py-2 rounded-xl border border-border">
               <p className="text-xs text-[#d4a853] font-medium">{hijriDate.day} {hijriDate.month}</p>
-              <p className="text-[10px] text-muted-foreground">{hijriDate.year} AH</p>
+              <p className="text-[10px] text-muted-foreground">{hijriDate.year} {language === 'ar' ? 'هـ' : 'AH'}</p>
             </div>
           )}
         </div>
@@ -318,7 +318,7 @@ export default function HomePage() {
 
           <div className="bg-gradient-to-r from-[#d4a853] to-[#c49a48] rounded-2xl p-4">
             <p className="text-amber-100 text-xs">{t('prayerStreak')}</p>
-            <p className="text-xl font-bold text-white mt-0.5">{streak} {streak === 1 ? 'day' : t('days')} 🔥</p>
+            <p className="text-xl font-bold text-white mt-0.5">{streak} {streak === 1 ? (language === 'ar' ? 'يوم' : 'day') : t('days')} 🔥</p>
             <p className="text-amber-200 text-sm">{t('keepGoing')}</p>
           </div>
 

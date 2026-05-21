@@ -21,7 +21,7 @@ const DEFAULT_ROUTINES: Omit<Routine, 'streak' | 'completed'>[] = [
 ];
 
 export default function DailyRoutine() {
-  const { language, t } = useLanguage();
+  const { language, t, isRTL } = useLanguage();
   const [routines, setRoutines] = useState<Routine[]>([]);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function DailyRoutine() {
   const completedCount = routines.filter((r) => r.completed).length;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
         <h1 className="text-xl font-bold text-foreground">{t('dailyRoutine')}</h1>

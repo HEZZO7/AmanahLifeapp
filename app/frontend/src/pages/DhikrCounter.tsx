@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 
 interface DhikrPreset {
@@ -10,20 +11,22 @@ interface DhikrPreset {
   arabic: string;
   transliteration: string;
   meaning: string;
+  meaningAr: string;
   target: number;
 }
 
 const PRESETS: DhikrPreset[] = [
-  { id: 'subhanallah', arabic: 'سُبْحَانَ اللَّهِ', transliteration: 'SubhanAllah', meaning: 'Glory be to Allah', target: 33 },
-  { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّهِ', transliteration: 'Alhamdulillah', meaning: 'All praise is due to Allah', target: 33 },
-  { id: 'allahuakbar', arabic: 'اللَّهُ أَكْبَرُ', transliteration: 'Allahu Akbar', meaning: 'Allah is the Greatest', target: 33 },
-  { id: 'lailaha', arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ', transliteration: 'La ilaha illallah', meaning: 'There is no god but Allah', target: 100 },
-  { id: 'astaghfirullah', arabic: 'أَسْتَغْفِرُ اللَّهَ', transliteration: 'Astaghfirullah', meaning: 'I seek forgiveness from Allah', target: 100 },
-  { id: 'salawat', arabic: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ', transliteration: 'Allahumma salli ala Muhammad', meaning: 'O Allah, send blessings upon Muhammad', target: 100 },
+  { id: 'subhanallah', arabic: 'سُبْحَانَ اللَّهِ', transliteration: 'SubhanAllah', meaning: 'Glory be to Allah', meaningAr: 'تنزيه الله عن كل نقص', target: 33 },
+  { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّهِ', transliteration: 'Alhamdulillah', meaning: 'All praise is due to Allah', meaningAr: 'الثناء على الله بصفات الكمال', target: 33 },
+  { id: 'allahuakbar', arabic: 'اللَّهُ أَكْبَرُ', transliteration: 'Allahu Akbar', meaning: 'Allah is the Greatest', meaningAr: 'الله أعظم من كل شيء', target: 33 },
+  { id: 'lailaha', arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ', transliteration: 'La ilaha illallah', meaning: 'There is no god but Allah', meaningAr: 'لا معبود بحق إلا الله', target: 100 },
+  { id: 'astaghfirullah', arabic: 'أَسْتَغْفِرُ اللَّهَ', transliteration: 'Astaghfirullah', meaning: 'I seek forgiveness from Allah', meaningAr: 'أطلب المغفرة من الله', target: 100 },
+  { id: 'salawat', arabic: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ', transliteration: 'Allahumma salli ala Muhammad', meaning: 'O Allah, send blessings upon Muhammad', meaningAr: 'الصلاة على النبي ﷺ', target: 100 },
 ];
 
 export default function DhikrCounter() {
   const { user, loading: authLoading } = useAuth();
+  const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const [selectedPreset, setSelectedPreset] = useState<DhikrPreset>(PRESETS[0]);
   const [count, setCount] = useState(0);
@@ -68,12 +71,14 @@ export default function DhikrCounter() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50 pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">📿 Dhikr Counter</h1>
+          <h1 className="text-lg font-bold text-foreground">
+            📿 {language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'}
+          </h1>
           <div className="w-16" />
         </div>
       </header>
@@ -81,8 +86,10 @@ export default function DhikrCounter() {
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Daily Stats */}
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">Today's Total</p>
-          <p className="text-2xl font-bold text-emerald-600">{dailyTotal}</p>
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar' ? 'إجمالي اليوم' : "Today's Total"}
+          </p>
+          <p className="text-2xl font-bold text-primary">{dailyTotal}</p>
         </div>
 
         {/* Selected Dhikr Display */}
@@ -90,7 +97,9 @@ export default function DhikrCounter() {
           <CardContent className="p-6">
             <p className="text-3xl font-arabic text-foreground mb-2">{selectedPreset.arabic}</p>
             <p className="text-sm font-medium text-foreground">{selectedPreset.transliteration}</p>
-            <p className="text-xs text-muted-foreground mt-1">{selectedPreset.meaning}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === 'ar' ? selectedPreset.meaningAr : selectedPreset.meaning}
+            </p>
           </CardContent>
         </Card>
 
@@ -99,7 +108,7 @@ export default function DhikrCounter() {
           {/* Progress Ring */}
           <div className="relative inline-flex items-center justify-center">
             <svg className="w-48 h-48 transform -rotate-90">
-              <circle cx="96" cy="96" r="88" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+              <circle cx="96" cy="96" r="88" stroke="currentColor" className="text-secondary" strokeWidth="8" fill="none" />
               <circle
                 cx="96"
                 cy="96"
@@ -122,18 +131,18 @@ export default function DhikrCounter() {
           {/* Tap Button */}
           <button
             onClick={increment}
-            className="w-32 h-32 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white text-xl font-bold shadow-xl hover:shadow-2xl active:scale-95 transition-all mx-auto flex items-center justify-center"
+            className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-[#0d9488] text-white text-xl font-bold shadow-xl hover:shadow-2xl active:scale-95 transition-all mx-auto flex items-center justify-center"
           >
-            TAP
+            {language === 'ar' ? 'اضغط' : 'TAP'}
           </button>
 
           {/* Controls */}
           <div className="flex gap-3 justify-center">
             <Button variant="outline" size="sm" onClick={reset}>
-              Reset
+              {language === 'ar' ? 'إعادة' : 'Reset'}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setShowPresets(!showPresets)}>
-              Change Dhikr
+              {language === 'ar' ? 'تغيير الذكر' : 'Change Dhikr'}
             </Button>
           </div>
         </div>
@@ -142,16 +151,18 @@ export default function DhikrCounter() {
         {showPresets && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Select Dhikr</CardTitle>
+              <CardTitle className="text-sm">
+                {language === 'ar' ? 'اختر الذكر' : 'Select Dhikr'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {PRESETS.map((preset) => (
                 <button
                   key={preset.id}
-                  className={`w-full p-3 rounded-lg text-left transition-all ${
+                  className={`w-full p-3 rounded-lg text-${isRTL ? 'right' : 'left'} transition-all ${
                     selectedPreset.id === preset.id
-                      ? 'bg-teal-100 border-teal-300 border'
-                      : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                      ? 'bg-primary/10 border-primary border'
+                      : 'bg-secondary border border-border hover:bg-secondary/80'
                   }`}
                   onClick={() => {
                     setSelectedPreset(preset);
@@ -161,8 +172,12 @@ export default function DhikrCounter() {
                     setCount(savedCount ? parseInt(savedCount) : 0);
                   }}
                 >
-                  <p className="font-semibold text-sm">{preset.transliteration}</p>
-                  <p className="text-xs text-muted-foreground">{preset.meaning} • Target: {preset.target}</p>
+                  <p className="font-semibold text-sm text-foreground">
+                    {language === 'ar' ? preset.arabic : preset.transliteration}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ar' ? preset.meaningAr : preset.meaning} • {language === 'ar' ? 'الهدف' : 'Target'}: {preset.target}
+                  </p>
                 </button>
               ))}
             </CardContent>
@@ -171,9 +186,15 @@ export default function DhikrCounter() {
 
         {/* Completion Message */}
         {isComplete && (
-          <div className="text-center p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-            <p className="text-emerald-700 font-semibold">🎉 Target Reached!</p>
-            <p className="text-sm text-emerald-600 mt-1">MashaAllah! You've completed your dhikr goal.</p>
+          <div className="text-center p-4 rounded-xl bg-primary/10 border border-primary/30">
+            <p className="text-primary font-semibold">
+              {language === 'ar' ? '🎉 تم الوصول للهدف!' : '🎉 Target Reached!'}
+            </p>
+            <p className="text-sm text-primary/80 mt-1">
+              {language === 'ar'
+                ? 'ما شاء الله! أكملت هدف الذكر.'
+                : "MashaAllah! You've completed your dhikr goal."}
+            </p>
           </div>
         )}
       </main>

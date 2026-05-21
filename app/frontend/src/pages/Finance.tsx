@@ -23,7 +23,7 @@ const CATEGORY_ICONS: Record<IncomeCategory, string> = {
 };
 
 export default function Finance() {
-  const { t } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [type, setType] = useState<TransactionType>('income');
@@ -79,7 +79,7 @@ export default function Finance() {
   const savingsRate = monthlyIncome > 0 ? Math.round(((monthlyIncome - monthlyExpense) / monthlyIncome) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
         <h1 className="text-xl font-bold text-foreground">{t('finance')}</h1>
       </header>
@@ -119,7 +119,9 @@ export default function Finance() {
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h2 className="text-foreground font-semibold mb-3">{t('transactions')}</h2>
           {transactions.length === 0 && (
-            <p className="text-center text-muted-foreground py-4 text-sm">No transactions yet</p>
+            <p className="text-center text-muted-foreground py-4 text-sm">
+              {language === 'ar' ? 'لا توجد معاملات بعد' : 'No transactions yet'}
+            </p>
           )}
           <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-hide">
             {transactions.slice(0, 20).map((tx) => (
@@ -212,7 +214,7 @@ export default function Finance() {
                 onClick={() => setShowForm(false)}
                 className="flex-1 p-3 rounded-xl bg-secondary text-muted-foreground"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={addTransaction}

@@ -8,7 +8,7 @@ interface DayStatus {
 }
 
 export default function FastingTracker() {
-  const { t } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const today = new Date().toDateString();
 
   const [suhoor, setSuhoor] = useState(false);
@@ -75,7 +75,7 @@ export default function FastingTracker() {
   const fastedDays = monthDays.filter((d) => d.fasted).length;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
         <h1 className="text-xl font-bold text-foreground">{t('fasting')}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">{fastedDays}/30 {t('days')} {t('completed')}</p>
@@ -118,7 +118,7 @@ export default function FastingTracker() {
 
         {/* 30-Day Grid */}
         <div className="bg-card rounded-2xl p-4 border border-border">
-          <h2 className="text-foreground font-semibold mb-3">30-Day Progress</h2>
+          <h2 className="text-foreground font-semibold mb-3">{language === 'ar' ? 'تقدم ٣٠ يوم' : '30-Day Progress'}</h2>
           <div className="grid grid-cols-10 gap-1.5">
             {monthDays.map((day, i) => (
               <div

@@ -9,11 +9,11 @@ export default function BottomNav() {
   const [showSearchModal, setShowSearchModal] = useState(false);
 
   const NAV_ITEMS = [
-    { path: '/', icon: '🏠', label: language === 'ar' ? 'الرئيسية' : 'Dashboard' },
-    { path: '/finance', icon: '💰', label: language === 'ar' ? 'المالية' : 'Finance' },
-    { path: 'search-modal', icon: 'search', label: language === 'ar' ? 'بحث' : 'Search' },
-    { path: '/planner', icon: 'calendar', label: language === 'ar' ? 'المخطط' : 'Planner' },
-    { path: '/settings', icon: '☰', label: language === 'ar' ? 'المزيد' : 'More' },
+    { path: '/', id: 'dashboard', label: language === 'ar' ? 'الرئيسية' : 'Dashboard' },
+    { path: '/finance', id: 'finance', label: language === 'ar' ? 'المالية' : 'Finance' },
+    { path: 'search-modal', id: 'search', label: language === 'ar' ? 'بحث' : 'Search' },
+    { path: '/planner', id: 'planner', label: language === 'ar' ? 'المخطط' : 'Planner' },
+    { path: '/settings', id: 'more', label: language === 'ar' ? 'المزيد' : 'More' },
   ];
 
   const handleNavClick = (item: typeof NAV_ITEMS[0]) => {
@@ -25,24 +25,51 @@ export default function BottomNav() {
   };
 
   const renderIcon = (item: typeof NAV_ITEMS[0], isActive: boolean) => {
-    if (item.icon === 'search') {
-      return (
-        <svg className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      );
+    const colorClass = isActive ? 'text-teal-400' : 'text-gray-400';
+
+    switch (item.id) {
+      case 'dashboard':
+        return (
+          <svg className={`w-5 h-5 ${colorClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" strokeWidth={2} />
+            <rect x="13" y="3" width="8" height="8" rx="1.5" strokeWidth={2} />
+            <rect x="3" y="13" width="8" height="8" rx="1.5" strokeWidth={2} />
+            <rect x="13" y="13" width="8" height="8" rx="1.5" strokeWidth={2} />
+          </svg>
+        );
+      case 'finance':
+        return (
+          <svg className={`w-5 h-5 ${colorClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 110-6h.75A2.25 2.25 0 0118 6v0a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 003 10.5V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18v-6z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10.5V6a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 6v0" />
+            <circle cx="16.5" cy="14.5" r="1.5" fill="currentColor" />
+          </svg>
+        );
+      case 'search':
+        return (
+          <svg className={`w-5 h-5 ${colorClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        );
+      case 'planner':
+        return (
+          <svg className={`w-5 h-5 ${colorClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth={2} />
+            <line x1="16" y1="2" x2="16" y2="6" strokeWidth={2} strokeLinecap="round" />
+            <line x1="8" y1="2" x2="8" y2="6" strokeWidth={2} strokeLinecap="round" />
+            <line x1="3" y1="10" x2="21" y2="10" strokeWidth={2} />
+          </svg>
+        );
+      case 'more':
+        return (
+          <svg className={`w-5 h-5 ${colorClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <circle cx="12" cy="12" r="3" strokeWidth={2} />
+          </svg>
+        );
+      default:
+        return null;
     }
-    if (item.icon === 'calendar') {
-      return (
-        <svg className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth={2} />
-          <line x1="16" y1="2" x2="16" y2="6" strokeWidth={2} strokeLinecap="round" />
-          <line x1="8" y1="2" x2="8" y2="6" strokeWidth={2} strokeLinecap="round" />
-          <line x1="3" y1="10" x2="21" y2="10" strokeWidth={2} />
-        </svg>
-      );
-    }
-    return <span className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>;
   };
 
   return (
@@ -52,20 +79,21 @@ export default function BottomNav() {
           {NAV_ITEMS.map((item) => {
             const isActive = item.path !== 'search-modal' && location.pathname === item.path;
             const isSearchActive = item.path === 'search-modal' && (location.pathname === '/search' || location.pathname === '/ai-search');
+            const active = isActive || isSearchActive;
             return (
               <button
                 key={item.path}
                 onClick={() => handleNavClick(item)}
-                className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                  isActive || isSearchActive
-                    ? 'bg-primary/20 scale-105'
+                className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
+                  active
+                    ? 'bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.4)] scale-110'
                     : 'hover:bg-secondary active:scale-95'
                 }`}
               >
-                {renderIcon(item, isActive || isSearchActive)}
+                {renderIcon(item, active)}
                 <span
-                  className={`text-[10px] font-medium transition-colors ${
-                    isActive || isSearchActive ? 'text-primary' : 'text-muted-foreground'
+                  className={`text-[10px] font-medium transition-all duration-200 ${
+                    active ? 'text-teal-400' : 'text-gray-400'
                   }`}
                 >
                   {item.label}

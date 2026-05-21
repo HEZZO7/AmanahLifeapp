@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -21,8 +22,18 @@ interface PrayerData {
   Isha: string;
 }
 
+const PRAYER_NAMES_AR: Record<string, string> = {
+  Fajr: 'الفجر',
+  Sunrise: 'الشروق',
+  Dhuhr: 'الظهر',
+  Asr: 'العصر',
+  Maghrib: 'المغرب',
+  Isha: 'العشاء',
+};
+
 export default function PrayerTimes() {
   const { user, loading: authLoading } = useAuth();
+  const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +54,7 @@ export default function PrayerTimes() {
       );
       const data = await res.json();
       const timings: PrayerData = data.data.timings;
-      setLocation(data.data.meta.timezone || 'Your Location');
+      setLocation(data.data.meta.timezone || (language === 'ar' ? 'موقعك' : 'Your Location'));
 
       const prayerList: PrayerTime[] = [
         { name: 'Fajr', time: timings.Fajr, icon: '🌅' },
@@ -56,11 +67,11 @@ export default function PrayerTimes() {
       setPrayers(prayerList);
       updateNextPrayer(prayerList);
     } catch {
-      toast.error('Failed to fetch prayer times');
+      toast.error(language === 'ar' ? 'فشل في تحميل مواقيت الصلاة' : 'Failed to fetch prayer times');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   const updateNextPrayer = (prayerList: PrayerTime[]) => {
     const now = new Date();
@@ -80,7 +91,8 @@ export default function PrayerTimes() {
         return;
       }
     }
-    setNextPrayer({ name: 'Fajr (tomorrow)', time: prayerList[0]?.time || '', countdown: '' });
+    const tomorrowLabel = language === 'ar' ? 'الفجر (غداً)' : 'Fajr (tomorrow)';
+    setNextPrayer({ name: tomorrowLabel, time: prayerList[0]?.time || '', countdown: '' });
   };
 
   useEffect(() => {
@@ -88,15 +100,18 @@ export default function PrayerTimes() {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchPrayerTimes(pos.coords.latitude, pos.coords.longitude),
         () => {
-          // Default to Mecca if location denied
+          // Default to Mecca if location denied or timed out
           fetchPrayerTimes(21.4225, 39.8262);
-          toast.info('Using default location (Mecca). Enable location for accurate times.');
-        }
+          toast.info(language === 'ar'
+            ? 'يتم استخدام موقع مكة المكرمة. فعّل الموقع لنتائج دقيقة.'
+            : 'Using default location (Mecca). Enable location for accurate times.');
+        },
+        { timeout: 5000, maximumAge: 300000 }
       );
     } else {
       fetchPrayerTimes(21.4225, 39.8262);
     }
-  }, [fetchPrayerTimes]);
+  }, [fetchPrayerTimes, language]);
 
   // Update countdown every minute
   useEffect(() => {
@@ -104,6 +119,7 @@ export default function PrayerTimes() {
       if (prayers.length > 0) updateNextPrayer(prayers);
     }, 60000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prayers]);
 
   const toggleCompleted = (name: string) => {
@@ -128,10 +144,22 @@ export default function PrayerTimes() {
     localStorage.setItem(`prayer_completed_${today}`, JSON.stringify([...completed]));
   }, [completed]);
 
+  const getPrayerDisplayName = (name: string): string => {
+    if (language === 'ar') {
+      return PRAYER_NAMES_AR[name] || name;
+    }
+    return name;
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-muted-foreground">
+            {language === 'ar' ? 'جاري تحميل مواقيت الصلاة...' : 'Loading prayer times...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -139,12 +167,14 @@ export default function PrayerTimes() {
   const completedCount = [...completed].filter((n) => n !== 'Sunrise').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">🕌 Prayer Times</h1>
+          <h1 className="text-lg font-bold text-foreground">
+            🕌 {language === 'ar' ? 'مواقيت الصلاة' : 'Prayer Times'}
+          </h1>
           <div className="w-16" />
         </div>
       </header>
@@ -154,23 +184,35 @@ export default function PrayerTimes() {
         {nextPrayer && (
           <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
             <CardContent className="p-6 text-center">
-              <p className="text-blue-100 text-sm">Next Prayer</p>
-              <h2 className="text-3xl font-bold mt-1">{nextPrayer.name}</h2>
+              <p className="text-blue-100 text-sm">
+                {language === 'ar' ? 'الصلاة القادمة' : 'Next Prayer'}
+              </p>
+              <h2 className="text-3xl font-bold mt-1">
+                {language === 'ar' && PRAYER_NAMES_AR[nextPrayer.name]
+                  ? PRAYER_NAMES_AR[nextPrayer.name]
+                  : nextPrayer.name}
+              </h2>
               <p className="text-xl mt-1">{nextPrayer.time}</p>
               {nextPrayer.countdown && (
-                <p className="text-blue-200 mt-2 text-sm">in {nextPrayer.countdown}</p>
+                <p className="text-blue-200 mt-2 text-sm">
+                  {language === 'ar' ? 'بعد' : 'in'} {nextPrayer.countdown}
+                </p>
               )}
             </CardContent>
           </Card>
         )}
 
         {/* Location */}
-        <p className="text-sm text-muted-foreground text-center">📍 {location}</p>
+        <p className="text-sm text-muted-foreground text-center">
+          📍 {language === 'ar' ? 'الموقع:' : 'Location:'} {location}
+        </p>
 
         {/* Progress */}
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            Today's Progress: <span className="font-bold text-emerald-600">{completedCount}/5</span> prayers
+            {language === 'ar' ? 'تقدم اليوم:' : "Today's Progress:"}{' '}
+            <span className="font-bold text-emerald-600">{completedCount}/5</span>{' '}
+            {language === 'ar' ? 'صلوات مكتملة' : 'prayers completed'}
           </p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
             <div
@@ -192,7 +234,7 @@ export default function PrayerTimes() {
                   <span className="text-2xl">{prayer.icon}</span>
                   <div>
                     <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700' : 'text-foreground'}`}>
-                      {prayer.name}
+                      {getPrayerDisplayName(prayer.name)}
                     </p>
                     <p className="text-sm text-muted-foreground">{prayer.time}</p>
                   </div>
@@ -204,7 +246,9 @@ export default function PrayerTimes() {
                     className={completed.has(prayer.name) ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
                     onClick={() => toggleCompleted(prayer.name)}
                   >
-                    {completed.has(prayer.name) ? '✓ Done' : 'Mark'}
+                    {completed.has(prayer.name)
+                      ? (language === 'ar' ? '✓ تم' : '✓ Done')
+                      : (language === 'ar' ? 'تسجيل' : 'Mark')}
                   </Button>
                 )}
               </CardContent>

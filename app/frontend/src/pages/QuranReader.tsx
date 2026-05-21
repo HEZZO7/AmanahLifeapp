@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 
 interface Surah {
@@ -25,6 +26,7 @@ interface Ayah {
 
 export default function QuranReader() {
   const { user, loading: authLoading } = useAuth();
+  const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
@@ -56,13 +58,13 @@ export default function QuranReader() {
         const data = await res.json();
         setSurahs(data.data);
       } catch {
-        toast.error('Failed to load Quran data');
+        toast.error(language === 'ar' ? 'فشل تحميل بيانات القرآن' : 'Failed to load Quran data');
       } finally {
         setLoading(false);
       }
     };
     fetchSurahs();
-  }, []);
+  }, [language]);
 
   const loadSurah = async (surah: Surah) => {
     setLoading(true);
@@ -81,7 +83,7 @@ export default function QuranReader() {
       }));
       setAyahs(combined);
     } catch {
-      toast.error('Failed to load surah');
+      toast.error(language === 'ar' ? 'فشل تحميل السورة' : 'Failed to load surah');
     } finally {
       setLoading(false);
     }
@@ -107,25 +109,26 @@ export default function QuranReader() {
     (s) =>
       s.englishName.toLowerCase().includes(search.toLowerCase()) ||
       s.englishNameTranslation.toLowerCase().includes(search.toLowerCase()) ||
+      s.name.includes(search) ||
       s.number.toString() === search
   );
 
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           {selectedSurah ? (
             <Button variant="ghost" size="sm" onClick={() => { setSelectedSurah(null); setAyahs([]); }}>
-              ← Surahs
+              {isRTL ? 'السور →' : '← Surahs'}
             </Button>
           ) : (
             <div className="w-16" />
           )}
           <h1 className="text-lg font-bold text-foreground">
-            📖 {selectedSurah ? selectedSurah.englishName : 'Quran'}
+            📖 {selectedSurah ? (isRTL ? selectedSurah.name : selectedSurah.englishName) : (language === 'ar' ? 'القرآن الكريم' : 'Quran')}
           </h1>
           <div className="w-16" />
         </div>
@@ -137,33 +140,35 @@ export default function QuranReader() {
             {/* Search */}
             <div className="mb-4">
               <Input
-                placeholder="Search surah by name or number..."
+                placeholder={language === 'ar' ? 'ابحث عن سورة بالاسم أو الرقم...' : 'Search surah by name or number...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-white"
+                className="bg-card"
               />
             </div>
 
             {/* Last Read */}
             {localStorage.getItem('quran_last_read') && (
-              <Card className="mb-4 border-purple-200 bg-purple-50">
+              <Card className="mb-4 border-primary/30 bg-primary/5">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-purple-600 font-medium">Continue Reading</p>
+                    <p className="text-xs text-primary font-medium">
+                      {language === 'ar' ? 'متابعة القراءة' : 'Continue Reading'}
+                    </p>
                     <p className="font-semibold text-foreground">
                       {JSON.parse(localStorage.getItem('quran_last_read') || '{}').name}
                     </p>
                   </div>
                   <Button
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-primary hover:bg-primary/90"
                     onClick={() => {
                       const last = JSON.parse(localStorage.getItem('quran_last_read') || '{}');
                       const surah = surahs.find((s) => s.number === last.surah);
                       if (surah) loadSurah(surah);
                     }}
                   >
-                    Resume
+                    {language === 'ar' ? 'استئناف' : 'Resume'}
                   </Button>
                 </CardContent>
               </Card>
@@ -172,27 +177,34 @@ export default function QuranReader() {
             {/* Surah List */}
             {loading ? (
               <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
               <div className="space-y-2">
                 {filteredSurahs.map((surah) => (
                   <Card
                     key={surah.number}
-                    className="cursor-pointer hover:shadow-md transition-all border"
+                    className="cursor-pointer hover:shadow-md transition-all border border-border"
                     onClick={() => loadSurah(surah)}
                   >
                     <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-bold text-purple-700">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
                         {surah.number}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-foreground">{surah.englishName}</p>
+                        <p className="font-semibold text-foreground">
+                          {language === 'ar' ? surah.name : surah.englishName}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {surah.englishNameTranslation} • {surah.numberOfAyahs} ayahs • {surah.revelationType}
+                          {language === 'ar'
+                            ? `${surah.numberOfAyahs} آيات • ${surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}`
+                            : `${surah.englishNameTranslation} • ${surah.numberOfAyahs} ayahs • ${surah.revelationType}`
+                          }
                         </p>
                       </div>
-                      <p className="text-lg font-arabic text-foreground">{surah.name}</p>
+                      <p className="text-lg font-arabic text-foreground">
+                        {language === 'ar' ? surah.englishName : surah.name}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -204,7 +216,7 @@ export default function QuranReader() {
             {/* Ayah List */}
             {loading ? (
               <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -218,17 +230,17 @@ export default function QuranReader() {
                   const key = `${selectedSurah.number}:${ayah.numberInSurah}`;
                   const isBookmarked = bookmarks.has(key);
                   return (
-                    <Card key={ayah.number} className={`border ${isBookmarked ? 'border-amber-300 bg-amber-50' : ''}`}>
+                    <Card key={ayah.number} className={`border ${isBookmarked ? 'border-[#d4a853] bg-[#d4a853]/5' : 'border-border'}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
-                          <span className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700">
+                          <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                             {ayah.numberInSurah}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleBookmark(key)}
-                            className={isBookmarked ? 'text-amber-500' : 'text-gray-400'}
+                            className={isBookmarked ? 'text-[#d4a853]' : 'text-muted-foreground'}
                           >
                             {isBookmarked ? '★' : '☆'}
                           </Button>

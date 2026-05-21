@@ -22,7 +22,7 @@ interface Task {
 type ViewMode = 'agenda' | 'weekly' | 'monthly';
 
 export default function Planner() {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const [view, setView] = useState<ViewMode>('agenda');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
@@ -49,13 +49,17 @@ export default function Planner() {
         const res = await fetch(`https://api.aladhan.com/v1/gpiToH/${dateStr}`);
         const data = await res.json();
         const h = data.data.hijri;
-        setHijriDate(`${h.day} ${h.month.en} ${h.year} AH`);
+        if (language === 'ar') {
+          setHijriDate(`${h.day} ${h.month.ar} ${h.year} هـ`);
+        } else {
+          setHijriDate(`${h.day} ${h.month.en} ${h.year} AH`);
+        }
       } catch {
         // silently fail
       }
     };
     fetchHijri();
-  }, []);
+  }, [language]);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -119,7 +123,7 @@ export default function Planner() {
   const hasItems = todayTasks.length > 0 || todayAgenda.length > 0;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
           <h1 className="text-xl font-bold text-foreground">
@@ -227,11 +231,11 @@ export default function Planner() {
                     <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center ${
                       isToday ? 'bg-primary text-white' : 'bg-background text-muted-foreground'
                     }`}>
-                      <span className="text-[10px]">{day.toLocaleDateString('en', { weekday: 'short' })}</span>
+                      <span className="text-[10px]">{day.toLocaleDateString(language === 'ar' ? 'ar' : 'en', { weekday: 'short' })}</span>
                       <span className="text-sm font-bold">{day.getDate()}</span>
                     </div>
                     <span className={`text-sm ${isToday ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                      {isToday ? t('today') : day.toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                      {isToday ? t('today') : day.toLocaleDateString(language === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                   {count > 0 && (
@@ -248,11 +252,17 @@ export default function Planner() {
         {/* Monthly View */}
         {view === 'monthly' && (
           <div>
-            <h3 className="text-center text-foreground font-medium mb-3">
-              {new Date().toLocaleDateString('en', { month: 'long', year: 'numeric' })}
+            <h3 className="text-center text-foreground font-medium mb-2">
+              {new Date().toLocaleDateString(language === 'ar' ? 'ar' : 'en', { month: 'long', year: 'numeric' })}
             </h3>
+            {hijriDate && (
+              <p className="text-center text-xs text-[#d4a853] mb-3">{hijriDate}</p>
+            )}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+              {(language === 'ar'
+                ? ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت']
+                : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+              ).map(d => (
                 <div key={d} className="text-center text-[10px] text-muted-foreground py-1">{d}</div>
               ))}
             </div>
