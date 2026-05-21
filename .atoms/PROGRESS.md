@@ -64,6 +64,14 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 7: Update existing pages (enhance Finance, Goals, ZakatCalculator with Excel data integration)
 - [x] Phase 7: Lint and build verification
 - [x] Phase 8: Design System overhaul (forest-green/gold/teal palette from HTML design system, Tajawal+Amiri fonts, CSS variables, Tailwind color scales)
+- [x] Phase 9: Add payment_provider column to subscriptions table
+- [x] Phase 9: Create Lemon Squeezy checkout edge function
+- [x] Phase 9: Create Lemon Squeezy webhook edge function
+- [x] Phase 9: Create Paddle checkout edge function
+- [x] Phase 9: Create Paddle webhook edge function
+- [x] Phase 9: Update Subscription page with payment provider selector UI
+- [x] Phase 9: Update SubscriptionContext for multi-provider support
+- [x] Phase 9: Lint and build verification
 
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
@@ -75,4 +83,5 @@ last_updated: 2026-05-19T05:19:47Z
 - 2026-05-20: Phase 7 complete — Family Budget, Financial Dashboard, Halal Investment, Ramadan Planner, Streaks & Gamification, Smart Briefings all implemented
 - 2026-05-20: Phase 8 updates complete — (1) Zakat Calculator expanded with 24+ currencies organized by region + live exchange rates, (2) Google OAuth callback fixed with proper error handling, (3) Planner improved with FAB + button and empty state, (4) Currency symbols removed from number displays app-wide, (5) Dual search mode in nav bar (Classic free + AI Smart premium)
 - 2026-05-21: Full Arabic RTL localization applied to Islamic Calendar (event names, month names, descriptions, all UI labels) and Qibla Finder (directions, instructions, error messages). Settings currency list expanded from 8 to 24 countries with flags and currency symbols matching Zakat page. Saudi Arabia currency fixed from USD to SAR.
+- 2026-05-21: Phase 9 complete — Multi-payment provider support: added payment_provider column to DB, created Lemon Squeezy checkout+webhook edge functions, created Paddle checkout+webhook edge functions, updated Subscription page with provider selector UI (3 cards with gold highlight), updated SubscriptionContext to read payment_provider from DB. Lint/build passing.
 

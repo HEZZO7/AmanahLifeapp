@@ -5,11 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 type SubscriptionTier = 'free' | 'balanced' | 'family';
 type SubscriptionStatus = 'active' | 'canceled' | 'past_due';
 type BillingCycle = 'monthly' | 'yearly';
+type PaymentProvider = 'stripe' | 'lemonsqueezy' | 'paddle';
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
   status: SubscriptionStatus;
   billingCycle: BillingCycle;
+  paymentProvider: PaymentProvider;
   loading: boolean;
   refetch: () => Promise<void>;
 }
@@ -21,6 +23,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [tier, setTier] = useState<SubscriptionTier>('free');
   const [status, setStatus] = useState<SubscriptionStatus>('active');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('stripe');
   const [loading, setLoading] = useState(true);
 
   const fetchSubscription = useCallback(async () => {
@@ -28,8 +31,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
+      setPaymentProvider('stripe');
       setLoading(false);
-      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly' }));
+      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
       return;
     }
 
@@ -46,22 +50,26 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setTier('free');
         setStatus('active');
         setBillingCycle('monthly');
-        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly' }));
+        setPaymentProvider('stripe');
+        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
       } else {
         const fetchedTier = (data.tier as SubscriptionTier) || 'free';
         const fetchedStatus = (data.status as SubscriptionStatus) || 'active';
         const fetchedBilling = (data.billing_cycle as BillingCycle) || 'monthly';
+        const fetchedProvider = (data.payment_provider as PaymentProvider) || 'stripe';
         setTier(fetchedTier);
         setStatus(fetchedStatus);
         setBillingCycle(fetchedBilling);
-        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: fetchedTier, billing: fetchedBilling }));
+        setPaymentProvider(fetchedProvider);
+        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: fetchedTier, billing: fetchedBilling, provider: fetchedProvider }));
       }
     } catch {
       // On error, default to free
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
-      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly' }));
+      setPaymentProvider('stripe');
+      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
     } finally {
       setLoading(false);
     }
@@ -72,7 +80,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [fetchSubscription]);
 
   return (
-    <SubscriptionContext.Provider value={{ tier, status, billingCycle, loading, refetch: fetchSubscription }}>
+    <SubscriptionContext.Provider value={{ tier, status, billingCycle, paymentProvider, loading, refetch: fetchSubscription }}>
       {children}
     </SubscriptionContext.Provider>
   );
