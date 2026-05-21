@@ -296,7 +296,7 @@ export default function Subscription() {
                         <div>
                           <span className="text-[#c9a96e] font-bold text-lg">{price}</span>
                           <span className="text-muted-foreground text-xs">
-                            {' '}{isAr ? 'ر.س/شهر' : 'SAR/mo'}
+                            {' '}{isAr ? '/شهر' : '/mo'}
                           </span>
                         </div>
                       )}

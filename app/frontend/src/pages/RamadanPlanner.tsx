@@ -117,7 +117,7 @@ export default function RamadanPlanner() {
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
             <p className="text-lg font-bold text-primary">{data.totalCharity}</p>
-            <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'صدقة' : 'Charity'} SAR</p>
+            <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'صدقة' : 'Charity'}</p>
           </div>
         </div>
 
@@ -237,7 +237,7 @@ export default function RamadanPlanner() {
                   <div className="flex-1">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-foreground">{language === 'ar' ? label.ar : label.en}</span>
-                      <span className="text-muted-foreground">{value.toLocaleString()} SAR</span>
+                      <span className="text-muted-foreground">{value.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full" style={{ width: '60%' }} />
@@ -249,7 +249,7 @@ export default function RamadanPlanner() {
             <div className="mt-3 pt-3 border-t border-border flex justify-between">
               <span className="text-sm font-semibold text-foreground">{language === 'ar' ? 'الإجمالي' : 'Total'}</span>
               <span className="text-sm font-bold text-[#d4a853]">
-                {Object.values(data.budget).reduce((a, b) => a + b, 0).toLocaleString()} SAR
+                {Object.values(data.budget).reduce((a, b) => a + b, 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -275,7 +275,7 @@ export default function RamadanPlanner() {
                   <div className="flex-1">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-foreground">{language === 'ar' ? label.ar : label.en}</span>
-                      <span className="text-muted-foreground">{value.toLocaleString()} SAR</span>
+                      <span className="text-muted-foreground">{value.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                       <div className="h-full bg-[#d4a853] rounded-full" style={{ width: '40%' }} />
@@ -287,7 +287,7 @@ export default function RamadanPlanner() {
             <div className="mt-3 pt-3 border-t border-border flex justify-between">
               <span className="text-sm font-semibold text-foreground">{language === 'ar' ? 'الإجمالي' : 'Total'}</span>
               <span className="text-sm font-bold text-[#d4a853]">
-                {Object.values(data.eidBudget).reduce((a, b) => a + b, 0).toLocaleString()} SAR
+                {Object.values(data.eidBudget).reduce((a, b) => a + b, 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -301,9 +301,9 @@ export default function RamadanPlanner() {
                 {language === 'ar' ? '🤲 متتبع الصدقة' : '🤲 Charity Tracker'}
               </h3>
               <div className="text-center mb-4">
-                <p className="text-3xl font-bold text-primary">{data.totalCharity} SAR</p>
+                <p className="text-3xl font-bold text-primary">{data.totalCharity}</p>
                 <p className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'الهدف اليومي' : 'Daily Goal'}: {data.charityGoal} SAR
+                  {language === 'ar' ? 'الهدف اليومي' : 'Daily Goal'}: {data.charityGoal}
                 </p>
               </div>
               <div className="w-full h-3 bg-secondary rounded-full overflow-hidden mb-4">
@@ -319,7 +319,7 @@ export default function RamadanPlanner() {
                     onClick={() => addDailyCharity(1, amount)}
                     className="bg-primary/10 border border-primary/30 text-primary py-2 rounded-xl text-sm font-medium"
                   >
-                    +{amount} SAR
+                    +{amount}
                   </button>
                 ))}
               </div>
@@ -334,7 +334,7 @@ export default function RamadanPlanner() {
                 {data.days.filter(d => d.charity > 0).map(d => (
                   <div key={d.day} className="flex justify-between text-xs py-1 border-b border-border last:border-0">
                     <span className="text-foreground">{language === 'ar' ? 'يوم' : 'Day'} {d.day}</span>
-                    <span className="text-primary font-medium">{d.charity} SAR</span>
+                    <span className="text-primary font-medium">{d.charity}</span>
                   </div>
                 ))}
                 {data.days.filter(d => d.charity > 0).length === 0 && (

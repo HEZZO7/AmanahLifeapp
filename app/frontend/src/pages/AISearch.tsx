@@ -23,7 +23,7 @@ const SAMPLE_RESULTS_AR: SearchResult[] = [
 
 const SAMPLE_RESULTS_EN: SearchResult[] = [
   { type: 'Tasks', title: 'Monthly Budget Review', description: 'Scheduled for Sunday - High Priority', icon: '✅' },
-  { type: 'Finance', title: 'Grocery Expenses', description: 'This month total: 850 SAR of 1200 SAR budget', icon: '💰' },
+  { type: 'Finance', title: 'Grocery Expenses', description: 'This month total: 850 of 1200 budget', icon: '💰' },
   { type: 'Goals', title: 'Complete Quran', description: 'Progress: 15 of 30 Juz - 50%', icon: '🎯' },
   { type: 'Adhkar', title: 'Morning Adhkar', description: 'SubhanAllah wa bihamdihi - 100 times', icon: '📿' },
   { type: 'Quran', title: 'Surah Al-Kahf', description: 'Last read: Ayah 45 - Friday', icon: '📖' },

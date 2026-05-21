@@ -42,7 +42,7 @@ interface FamilyBudgetData {
   expenses: ExpenseEntry[];
 }
 
-const CURRENCIES = ['SAR', 'USD', 'EUR', 'GBP'];
+const CURRENCIES = ['USD', 'EUR', 'GBP'];
 const RATES: Record<string, number> = { SAR: 1, USD: 3.75, EUR: 4.05, GBP: 4.72 };
 
 const DEFAULT_CATEGORIES: BudgetCategory[] = [
@@ -75,8 +75,8 @@ export default function FamilyBudget() {
 
   const [activeTab, setActiveTab] = useState<'family' | 'budget' | 'income' | 'expenses'>('budget');
   const [newMember, setNewMember] = useState({ name: '', role: '' });
-  const [newIncome, setNewIncome] = useState({ source: '', amount: '', currency: 'SAR' });
-  const [newExpense, setNewExpense] = useState({ category: 'Housing', description: '', amount: '', currency: 'SAR' });
+  const [newIncome, setNewIncome] = useState({ source: '', amount: '', currency: 'USD' });
+  const [newExpense, setNewExpense] = useState({ category: 'Housing', description: '', amount: '', currency: 'USD' });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -107,7 +107,7 @@ export default function FamilyBudget() {
         date: new Date().toISOString().split('T')[0],
       }],
     }));
-    setNewIncome({ source: '', amount: '', currency: 'SAR' });
+    setNewIncome({ source: '', amount: '', currency: 'USD' });
   };
 
   const addExpense = () => {
@@ -124,18 +124,16 @@ export default function FamilyBudget() {
         date: new Date().toISOString().split('T')[0],
       }],
       categories: prev.categories.map(c =>
-        c.name === newExpense.category ? { ...c, actual: c.actual + amt * (RATES[newExpense.currency] / RATES['SAR']) } : c
+        c.name === newExpense.category ? { ...c, actual: c.actual + amt * (RATES[newExpense.currency] || 1) } : c
       ),
     }));
-    setNewExpense({ category: 'Housing', description: '', amount: '', currency: 'SAR' });
+    setNewExpense({ category: 'Housing', description: '', amount: '', currency: 'USD' });
   };
 
   const totalIncome = data.income.reduce((sum, i) => sum + i.amount * (RATES[i.currency] || 1), 0);
   const totalExpenses = data.expenses.reduce((sum, e) => sum + e.amount * (RATES[e.currency] || 1), 0);
 
-  const convertToSAR = (amount: number, currency: string) => {
-    return Math.round(amount * (RATES[currency] || 1));
-  };
+
 
   const tabs = [
     { key: 'family' as const, label: language === 'ar' ? 'العائلة' : 'Family', icon: '👨‍👩‍👧‍👦' },
@@ -330,9 +328,6 @@ export default function FamilyBudget() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-primary">+{entry.amount.toLocaleString()}</p>
-                    {entry.currency !== 'SAR' && (
-                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency).toLocaleString()}</p>
-                    )}
                   </div>
                 </div>
               ))}
@@ -395,9 +390,7 @@ export default function FamilyBudget() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-red-400">-{entry.amount.toLocaleString()}</p>
-                    {entry.currency !== 'SAR' && (
-                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency).toLocaleString()}</p>
-                    )}
+
                   </div>
                 </div>
               ))}

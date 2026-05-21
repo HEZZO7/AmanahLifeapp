@@ -15,7 +15,7 @@ interface AppSettings {
 }
 
 const COUNTRIES = [
-  { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'SAR' },
+  { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'USD' },
   { code: 'QA', nameAr: 'قطر', nameEn: 'Qatar', currency: 'QAR' },
   { code: 'AE', nameAr: 'الإمارات', nameEn: 'UAE', currency: 'AED' },
   { code: 'KW', nameAr: 'الكويت', nameEn: 'Kuwait', currency: 'KWD' },

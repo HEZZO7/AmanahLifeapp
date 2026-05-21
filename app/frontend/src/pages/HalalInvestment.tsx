@@ -138,7 +138,7 @@ export default function HalalInvestment() {
         {/* Portfolio Summary */}
         <div className="bg-gradient-to-r from-primary/20 to-[#d4a853]/20 rounded-2xl p-4 mb-4 border border-border">
           <p className="text-xs text-muted-foreground">{language === 'ar' ? 'إجمالي المحفظة' : 'Total Portfolio'}</p>
-          <p className="text-2xl font-bold text-foreground">{totalPortfolio.toLocaleString()} SAR</p>
+          <p className="text-2xl font-bold text-foreground">{totalPortfolio.toLocaleString()}</p>
           <p className="text-xs text-primary">{data.portfolio.length} {language === 'ar' ? 'استثمارات' : 'investments'}</p>
         </div>
 
@@ -190,7 +190,7 @@ export default function HalalInvestment() {
                     type="number"
                     value={newInvestment.amount}
                     onChange={e => setNewInvestment(p => ({ ...p, amount: e.target.value }))}
-                    placeholder={language === 'ar' ? 'المبلغ (SAR)' : 'Amount (SAR)'}
+                    placeholder={language === 'ar' ? 'المبلغ' : 'Amount'}
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                   />
                   <select
@@ -246,7 +246,7 @@ export default function HalalInvestment() {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'سعر التكلفة (SAR)' : 'Cost Price (SAR)'}</label>
+                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'سعر التكلفة' : 'Cost Price'}</label>
                 <input
                   type="number"
                   value={murabaha.costPrice}
@@ -278,15 +278,15 @@ export default function HalalInvestment() {
               <div className="mt-4 bg-primary/10 rounded-xl p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'السعر الإجمالي' : 'Total Price'}</span>
-                  <span className="font-bold text-foreground">{murabahaResult.totalPrice.toLocaleString()} SAR</span>
+                  <span className="font-bold text-foreground">{murabahaResult.totalPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'الربح' : 'Profit'}</span>
-                  <span className="font-bold text-[#d4a853]">{murabahaResult.profit.toLocaleString()} SAR</span>
+                  <span className="font-bold text-[#d4a853]">{murabahaResult.profit.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'القسط الشهري' : 'Monthly Payment'}</span>
-                  <span className="font-bold text-primary">{Math.round(murabahaResult.monthlyPayment).toLocaleString()} SAR</span>
+                  <span className="font-bold text-primary">{Math.round(murabahaResult.monthlyPayment).toLocaleString()}</span>
                 </div>
               </div>
             )}
@@ -306,7 +306,7 @@ export default function HalalInvestment() {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'قيمة الأصل (SAR)' : 'Asset Value (SAR)'}</label>
+                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'قيمة الأصل' : 'Asset Value'}</label>
                 <input
                   type="number"
                   value={ijara.assetValue}
@@ -324,7 +324,7 @@ export default function HalalInvestment() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'الإيجار الشهري (SAR)' : 'Monthly Rent (SAR)'}</label>
+                <label className="text-xs text-muted-foreground">{language === 'ar' ? 'الإيجار الشهري' : 'Monthly Rent'}</label>
                 <input
                   type="number"
                   value={ijara.monthlyRent}
@@ -338,11 +338,11 @@ export default function HalalInvestment() {
               <div className="mt-4 bg-primary/10 rounded-xl p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'إجمالي الإيجار' : 'Total Rent'}</span>
-                  <span className="font-bold text-foreground">{ijaraResult.totalRent.toLocaleString()} SAR</span>
+                  <span className="font-bold text-foreground">{ijaraResult.totalRent.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'المتبقي للتملك' : 'Remaining to Own'}</span>
-                  <span className="font-bold text-[#d4a853]">{ijaraResult.remaining.toLocaleString()} SAR</span>
+                  <span className="font-bold text-[#d4a853]">{ijaraResult.remaining.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'حالة التملك' : 'Ownership Status'}</span>
@@ -431,8 +431,8 @@ export default function HalalInvestment() {
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                  <span>{(data.homeOwnership.downPayment + data.homeOwnership.totalPaid).toLocaleString()} SAR</span>
-                  <span>{data.homeOwnership.propertyValue.toLocaleString()} SAR</span>
+                  <span>{(data.homeOwnership.downPayment + data.homeOwnership.totalPaid).toLocaleString()}</span>
+                  <span>{data.homeOwnership.propertyValue.toLocaleString()}</span>
                 </div>
               </div>
             )}
