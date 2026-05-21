@@ -6,6 +6,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import AppLogo from '@/components/AppLogo';
 import PromoBanner from '@/components/PromoBanner';
+import SmartBriefing from '@/components/SmartBriefing';
+import Streaks from '@/components/Streaks';
 
 interface HijriInfo {
   day: string;
@@ -15,7 +17,7 @@ interface HijriInfo {
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [hijriDate, setHijriDate] = useState<HijriInfo | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
@@ -177,6 +179,10 @@ export default function HomePage() {
     { icon: '🎯', title: t('goals'), description: 'Track goals', path: '/goals' },
     { icon: '💚', title: t('wellness'), description: 'Health tracking', path: '/wellness' },
     { icon: '📋', title: t('planner'), description: 'Plan your day', path: '/planner' },
+    { icon: '👨‍👩‍👧‍👦', title: language === 'ar' ? 'ميزانية العائلة' : 'Family Budget', description: 'Budget planner', path: '/family-budget' },
+    { icon: '📊', title: language === 'ar' ? 'لوحة مالية' : 'Dashboard', description: 'Financial KPIs', path: '/financial-dashboard' },
+    { icon: '📈', title: language === 'ar' ? 'استثمار حلال' : 'Halal Invest', description: 'Islamic finance', path: '/halal-investment' },
+    { icon: '🌙', title: language === 'ar' ? 'مخطط رمضان' : 'Ramadan Plan', description: 'Ramadan & Eid', path: '/ramadan-planner' },
   ];
 
   const filteredNavItems = navItems.filter(item =>
@@ -233,6 +239,12 @@ export default function HomePage() {
 
         {/* Promotional Banner */}
         <PromoBanner />
+
+        {/* Smart Briefing */}
+        <SmartBriefing />
+
+        {/* Streaks & Achievements */}
+        <Streaks />
 
         {/* Search Bar */}
         <div className="relative mb-4">

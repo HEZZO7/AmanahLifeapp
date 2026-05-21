@@ -30,6 +30,10 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import AIPlanning from './pages/AIPlanning';
 import AISearch from './pages/AISearch';
+import FamilyBudget from './pages/FamilyBudget';
+import FinancialDashboard from './pages/FinancialDashboard';
+import HalalInvestment from './pages/HalalInvestment';
+import RamadanPlanner from './pages/RamadanPlanner';
 
 const queryClient = new QueryClient();
 
@@ -66,6 +70,10 @@ const AppRoutes = () => (
     <Route path="/subscription" element={<Subscription />} />
     <Route path="/ai-planning" element={<AIPlanning />} />
     <Route path="/ai-search" element={<AISearch />} />
+    <Route path="/family-budget" element={<FamilyBudget />} />
+    <Route path="/financial-dashboard" element={<FinancialDashboard />} />
+    <Route path="/halal-investment" element={<HalalInvestment />} />
+    <Route path="/ramadan-planner" element={<RamadanPlanner />} />
   </Routes>
 );
 
