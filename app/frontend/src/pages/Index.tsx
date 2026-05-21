@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import BottomNav from '@/components/BottomNav';
 import AppLogo from '@/components/AppLogo';
 import PromoBanner from '@/components/PromoBanner';
@@ -17,7 +18,8 @@ interface HijriInfo {
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
-  const { t, language, isRTL } = useLanguage();
+  const { t, language, setLanguage, isRTL } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [hijriDate, setHijriDate] = useState<HijriInfo | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
@@ -203,21 +205,72 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <header className="border-b border-border/50 bg-gradient-to-r from-background via-background to-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[68px]">
+          {/* Logo + App Name */}
           <div className="flex items-center gap-3">
-            <AppLogo className="w-10 h-10" />
-            <h1 className="text-xl font-bold text-foreground">AmanahLife</h1>
+            <AppLogo className="w-12 h-12" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold text-foreground tracking-tight">AmanahLife</span>
+              <span className="text-xs font-medium text-primary/80 font-arabic">أمانة لايف</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full bg-card flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+          {/* Right Controls */}
+          <div className="flex items-center gap-2">
+            {/* Language Toggle */}
+            <div className="flex items-center bg-card/80 border border-border/60 rounded-full p-0.5">
+              <button
+                onClick={() => setLanguage('en')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                  language === 'en'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLanguage('ar')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+                  language === 'ar'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                عربي
+              </button>
+            </div>
+
+            {/* Dark/Light Mode Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-full bg-card/80 border border-border/60 flex items-center justify-center transition-all duration-300 hover:bg-card hover:shadow-md hover:scale-105"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                /* Crescent Moon Icon */
+                <svg className="w-[18px] h-[18px] text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                </svg>
+              ) : (
+                /* Sun Icon */
+                <svg className="w-[18px] h-[18px] text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="12" r="4" fill="currentColor" />
+                  <path strokeLinecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              )}
+            </button>
+
+            {/* Profile / Settings */}
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-9 h-9 rounded-full bg-card/80 border border-border/60 flex items-center justify-center transition-all duration-200 hover:bg-card hover:shadow-md hover:scale-105"
+            >
+              <svg className="w-[18px] h-[18px] text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </button>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground hover:bg-secondary">
-              {t('signOut')}
-            </Button>
           </div>
         </div>
       </header>
