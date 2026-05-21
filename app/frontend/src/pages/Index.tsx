@@ -210,9 +210,9 @@ export default function HomePage() {
           {/* Logo + App Name */}
           <div className="flex items-center gap-3">
             <AppLogo className="w-12 h-12" />
-            <div className="flex flex-col leading-tight">
+            <div className="flex flex-col items-center leading-tight">
               <span className="text-lg font-bold text-foreground tracking-tight">AmanahLife</span>
-              <span className="text-xs font-medium text-primary/80 font-arabic">أمانة لايف</span>
+              <span className="font-medium text-emerald-800 dark:text-emerald-200/90" style={{ fontFamily: "'Amiri', serif", fontSize: '15px', letterSpacing: '0.5px' }}>أمانة لايف</span>
             </div>
           </div>
 
