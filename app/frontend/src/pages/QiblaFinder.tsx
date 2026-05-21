@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 
 export default function QiblaFinder() {
   const { user, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
   const navigate = useNavigate();
   const [qiblaDirection, setQiblaDirection] = useState<number | null>(null);
   const [compassHeading, setCompassHeading] = useState(0);
-  const [locationName, setLocationName] = useState('Detecting...');
+  const [locationName, setLocationName] = useState(isAr ? 'جارٍ التحديد...' : 'Detecting...');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -44,17 +47,17 @@ export default function QiblaFinder() {
           setLocationName(`${pos.coords.latitude.toFixed(4)}°N, ${pos.coords.longitude.toFixed(4)}°E`);
         },
         () => {
-          setError('Location access denied. Please enable location services.');
+          setError(isAr ? 'تم رفض الوصول إلى الموقع. يرجى تفعيل خدمات الموقع.' : 'Location access denied. Please enable location services.');
           // Default to a common location
           calculateQibla(40.7128, -74.006);
-          setLocationName('New York (default)');
-          toast.info('Using default location. Enable GPS for accurate direction.');
+          setLocationName(isAr ? 'نيويورك (افتراضي)' : 'New York (default)');
+          toast.info(isAr ? 'يتم استخدام الموقع الافتراضي. فعّل GPS للحصول على اتجاه دقيق.' : 'Using default location. Enable GPS for accurate direction.');
         }
       );
     } else {
-      setError('Geolocation not supported');
+      setError(isAr ? 'تحديد الموقع الجغرافي غير مدعوم' : 'Geolocation not supported');
     }
-  }, [calculateQibla]);
+  }, [calculateQibla, isAr]);
 
   // Device orientation for compass
   useEffect(() => {
@@ -78,31 +81,33 @@ export default function QiblaFinder() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-white/80 dark:bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900">🧭 Qibla Finder</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-foreground">
+            🧭 {isAr ? 'محدد القبلة' : 'Qibla Finder'}
+          </h1>
           <div className="w-16" />
         </div>
       </header>
 
       <main className="max-w-md mx-auto px-4 py-8 space-y-6">
         {error && (
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm text-center">
+          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-sm text-center">
             {error}
           </div>
         )}
 
         {/* Location */}
-        <p className="text-sm text-gray-500 text-center">📍 {locationName}</p>
+        <p className="text-sm text-gray-500 dark:text-muted-foreground text-center">📍 {locationName}</p>
 
         {/* Compass */}
         <div className="flex justify-center">
           <div className="relative w-72 h-72">
             {/* Outer ring */}
-            <div className="absolute inset-0 rounded-full border-4 border-gray-200 shadow-inner" />
+            <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700 shadow-inner" />
 
             {/* Compass markings */}
             <div
@@ -110,10 +115,18 @@ export default function QiblaFinder() {
               style={{ transform: `rotate(${-compassHeading}deg)` }}
             >
               {/* N/S/E/W markers */}
-              <span className="absolute top-2 left-1/2 -translate-x-1/2 text-sm font-bold text-red-500">N</span>
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-bold text-gray-400">S</span>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">E</span>
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">W</span>
+              <span className="absolute top-2 left-1/2 -translate-x-1/2 text-sm font-bold text-red-500">
+                {isAr ? 'ش' : 'N'}
+              </span>
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-bold text-gray-400">
+                {isAr ? 'ج' : 'S'}
+              </span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
+                {isAr ? 'شر' : 'E'}
+              </span>
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
+                {isAr ? 'غ' : 'W'}
+              </span>
 
               {/* Degree ticks */}
               {Array.from({ length: 36 }).map((_, i) => (
@@ -152,22 +165,39 @@ export default function QiblaFinder() {
         {/* Direction Info */}
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6 text-center space-y-2">
-            <p className="text-sm text-gray-500">Qibla Direction</p>
+            <p className="text-sm text-gray-500 dark:text-muted-foreground">
+              {isAr ? 'اتجاه القبلة' : 'Qibla Direction'}
+            </p>
             <p className="text-4xl font-bold text-emerald-600">
               {qiblaDirection !== null ? `${qiblaDirection}°` : '...'}
             </p>
-            <p className="text-xs text-gray-400">from North (clockwise)</p>
+            <p className="text-xs text-gray-400 dark:text-muted-foreground">
+              {isAr ? 'من الشمال (باتجاه عقارب الساعة)' : 'from North (clockwise)'}
+            </p>
           </CardContent>
         </Card>
 
         {/* Instructions */}
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-          <h3 className="font-semibold text-emerald-800 text-sm mb-2">How to use:</h3>
-          <ul className="text-xs text-emerald-700 space-y-1">
-            <li>• Hold your device flat and level</li>
-            <li>• The green arrow points toward the Kaaba</li>
-            <li>• On desktop, the direction angle is shown below</li>
-            <li>• For best results, calibrate your compass by moving your phone in a figure-8 pattern</li>
+        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+          <h3 className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm mb-2">
+            {isAr ? 'طريقة الاستخدام:' : 'How to use:'}
+          </h3>
+          <ul className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1">
+            {isAr ? (
+              <>
+                <li>• أمسك جهازك بشكل مسطح ومستوٍ</li>
+                <li>• السهم الأخضر يشير نحو الكعبة</li>
+                <li>• على الحاسوب، يظهر زاوية الاتجاه أدناه</li>
+                <li>• للحصول على أفضل النتائج، قم بمعايرة البوصلة بتحريك هاتفك على شكل رقم 8</li>
+              </>
+            ) : (
+              <>
+                <li>• Hold your device flat and level</li>
+                <li>• The green arrow points toward the Kaaba</li>
+                <li>• On desktop, the direction angle is shown below</li>
+                <li>• For best results, calibrate your compass by moving your phone in a figure-8 pattern</li>
+              </>
+            )}
           </ul>
         </div>
       </main>

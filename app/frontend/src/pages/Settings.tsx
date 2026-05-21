@@ -15,14 +15,30 @@ interface AppSettings {
 }
 
 const COUNTRIES = [
-  { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'USD' },
-  { code: 'QA', nameAr: 'قطر', nameEn: 'Qatar', currency: 'QAR' },
-  { code: 'AE', nameAr: 'الإمارات', nameEn: 'UAE', currency: 'AED' },
-  { code: 'KW', nameAr: 'الكويت', nameEn: 'Kuwait', currency: 'KWD' },
-  { code: 'BH', nameAr: 'البحرين', nameEn: 'Bahrain', currency: 'BHD' },
-  { code: 'OM', nameAr: 'عمان', nameEn: 'Oman', currency: 'OMR' },
-  { code: 'EG', nameAr: 'مصر', nameEn: 'Egypt', currency: 'EGP' },
-  { code: 'JO', nameAr: 'الأردن', nameEn: 'Jordan', currency: 'JOD' },
+  { code: 'SA', nameAr: 'السعودية', nameEn: 'Saudi Arabia', currency: 'SAR', symbol: '﷼', flag: '🇸🇦' },
+  { code: 'AE', nameAr: 'الإمارات', nameEn: 'UAE', currency: 'AED', symbol: 'د.إ', flag: '🇦🇪' },
+  { code: 'KW', nameAr: 'الكويت', nameEn: 'Kuwait', currency: 'KWD', symbol: 'د.ك', flag: '🇰🇼' },
+  { code: 'BH', nameAr: 'البحرين', nameEn: 'Bahrain', currency: 'BHD', symbol: '.د.ب', flag: '🇧🇭' },
+  { code: 'OM', nameAr: 'عمان', nameEn: 'Oman', currency: 'OMR', symbol: 'ر.ع', flag: '🇴🇲' },
+  { code: 'QA', nameAr: 'قطر', nameEn: 'Qatar', currency: 'QAR', symbol: 'ر.ق', flag: '🇶🇦' },
+  { code: 'EG', nameAr: 'مصر', nameEn: 'Egypt', currency: 'EGP', symbol: 'ج.م', flag: '🇪🇬' },
+  { code: 'JO', nameAr: 'الأردن', nameEn: 'Jordan', currency: 'JOD', symbol: 'د.أ', flag: '🇯🇴' },
+  { code: 'IQ', nameAr: 'العراق', nameEn: 'Iraq', currency: 'IQD', symbol: 'ع.د', flag: '🇮🇶' },
+  { code: 'LB', nameAr: 'لبنان', nameEn: 'Lebanon', currency: 'LBP', symbol: 'ل.ل', flag: '🇱🇧' },
+  { code: 'SY', nameAr: 'سوريا', nameEn: 'Syria', currency: 'SYP', symbol: 'ل.س', flag: '🇸🇾' },
+  { code: 'TR', nameAr: 'تركيا', nameEn: 'Turkey', currency: 'TRY', symbol: '₺', flag: '🇹🇷' },
+  { code: 'MY', nameAr: 'ماليزيا', nameEn: 'Malaysia', currency: 'MYR', symbol: 'RM', flag: '🇲🇾' },
+  { code: 'ID', nameAr: 'إندونيسيا', nameEn: 'Indonesia', currency: 'IDR', symbol: 'Rp', flag: '🇮🇩' },
+  { code: 'PK', nameAr: 'باكستان', nameEn: 'Pakistan', currency: 'PKR', symbol: '₨', flag: '🇵🇰' },
+  { code: 'BD', nameAr: 'بنغلاديش', nameEn: 'Bangladesh', currency: 'BDT', symbol: '৳', flag: '🇧🇩' },
+  { code: 'IN', nameAr: 'الهند', nameEn: 'India', currency: 'INR', symbol: '₹', flag: '🇮🇳' },
+  { code: 'US', nameAr: 'الولايات المتحدة', nameEn: 'USA', currency: 'USD', symbol: '$', flag: '🇺🇸' },
+  { code: 'CA', nameAr: 'كندا', nameEn: 'Canada', currency: 'CAD', symbol: 'C$', flag: '🇨🇦' },
+  { code: 'EU', nameAr: 'منطقة اليورو', nameEn: 'Eurozone', currency: 'EUR', symbol: '€', flag: '🇪🇺' },
+  { code: 'GB', nameAr: 'المملكة المتحدة', nameEn: 'UK', currency: 'GBP', symbol: '£', flag: '🇬🇧' },
+  { code: 'CH', nameAr: 'سويسرا', nameEn: 'Switzerland', currency: 'CHF', symbol: 'Fr', flag: '🇨🇭' },
+  { code: 'AU', nameAr: 'أستراليا', nameEn: 'Australia', currency: 'AUD', symbol: 'A$', flag: '🇦🇺' },
+  { code: 'NZ', nameAr: 'نيوزيلندا', nameEn: 'New Zealand', currency: 'NZD', symbol: 'NZ$', flag: '🇳🇿' },
 ];
 
 export default function Settings() {
@@ -76,6 +92,8 @@ export default function Settings() {
 
   const currentTier = getSubscriptionTier();
   const isAr = language === 'ar';
+
+  const getSelectedCountry = () => COUNTRIES.find(c => c.code === settings.country);
 
   const exportFinanceCSV = () => {
     const transactions = JSON.parse(localStorage.getItem('amanah-transactions') || '[]');
@@ -205,14 +223,16 @@ export default function Settings() {
               >
                 {COUNTRIES.map(c => (
                   <option key={c.code} value={c.code}>
-                    {isAr ? c.nameAr : c.nameEn}
+                    {c.flag} {isAr ? c.nameAr : c.nameEn} - {c.currency} {c.symbol}
                   </option>
                 ))}
               </select>
             </div>
             <div className="flex items-center justify-between pt-1">
               <span className="text-foreground text-sm">{isAr ? 'العملة' : 'Currency'}</span>
-              <span className="text-muted-foreground text-sm">{settings.currency}</span>
+              <span className="text-muted-foreground text-sm">
+                {settings.currency} {getSelectedCountry()?.symbol || ''}
+              </span>
             </div>
           </div>
         </div>
