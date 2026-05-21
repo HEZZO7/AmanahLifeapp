@@ -28,7 +28,7 @@ const ISLAMIC_EVENTS: IslamicEvent[] = [
   { name: 'Ashura', nameAr: 'عاشوراء', hijriMonth: 1, hijriDay: 10, description: 'Day of fasting and remembrance', descriptionAr: 'يوم صيام وذكرى', icon: '📿' },
   { name: 'Mawlid al-Nabi', nameAr: 'المولد النبوي', hijriMonth: 3, hijriDay: 12, description: "Prophet Muhammad's (ﷺ) birthday", descriptionAr: 'ذكرى مولد النبي محمد ﷺ', icon: '🕌' },
   { name: 'Isra & Mi\'raj', nameAr: 'الإسراء والمعراج', hijriMonth: 7, hijriDay: 27, description: 'Night Journey and Ascension', descriptionAr: 'ليلة الإسراء والمعراج', icon: '✨' },
-  { name: 'Shab-e-Barat', nameAr: 'ليلة النصف من شعبان', hijriMonth: 8, hijriDay: 15, description: 'Night of Forgiveness', descriptionAr: 'ليلة المغفرة', icon: '🤲' },
+
   { name: 'Ramadan Begins', nameAr: 'بداية رمضان', hijriMonth: 9, hijriDay: 1, description: 'Start of the blessed month of fasting', descriptionAr: 'بداية شهر الصيام المبارك', icon: '🌙' },
   { name: 'Laylat al-Qadr', nameAr: 'ليلة القدر', hijriMonth: 9, hijriDay: 27, description: 'Night of Power - better than 1000 months', descriptionAr: 'ليلة خير من ألف شهر', icon: '⭐' },
   { name: 'Eid al-Fitr', nameAr: 'عيد الفطر', hijriMonth: 10, hijriDay: 1, description: 'Festival of Breaking the Fast', descriptionAr: 'عيد الفطر المبارك', icon: '🎉' },

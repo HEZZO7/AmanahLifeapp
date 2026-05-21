@@ -45,19 +45,23 @@ export default function Login() {
     setLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
-      toast.error(error.message);
+      if (error.message.includes('provider') || error.message.includes('not enabled')) {
+        toast.error('Google sign-in is not configured. Please enable Google provider in your Supabase dashboard under Authentication > Providers.');
+      } else {
+        toast.error(error.message);
+      }
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 p-4">
       <div className="w-full max-w-md">
         {/* Logo & Branding */}
         <div className="text-center mb-8">
           <AppLogo className="w-20 h-20 mb-4 mx-auto" />
-          <h1 className="text-3xl font-bold text-gray-900">AmanahLife</h1>
-          <p className="text-gray-500 mt-1">Your Islamic Life Companion</p>
+          <h1 className="text-3xl font-bold text-foreground">AmanahLife</h1>
+          <p className="text-muted-foreground mt-1">Your Islamic Life Companion</p>
         </div>
 
         <Card className="border-0 shadow-xl">
@@ -152,7 +156,7 @@ export default function Login() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
             <Button
