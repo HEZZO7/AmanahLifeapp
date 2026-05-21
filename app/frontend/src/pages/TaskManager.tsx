@@ -16,8 +16,8 @@ interface Task {
 
 const PRIORITY_COLORS: Record<Priority, string> = {
   high: '#ef4444',
-  medium: '#d4a853',
-  low: '#14b8a6',
+  medium: '#D4A017',
+  low: '#1FC7C1',
 };
 
 const CATEGORY_ICONS: Record<Category, string> = {
@@ -124,7 +124,7 @@ export default function TaskManager() {
             onClick={() => setFilter(cat)}
             className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               filter === cat
-                ? 'bg-[#d4a853] text-white'
+                ? 'bg-[#D4A017] text-white'
                 : 'bg-card text-muted-foreground hover:bg-secondary'
             }`}
           >
@@ -218,7 +218,7 @@ export default function TaskManager() {
                     onClick={() => setCategory(c)}
                     className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       category === c
-                        ? 'bg-[#d4a853] text-white'
+                        ? 'bg-[#D4A017] text-white'
                         : 'bg-secondary text-muted-foreground'
                     }`}
                   >
@@ -248,7 +248,7 @@ export default function TaskManager() {
       {/* FAB */}
       <button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#178F8A] active:scale-90 transition-all z-40"
       >
         +
       </button>

@@ -115,11 +115,11 @@ export default function PromoBanner() {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-[#c9a96e]/40 mb-4 transition-all duration-300 ${
+      className={`relative overflow-hidden rounded-2xl border border-[#D4A017]/40 mb-4 transition-all duration-300 ${
         animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}
       style={{
-        background: 'linear-gradient(135deg, #0a2e1f 0%, #134e3a 50%, #0f3d2e 100%)',
+        background: 'linear-gradient(135deg, #0A1F17 0%, #1D4A33 50%, #163828 100%)',
       }}
     >
       {/* Animated glow effect */}
@@ -151,19 +151,19 @@ export default function PromoBanner() {
           عرض خاص! خصم 30% على أول شهر اشتراك
         </h3>
         <p className="text-sm text-teal-200/80 mt-1">
-          Use code <span className="font-bold text-[#c9a96e]">AMANAH30</span> for 30% off your first month
+          Use code <span className="font-bold text-[#D4A017]">AMANAH30</span> for 30% off your first month
         </p>
 
         {/* Coupon code badge */}
         <div className="mt-3 flex items-center justify-center gap-2">
           <button
             onClick={handleCopyCode}
-            className="inline-flex items-center gap-2 bg-[#c9a96e]/20 border border-[#c9a96e]/50 rounded-lg px-4 py-2 hover:bg-[#c9a96e]/30 transition-colors"
+            className="inline-flex items-center gap-2 bg-[#D4A017]/20 border border-[#D4A017]/50 rounded-lg px-4 py-2 hover:bg-[#D4A017]/30 transition-colors"
           >
-            <span className="text-[#c9a96e] font-mono font-bold text-lg tracking-wider">
+            <span className="text-[#D4A017] font-mono font-bold text-lg tracking-wider">
               {COUPON_CODE}
             </span>
-            <svg className="w-4 h-4 text-[#c9a96e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {copied ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               ) : (
@@ -180,7 +180,7 @@ export default function PromoBanner() {
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="mt-4 w-full max-w-xs mx-auto block bg-gradient-to-r from-[#c9a96e] to-[#d4b87a] text-[#0a2e1f] font-bold py-3 px-6 rounded-xl hover:from-[#d4b87a] hover:to-[#e0c88f] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-4 w-full max-w-xs mx-auto block bg-gradient-to-r from-[#D4A017] to-[#E8BC45] text-[#0A1F17] font-bold py-3 px-6 rounded-xl hover:from-[#E8BC45] hover:to-[#FAE9B8] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <span className="inline-flex items-center gap-2">

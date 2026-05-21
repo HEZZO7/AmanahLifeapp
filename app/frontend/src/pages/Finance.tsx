@@ -97,7 +97,7 @@ export default function Finance() {
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{t('savingsRate')}</p>
-            <p className="text-lg font-bold text-[#d4a853]">{savingsRate}%</p>
+            <p className="text-lg font-bold text-[#D4A017]">{savingsRate}%</p>
           </div>
         </div>
 
@@ -105,11 +105,11 @@ export default function Finance() {
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-muted-foreground">{t('savingsRate')}</span>
-            <span className="text-sm text-[#d4a853] font-semibold">{savingsRate}%</span>
+            <span className="text-sm text-[#D4A017] font-semibold">{savingsRate}%</span>
           </div>
           <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#d4a853] rounded-full transition-all"
+              className="h-full bg-[#D4A017] rounded-full transition-all"
               style={{ width: `${Math.max(0, Math.min(100, savingsRate))}%` }}
             />
           </div>
@@ -199,7 +199,7 @@ export default function Finance() {
                     onClick={() => setCategory(c)}
                     className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       category === c
-                        ? 'bg-[#d4a853] text-white'
+                        ? 'bg-[#D4A017] text-white'
                         : 'bg-secondary text-muted-foreground'
                     }`}
                   >
@@ -230,7 +230,7 @@ export default function Finance() {
       {/* FAB */}
       <button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#0d9488] active:scale-90 transition-all z-40"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#178F8A] active:scale-90 transition-all z-40"
       >
         +
       </button>

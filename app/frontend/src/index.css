@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,25 +7,25 @@
 
 @layer base {
   :root {
-    --background: 150 10% 98%;
-    --foreground: 155 53% 11%;
+    --background: 36 33% 97%;
+    --foreground: 152 53% 8%;
 
-    --card: 150 10% 96%;
-    --card-foreground: 155 53% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 152 53% 8%;
 
-    --popover: 150 10% 96%;
-    --popover-foreground: 155 53% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 152 53% 8%;
 
-    --primary: 174 64% 40%;
+    --primary: 152 44% 25%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 150 10% 92%;
-    --secondary-foreground: 155 53% 15%;
+    --secondary-foreground: 152 53% 15%;
 
     --muted: 150 10% 92%;
-    --muted-foreground: 155 20% 40%;
+    --muted-foreground: 152 20% 35%;
 
-    --accent: 40 60% 58%;
+    --accent: 38 88% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -32,57 +33,57 @@
 
     --border: 150 10% 88%;
     --input: 150 10% 88%;
-    --ring: 174 64% 40%;
+    --ring: 175 73% 45%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 150 10% 98%;
-    --sidebar-foreground: 155 53% 11%;
-    --sidebar-primary: 174 64% 40%;
+    --sidebar-background: 36 33% 97%;
+    --sidebar-foreground: 152 53% 8%;
+    --sidebar-primary: 152 44% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 150 10% 92%;
-    --sidebar-accent-foreground: 155 53% 15%;
+    --sidebar-accent-foreground: 152 53% 15%;
     --sidebar-border: 150 10% 88%;
-    --sidebar-ring: 174 64% 40%;
+    --sidebar-ring: 175 73% 45%;
   }
 
   .dark {
-    --background: 155 53% 11%;
-    --foreground: 0 0% 95%;
+    --background: 152 53% 3%;
+    --foreground: 30 20% 93%;
 
-    --card: 155 53% 15%;
-    --card-foreground: 0 0% 95%;
+    --card: 152 40% 10%;
+    --card-foreground: 30 20% 93%;
 
-    --popover: 155 53% 15%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 152 40% 10%;
+    --popover-foreground: 30 20% 93%;
 
-    --primary: 174 64% 40%;
+    --primary: 152 44% 25%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 155 53% 20%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 152 40% 15%;
+    --secondary-foreground: 30 20% 93%;
 
-    --muted: 155 53% 20%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 152 40% 15%;
+    --muted-foreground: 30 10% 70%;
 
-    --accent: 40 60% 58%;
+    --accent: 38 88% 40%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 155 30% 25%;
-    --input: 155 30% 25%;
-    --ring: 174 64% 40%;
+    --border: 152 35% 18%;
+    --input: 152 35% 18%;
+    --ring: 175 73% 45%;
 
-    --sidebar-background: 155 53% 11%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 174 64% 40%;
+    --sidebar-background: 152 53% 3%;
+    --sidebar-foreground: 30 20% 93%;
+    --sidebar-primary: 152 44% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 155 53% 20%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 155 30% 25%;
-    --sidebar-ring: 174 64% 40%;
+    --sidebar-accent: 152 40% 15%;
+    --sidebar-accent-foreground: 30 20% 93%;
+    --sidebar-border: 152 35% 18%;
+    --sidebar-ring: 175 73% 45%;
   }
 }
 
@@ -93,15 +94,18 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Tajawal', sans-serif;
   }
-
-
 }
 
 @layer utilities {
   .font-arabic {
     font-family: 'Amiri', serif;
     direction: rtl;
+  }
+
+  .font-ui {
+    font-family: 'Tajawal', sans-serif;
   }
 
   .scrollbar-hide {
@@ -113,31 +117,31 @@
   }
 
   .bg-dark-green {
-    background-color: #0a2e1f;
+    background-color: #0A1F17;
   }
 
   .bg-card-green {
-    background-color: #0f3d2a;
+    background-color: #102B1F;
   }
 
   .text-gold {
-    color: #d4a853;
+    color: #D4A017;
   }
 
   .bg-gold {
-    background-color: #d4a853;
+    background-color: #D4A017;
   }
 
   .text-teal-accent {
-    color: #14b8a6;
+    color: #1FC7C1;
   }
 
   .bg-teal-accent {
-    background-color: #14b8a6;
+    background-color: #1FC7C1;
   }
 
   .border-dark-green {
-    border-color: #1a4d35;
+    border-color: #163828;
   }
 }
 

@@ -140,10 +140,10 @@ export default function BottomNav() {
               {/* AI Smart Search - Premium */}
               <button
                 onClick={() => { setShowSearchModal(false); navigate('/ai-search'); }}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-background hover:border-[#d4a853]/50 transition-all"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-background hover:border-[#D4A017]/50 transition-all"
               >
-                <div className="w-12 h-12 rounded-xl bg-[#d4a853]/10 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-[#d4a853]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 rounded-xl bg-[#D4A017]/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
@@ -155,7 +155,7 @@ export default function BottomNav() {
                     {language === 'ar' ? 'بحث بلغة طبيعية في بياناتك' : 'Natural language search across your data'}
                   </p>
                 </div>
-                <span className="text-[10px] bg-[#d4a853]/20 text-[#d4a853] px-2 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                <span className="text-[10px] bg-[#D4A017]/20 text-[#D4A017] px-2 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 1L9 9l-8 3 8 3 3 8 3-8 8-3-8-3z" />
                   </svg>

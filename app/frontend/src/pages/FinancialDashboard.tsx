@@ -82,7 +82,7 @@ export default function FinancialDashboard() {
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">💰 {language === 'ar' ? 'صافي الثروة' : 'Net Worth'}</p>
-              <p className="text-xl font-bold text-[#d4a853]">{Math.round(dashboardData.netWorth).toLocaleString()}</p>
+              <p className="text-xl font-bold text-[#D4A017]">{Math.round(dashboardData.netWorth).toLocaleString()}</p>
             </div>
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">📈 {language === 'ar' ? 'معدل التوفير' : 'Savings Rate'}</p>
@@ -122,7 +122,7 @@ export default function FinancialDashboard() {
                       </div>
                       <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-[#d4a853] rounded-full"
+                          className="h-full bg-gradient-to-r from-primary to-[#D4A017] rounded-full"
                           style={{ width: `${(amount / maxCategory) * 100}%` }}
                         />
                       </div>
@@ -190,7 +190,7 @@ export default function FinancialDashboard() {
                     <span className="text-muted-foreground">{pct}% ({allocated.toLocaleString()}/{(target as number).toLocaleString()})</span>
                   </div>
                   <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-[#d4a853] rounded-full" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-[#D4A017] rounded-full" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );

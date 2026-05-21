@@ -164,7 +164,7 @@ export default function Goals() {
               key={st}
               onClick={() => setFilterStatus(st)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                filterStatus === st ? 'bg-[#d4a853] text-white' : 'bg-card text-muted-foreground border border-border'
+                filterStatus === st ? 'bg-[#D4A017] text-white' : 'bg-card text-muted-foreground border border-border'
               }`}
             >
               {st === 'All' ? t('all') : st === 'Active' ? t('active') : st === 'Completed' ? t('completed') : t('paused')}
@@ -201,7 +201,7 @@ export default function Goals() {
                     onClick={() => toggleStatus(goal.id)}
                     className={`px-2 py-0.5 rounded text-[10px] font-medium ${
                       goal.status === 'Active' ? 'bg-primary/20 text-primary' :
-                      goal.status === 'Completed' ? 'bg-[#d4a853]/20 text-[#d4a853]' :
+                      goal.status === 'Completed' ? 'bg-[#D4A017]/20 text-[#D4A017]' :
                       'bg-muted/20 text-muted-foreground'
                     }`}
                   >
@@ -215,11 +215,11 @@ export default function Goals() {
               <div className="mb-2">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span>{t('progress')}</span>
-                  <span className="text-[#d4a853]">{goal.progress}%</span>
+                  <span className="text-[#D4A017]">{goal.progress}%</span>
                 </div>
                 <div className="h-2 bg-background rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#14b8a6] to-[#d4a853] rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-[#1FC7C1] to-[#D4A017] rounded-full transition-all"
                     style={{ width: `${goal.progress}%` }}
                   />
                 </div>

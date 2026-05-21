@@ -134,7 +134,7 @@ export default function Adhkar() {
       <div className="px-4 py-2">
         <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#d4a853] rounded-full transition-all duration-300"
+            className="h-full bg-[#D4A017] rounded-full transition-all duration-300"
             style={{ width: `${totalRequired > 0 ? (totalDone / totalRequired) * 100 : 0}%` }}
           />
         </div>

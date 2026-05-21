@@ -146,7 +146,7 @@ export default function Settings() {
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="text-sm text-muted-foreground mb-3">{t('profile')}</h3>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#14b8a6] to-[#0d9488] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1FC7C1] to-[#178F8A] flex items-center justify-center">
               <span className="text-white text-lg font-bold">
                 {user?.email?.charAt(0).toUpperCase() || 'U'}
               </span>

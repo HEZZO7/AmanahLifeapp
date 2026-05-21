@@ -113,7 +113,7 @@ export default function DhikrCounter() {
                 cx="96"
                 cy="96"
                 r="88"
-                stroke={isComplete ? '#10b981' : '#14b8a6'}
+                stroke={isComplete ? '#22C55E' : '#1FC7C1'}
                 strokeWidth="8"
                 fill="none"
                 strokeDasharray={`${2 * Math.PI * 88}`}
@@ -131,7 +131,7 @@ export default function DhikrCounter() {
           {/* Tap Button */}
           <button
             onClick={increment}
-            className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-[#0d9488] text-white text-xl font-bold shadow-xl hover:shadow-2xl active:scale-95 transition-all mx-auto flex items-center justify-center"
+            className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-[#178F8A] text-white text-xl font-bold shadow-xl hover:shadow-2xl active:scale-95 transition-all mx-auto flex items-center justify-center"
           >
             {language === 'ar' ? 'اضغط' : 'TAP'}
           </button>

@@ -182,7 +182,7 @@ export default function FamilyBudget() {
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'المتبقي' : 'Balance'}</p>
-            <p className={`text-sm font-bold ${totalIncome - totalExpenses >= 0 ? 'text-[#d4a853]' : 'text-red-400'}`}>
+            <p className={`text-sm font-bold ${totalIncome - totalExpenses >= 0 ? 'text-[#D4A017]' : 'text-red-400'}`}>
               {Math.round(totalIncome - totalExpenses).toLocaleString()}
             </p>
           </div>

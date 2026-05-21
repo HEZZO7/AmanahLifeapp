@@ -99,9 +99,9 @@ export default function RamadanPlanner() {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Countdown */}
-        <div className="bg-gradient-to-r from-[#d4a853]/20 to-primary/20 rounded-2xl p-4 mb-4 border border-border text-center">
+        <div className="bg-gradient-to-r from-[#D4A017]/20 to-primary/20 rounded-2xl p-4 mb-4 border border-border text-center">
           <p className="text-xs text-muted-foreground">{language === 'ar' ? 'العد التنازلي لرمضان' : 'Countdown to Ramadan'}</p>
-          <p className="text-3xl font-bold text-[#d4a853]">{countdown}</p>
+          <p className="text-3xl font-bold text-[#D4A017]">{countdown}</p>
           <p className="text-xs text-muted-foreground">{language === 'ar' ? 'يوم' : 'days'}</p>
         </div>
 
@@ -112,7 +112,7 @@ export default function RamadanPlanner() {
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'صيام' : 'Fasts'}</p>
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
-            <p className="text-lg font-bold text-[#d4a853]">{totalQuranPages}</p>
+            <p className="text-lg font-bold text-[#D4A017]">{totalQuranPages}</p>
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'صفحات قرآن' : 'Quran Pages'}</p>
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
@@ -248,7 +248,7 @@ export default function RamadanPlanner() {
             })}
             <div className="mt-3 pt-3 border-t border-border flex justify-between">
               <span className="text-sm font-semibold text-foreground">{language === 'ar' ? 'الإجمالي' : 'Total'}</span>
-              <span className="text-sm font-bold text-[#d4a853]">
+              <span className="text-sm font-bold text-[#D4A017]">
                 {Object.values(data.budget).reduce((a, b) => a + b, 0).toLocaleString()}
               </span>
             </div>
@@ -278,7 +278,7 @@ export default function RamadanPlanner() {
                       <span className="text-muted-foreground">{value.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-[#d4a853] rounded-full" style={{ width: '40%' }} />
+                      <div className="h-full bg-[#D4A017] rounded-full" style={{ width: '40%' }} />
                     </div>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function RamadanPlanner() {
             })}
             <div className="mt-3 pt-3 border-t border-border flex justify-between">
               <span className="text-sm font-semibold text-foreground">{language === 'ar' ? 'الإجمالي' : 'Total'}</span>
-              <span className="text-sm font-bold text-[#d4a853]">
+              <span className="text-sm font-bold text-[#D4A017]">
                 {Object.values(data.eidBudget).reduce((a, b) => a + b, 0).toLocaleString()}
               </span>
             </div>

@@ -230,7 +230,7 @@ export default function QuranReader() {
                   const key = `${selectedSurah.number}:${ayah.numberInSurah}`;
                   const isBookmarked = bookmarks.has(key);
                   return (
-                    <Card key={ayah.number} className={`border ${isBookmarked ? 'border-[#d4a853] bg-[#d4a853]/5' : 'border-border'}`}>
+                    <Card key={ayah.number} className={`border ${isBookmarked ? 'border-[#D4A017] bg-[#D4A017]/5' : 'border-border'}`}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -240,7 +240,7 @@ export default function QuranReader() {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleBookmark(key)}
-                            className={isBookmarked ? 'text-[#d4a853]' : 'text-muted-foreground'}
+                            className={isBookmarked ? 'text-[#D4A017]' : 'text-muted-foreground'}
                           >
                             {isBookmarked ? '★' : '☆'}
                           </Button>

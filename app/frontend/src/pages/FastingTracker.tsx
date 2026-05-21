@@ -98,11 +98,11 @@ export default function FastingTracker() {
             <button
               onClick={toggleFasting}
               className={`p-3 rounded-xl text-center transition-all ${
-                fasting ? 'bg-[#d4a853]/20 border border-[#d4a853]' : 'bg-secondary border border-border'
+                fasting ? 'bg-[#D4A017]/20 border border-[#D4A017]' : 'bg-secondary border border-border'
               }`}
             >
               <span className="text-2xl block mb-1">☀️</span>
-              <span className={`text-xs ${fasting ? 'text-[#d4a853]' : 'text-muted-foreground'}`}>{t('fasting')}</span>
+              <span className={`text-xs ${fasting ? 'text-[#D4A017]' : 'text-muted-foreground'}`}>{t('fasting')}</span>
             </button>
             <button
               onClick={toggleIftar}
@@ -137,7 +137,7 @@ export default function FastingTracker() {
           <h2 className="text-foreground font-semibold mb-3">{t('quranPages')}</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold text-[#d4a853]">{quranPages}</p>
+              <p className="text-3xl font-bold text-[#D4A017]">{quranPages}</p>
               <p className="text-xs text-muted-foreground">{t('goal')}: 20 {t('pages')}</p>
             </div>
             <div className="flex gap-2">
@@ -149,13 +149,13 @@ export default function FastingTracker() {
               </button>
               <button
                 onClick={() => addPages(1)}
-                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[#0d9488]"
+                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[#178F8A]"
               >
                 +
               </button>
               <button
                 onClick={() => addPages(5)}
-                className="w-10 h-10 rounded-full bg-[#d4a853] text-white flex items-center justify-center hover:bg-[#c49a48]"
+                className="w-10 h-10 rounded-full bg-[#D4A017] text-white flex items-center justify-center hover:bg-[#C4890A]"
               >
                 +5
               </button>
@@ -164,7 +164,7 @@ export default function FastingTracker() {
           {/* Progress bar */}
           <div className="mt-3 w-full h-2 bg-secondary rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#d4a853] rounded-full transition-all"
+              className="h-full bg-[#D4A017] rounded-full transition-all"
               style={{ width: `${Math.min(100, (quranPages / 20) * 100)}%` }}
             />
           </div>

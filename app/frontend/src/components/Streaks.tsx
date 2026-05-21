@@ -124,7 +124,7 @@ export default function Streaks() {
           {language === 'ar' ? '🏅 الإنجازات' : '🏅 Achievements'}
         </h3>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs bg-[#d4a853]/20 text-[#d4a853] px-2 py-0.5 rounded-full font-semibold">
+          <span className="text-xs bg-[#D4A017]/20 text-[#D4A017] px-2 py-0.5 rounded-full font-semibold">
             Lv.{data.level + 1} {data.title}
           </span>
           <span className="text-xs text-muted-foreground">{data.xp} XP</span>
@@ -159,7 +159,7 @@ export default function Streaks() {
         </div>
         <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-[#d4a853] rounded-full transition-all"
+            className="h-full bg-gradient-to-r from-primary to-[#D4A017] rounded-full transition-all"
             style={{ width: `${(data.xp % 100)}%` }}
           />
         </div>
@@ -172,7 +172,7 @@ export default function Streaks() {
             key={i}
             className={`text-xs px-2 py-1 rounded-full ${
               badge.earned
-                ? 'bg-[#d4a853]/20 text-[#d4a853]'
+                ? 'bg-[#D4A017]/20 text-[#D4A017]'
                 : 'bg-secondary/50 text-muted-foreground opacity-50'
             }`}
             title={badge.name}

@@ -16,7 +16,7 @@ export default function Welcome() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a2e1f] flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[#0A1F17] flex flex-col items-center justify-center px-6">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
         <AppLogo className="w-28 h-28 mb-4 mx-auto" />
@@ -33,8 +33,8 @@ export default function Welcome() {
             onClick={() => setSelected('ar')}
             className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
               selected === 'ar'
-                ? 'border-[#d4a853] bg-[#0f3d2a]'
-                : 'border-[#1a4d35] bg-[#0f3d2a] hover:border-[#14b8a6]'
+                ? 'border-[#D4A017] bg-[#102B1F]'
+                : 'border-[#163828] bg-[#102B1F] hover:border-[#1FC7C1]'
             }`}
           >
             <span className="text-white text-lg font-arabic">العربية</span>
@@ -45,8 +45,8 @@ export default function Welcome() {
             onClick={() => setSelected('en')}
             className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
               selected === 'en'
-                ? 'border-[#d4a853] bg-[#0f3d2a]'
-                : 'border-[#1a4d35] bg-[#0f3d2a] hover:border-[#14b8a6]'
+                ? 'border-[#D4A017] bg-[#102B1F]'
+                : 'border-[#163828] bg-[#102B1F] hover:border-[#1FC7C1]'
             }`}
           >
             <span className="text-white text-lg">English</span>
@@ -59,8 +59,8 @@ export default function Welcome() {
           disabled={!selected}
           className={`w-full mt-8 p-4 rounded-2xl text-lg font-semibold transition-all ${
             selected
-              ? 'bg-[#14b8a6] text-white hover:bg-[#0d9488] active:scale-95'
-              : 'bg-[#1a4d35] text-gray-500 cursor-not-allowed'
+              ? 'bg-[#1FC7C1] text-white hover:bg-[#178F8A] active:scale-95'
+              : 'bg-[#163828] text-gray-500 cursor-not-allowed'
           }`}
         >
           {t('continue')}

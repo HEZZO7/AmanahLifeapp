@@ -231,7 +231,7 @@ export default function HomePage() {
           </div>
           {hijriDate && (
             <div className="text-right bg-card px-3 py-2 rounded-xl border border-border">
-              <p className="text-xs text-[#d4a853] font-medium">{hijriDate.day} {hijriDate.month}</p>
+              <p className="text-xs text-[#D4A017] font-medium">{hijriDate.day} {hijriDate.month}</p>
               <p className="text-[10px] text-muted-foreground">{hijriDate.year} {language === 'ar' ? 'هـ' : 'AH'}</p>
             </div>
           )}
@@ -282,7 +282,7 @@ export default function HomePage() {
           </div>
           <div className="bg-card rounded-xl p-2.5 text-center border border-border">
             <p className="text-[10px] text-muted-foreground">{t('goals')}</p>
-            <p className="text-sm font-bold text-[#d4a853]">{dailySummary.activeGoals}</p>
+            <p className="text-sm font-bold text-[#D4A017]">{dailySummary.activeGoals}</p>
           </div>
           <div className="bg-card rounded-xl p-2.5 text-center border border-border">
             <p className="text-[10px] text-muted-foreground">{t('savings')}</p>
@@ -295,7 +295,7 @@ export default function HomePage() {
           <button onClick={() => navigate('/tasks')} className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
             ✅ {t('todaysTasks')}
           </button>
-          <button onClick={() => navigate('/goals')} className="bg-[#d4a853]/10 border border-[#d4a853]/30 text-[#d4a853] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
+          <button onClick={() => navigate('/goals')} className="bg-[#D4A017]/10 border border-[#D4A017]/30 text-[#D4A017] px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
             🎯 {t('activeGoals')}
           </button>
           <button onClick={() => navigate('/finance')} className="bg-primary/10 border border-primary/30 text-primary px-3 py-1.5 rounded-full text-xs whitespace-nowrap">
@@ -307,7 +307,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {nextPrayer && (
             <div
-              className="bg-gradient-to-r from-[#14b8a6] to-[#0d9488] rounded-2xl p-4 cursor-pointer hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-[#1FC7C1] to-[#178F8A] rounded-2xl p-4 cursor-pointer hover:shadow-lg transition-all"
               onClick={() => navigate('/prayer-times')}
             >
               <p className="text-teal-100 text-xs">{t('nextPrayer')}</p>
@@ -316,7 +316,7 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="bg-gradient-to-r from-[#d4a853] to-[#c49a48] rounded-2xl p-4">
+          <div className="bg-gradient-to-r from-[#D4A017] to-[#C4890A] rounded-2xl p-4">
             <p className="text-amber-100 text-xs">{t('prayerStreak')}</p>
             <p className="text-xl font-bold text-white mt-0.5">{streak} {streak === 1 ? (language === 'ar' ? 'يوم' : 'day') : t('days')} 🔥</p>
             <p className="text-amber-200 text-sm">{t('keepGoing')}</p>
@@ -337,10 +337,10 @@ export default function HomePage() {
         {/* Daily Verse */}
         {dailyVerse && (
           <div className="mb-6 bg-card rounded-2xl border border-border p-5 text-center">
-            <p className="text-xs text-[#d4a853] font-medium mb-2">📖 {t('verseOfDay')}</p>
+            <p className="text-xs text-[#D4A017] font-medium mb-2">📖 {t('verseOfDay')}</p>
             <p className="text-xl font-arabic text-foreground leading-relaxed mb-2">{dailyVerse.arabic}</p>
             <p className="text-sm text-muted-foreground italic">{dailyVerse.translation}</p>
-            <p className="text-xs text-[#d4a853] mt-2">{dailyVerse.reference}</p>
+            <p className="text-xs text-[#D4A017] mt-2">{dailyVerse.reference}</p>
           </div>
         )}
 

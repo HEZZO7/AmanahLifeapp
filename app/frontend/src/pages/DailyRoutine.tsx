@@ -71,7 +71,7 @@ export default function DailyRoutine() {
       <div className="px-4 py-4">
         <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#d4a853] rounded-full transition-all duration-500"
+            className="h-full bg-[#D4A017] rounded-full transition-all duration-500"
             style={{ width: `${routines.length > 0 ? (completedCount / routines.length) * 100 : 0}%` }}
           />
         </div>
@@ -97,7 +97,7 @@ export default function DailyRoutine() {
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">{routine.duration} {t('minutes')}</span>
-                    <span className="text-xs text-[#d4a853]">🔥 {routine.streak} {t('days')}</span>
+                    <span className="text-xs text-[#D4A017]">🔥 {routine.streak} {t('days')}</span>
                   </div>
                 </div>
               </div>

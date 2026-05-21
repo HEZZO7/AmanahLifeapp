@@ -123,7 +123,7 @@ export default function SmartBriefing() {
         </div>
         <div className="bg-background/50 rounded-xl p-2.5">
           <p className="text-[10px] text-muted-foreground">🔥 {language === 'ar' ? 'السلسلة' : 'Streak'}</p>
-          <p className="text-sm font-semibold text-[#d4a853]">{briefing.streak} {language === 'ar' ? 'يوم' : 'days'}</p>
+          <p className="text-sm font-semibold text-[#D4A017]">{briefing.streak} {language === 'ar' ? 'يوم' : 'days'}</p>
         </div>
         <div className="bg-background/50 rounded-xl p-2.5">
           <p className="text-[10px] text-muted-foreground">✅ {language === 'ar' ? 'المهام المتبقية' : 'Tasks Left'}</p>
@@ -133,7 +133,7 @@ export default function SmartBriefing() {
 
       <div className="bg-background/30 rounded-xl p-3 text-center">
         <p className="text-sm text-foreground italic">"{briefing.quote.text}"</p>
-        <p className="text-[10px] text-[#d4a853] mt-1">{briefing.quote.source}</p>
+        <p className="text-[10px] text-[#D4A017] mt-1">{briefing.quote.source}</p>
       </div>
     </div>
   );

@@ -220,7 +220,7 @@ export default function DuasCollection() {
               key={cat.en}
               size="sm"
               variant={selectedCategory === cat.en ? 'default' : 'outline'}
-              className={selectedCategory === cat.en ? 'bg-[#d4a853] hover:bg-[#c49a48] text-white shrink-0' : 'text-foreground shrink-0'}
+              className={selectedCategory === cat.en ? 'bg-[#D4A017] hover:bg-[#C4890A] text-white shrink-0' : 'text-foreground shrink-0'}
               onClick={() => setSelectedCategory(cat.en)}
             >
               {language === 'ar' ? cat.ar : cat.en}
@@ -231,7 +231,7 @@ export default function DuasCollection() {
         {/* Favorites Section */}
         {selectedCategory === 'All' && favorites.size > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-[#d4a853] mb-2">
+            <h3 className="text-sm font-semibold text-[#D4A017] mb-2">
               ⭐ {language === 'ar' ? 'المفضلة' : 'Favorites'}
             </h3>
             <div className="space-y-3">
@@ -273,17 +273,17 @@ function DuaCard({ dua, isFavorite, onToggleFavorite, language, isRTL }: { dua: 
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className={`border transition-all ${isFavorite ? 'border-[#d4a853]/50 bg-[#d4a853]/5' : 'border-border'}`}>
+    <Card className={`border transition-all ${isFavorite ? 'border-[#D4A017]/50 bg-[#D4A017]/5' : 'border-border'}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <span className="text-xs px-2 py-1 rounded-full bg-[#d4a853]/10 text-[#d4a853] font-medium">
+          <span className="text-xs px-2 py-1 rounded-full bg-[#D4A017]/10 text-[#D4A017] font-medium">
             {language === 'ar' ? dua.categoryAr : dua.category}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onToggleFavorite(dua.id)}
-            className={isFavorite ? 'text-[#d4a853]' : 'text-muted-foreground'}
+            className={isFavorite ? 'text-[#D4A017]' : 'text-muted-foreground'}
           >
             {isFavorite ? '★' : '☆'}
           </Button>

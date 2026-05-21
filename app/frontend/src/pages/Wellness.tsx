@@ -105,7 +105,7 @@ export default function Wellness() {
                 max="12"
                 value={sleepHours}
                 onChange={(e) => setSleepHours(Number(e.target.value))}
-                className="w-full accent-[#14b8a6]"
+                className="w-full accent-[#1FC7C1]"
               />
             </div>
 
@@ -118,7 +118,7 @@ export default function Wellness() {
                 max="12"
                 value={hydration}
                 onChange={(e) => setHydration(Number(e.target.value))}
-                className="w-full accent-[#14b8a6]"
+                className="w-full accent-[#1FC7C1]"
               />
             </div>
 
@@ -131,7 +131,7 @@ export default function Wellness() {
                 max="5"
                 value={stress}
                 onChange={(e) => setStress(Number(e.target.value))}
-                className="w-full accent-[#d4a853]"
+                className="w-full accent-[#D4A017]"
               />
             </div>
 
@@ -146,7 +146,7 @@ export default function Wellness() {
           <div className="bg-card rounded-2xl p-4 mb-4 border border-border">
             <h3 className="text-sm text-muted-foreground mb-3">{t('wellnessScore')} — {t('today')}</h3>
             <div className="text-center mb-4">
-              <span className="text-4xl font-bold text-[#d4a853]">{getWellnessScore(todayEntry)}</span>
+              <span className="text-4xl font-bold text-[#D4A017]">{getWellnessScore(todayEntry)}</span>
               <span className="text-muted-foreground text-sm">/100</span>
             </div>
             <div className="grid grid-cols-4 gap-3">
@@ -170,7 +170,7 @@ export default function Wellness() {
                 <div key={i} className="flex flex-col items-center flex-1">
                   <span className="text-[10px] text-muted-foreground mb-1">{score > 0 ? score : ''}</span>
                   <div
-                    className={`w-full rounded-t-lg transition-all ${score > 0 ? 'bg-gradient-to-t from-[#14b8a6] to-[#d4a853]' : 'bg-secondary'}`}
+                    className={`w-full rounded-t-lg transition-all ${score > 0 ? 'bg-gradient-to-t from-[#1FC7C1] to-[#D4A017]' : 'bg-secondary'}`}
                     style={{ height: `${height}%` }}
                   />
                   <span className="text-[10px] text-muted-foreground mt-1">{dayLabel}</span>
@@ -201,7 +201,7 @@ function MetricCircle({ label, value, max, emoji, inverted }: { label: string; v
           <path
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             fill="none"
-            stroke="#14b8a6"
+            stroke="#1FC7C1"
             strokeWidth="3"
             strokeDasharray={`${percentage}, 100`}
           />

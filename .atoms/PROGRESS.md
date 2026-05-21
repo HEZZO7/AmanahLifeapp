@@ -63,6 +63,7 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 7: Smart Briefings component (daily morning briefing widget on homepage)
 - [x] Phase 7: Update existing pages (enhance Finance, Goals, ZakatCalculator with Excel data integration)
 - [x] Phase 7: Lint and build verification
+- [x] Phase 8: Design System overhaul (forest-green/gold/teal palette from HTML design system, Tajawal+Amiri fonts, CSS variables, Tailwind color scales)
 
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing

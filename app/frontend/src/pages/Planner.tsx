@@ -135,7 +135,7 @@ export default function Planner() {
             </svg>
             {' '}{t('planner')}
           </h1>
-          {hijriDate && <span className="text-xs text-[#d4a853]">{hijriDate}</span>}
+          {hijriDate && <span className="text-xs text-[#D4A017]">{hijriDate}</span>}
         </div>
       </header>
 
@@ -186,7 +186,7 @@ export default function Planner() {
                 {/* Agenda Items */}
                 {todayAgenda.map(item => (
                   <div key={item.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-[#d4a853]" />
+                    <div className="w-3 h-3 rounded-full bg-[#D4A017]" />
                     <div className="flex-1">
                       <p className="text-sm text-foreground">{item.title}</p>
                       <p className="text-[10px] text-muted-foreground">
@@ -200,7 +200,7 @@ export default function Planner() {
                 {todayTasks.map(task => (
                   <div key={task.id} className="bg-card rounded-xl p-3 border border-border flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      task.completed ? 'bg-primary' : task.priority === 'high' ? 'bg-red-400' : task.priority === 'medium' ? 'bg-[#d4a853]' : 'bg-muted-foreground'
+                      task.completed ? 'bg-primary' : task.priority === 'high' ? 'bg-red-400' : task.priority === 'medium' ? 'bg-[#D4A017]' : 'bg-muted-foreground'
                     }`} />
                     <div className="flex-1">
                       <p className={`text-sm ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.title}</p>
@@ -239,7 +239,7 @@ export default function Planner() {
                     </span>
                   </div>
                   {count > 0 && (
-                    <span className="bg-[#d4a853] text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                    <span className="bg-[#D4A017] text-white text-xs px-2 py-0.5 rounded-full font-medium">
                       {count}
                     </span>
                   )}
@@ -256,7 +256,7 @@ export default function Planner() {
               {new Date().toLocaleDateString(language === 'ar' ? 'ar' : 'en', { month: 'long', year: 'numeric' })}
             </h3>
             {hijriDate && (
-              <p className="text-center text-xs text-[#d4a853] mb-3">{hijriDate}</p>
+              <p className="text-center text-xs text-[#D4A017] mb-3">{hijriDate}</p>
             )}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {(language === 'ar'
@@ -280,7 +280,7 @@ export default function Planner() {
                     }`}
                   >
                     {day}
-                    {hasTask && <div className="w-1 h-1 rounded-full bg-[#d4a853] mt-0.5" />}
+                    {hasTask && <div className="w-1 h-1 rounded-full bg-[#D4A017] mt-0.5" />}
                   </div>
                 );
               })}

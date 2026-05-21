@@ -136,7 +136,7 @@ export default function HalalInvestment() {
         </div>
 
         {/* Portfolio Summary */}
-        <div className="bg-gradient-to-r from-primary/20 to-[#d4a853]/20 rounded-2xl p-4 mb-4 border border-border">
+        <div className="bg-gradient-to-r from-primary/20 to-[#D4A017]/20 rounded-2xl p-4 mb-4 border border-border">
           <p className="text-xs text-muted-foreground">{language === 'ar' ? 'إجمالي المحفظة' : 'Total Portfolio'}</p>
           <p className="text-2xl font-bold text-foreground">{totalPortfolio.toLocaleString()}</p>
           <p className="text-xs text-primary">{data.portfolio.length} {language === 'ar' ? 'استثمارات' : 'investments'}</p>
@@ -282,7 +282,7 @@ export default function HalalInvestment() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'الربح' : 'Profit'}</span>
-                  <span className="font-bold text-[#d4a853]">{murabahaResult.profit.toLocaleString()}</span>
+                  <span className="font-bold text-[#D4A017]">{murabahaResult.profit.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'القسط الشهري' : 'Monthly Payment'}</span>
@@ -342,7 +342,7 @@ export default function HalalInvestment() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'المتبقي للتملك' : 'Remaining to Own'}</span>
-                  <span className="font-bold text-[#d4a853]">{ijaraResult.remaining.toLocaleString()}</span>
+                  <span className="font-bold text-[#D4A017]">{ijaraResult.remaining.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{language === 'ar' ? 'حالة التملك' : 'Ownership Status'}</span>
@@ -424,7 +424,7 @@ export default function HalalInvestment() {
                 </div>
                 <div className="w-full h-4 bg-secondary rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-primary to-[#d4a853] rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-primary to-[#D4A017] rounded-full transition-all"
                     style={{
                       width: `${Math.min(((data.homeOwnership.downPayment + data.homeOwnership.totalPaid) / data.homeOwnership.propertyValue) * 100, 100)}%`,
                     }}
