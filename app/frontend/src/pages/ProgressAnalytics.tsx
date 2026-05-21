@@ -193,7 +193,7 @@ export default function ProgressAnalytics() {
             <span className={`text-foreground ${isRTL ? 'rotate-180' : ''}`}>←</span>
           </button>
           <h1 className="text-xl font-bold text-foreground">
-            📊 {language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics'}
+            🏅 {language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics'}
           </h1>
         </div>
       </header>
