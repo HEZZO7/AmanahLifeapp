@@ -13,12 +13,95 @@ interface ZakatItem {
   icon: string;
 }
 
-// Current approximate Nisab values (updated periodically)
-const GOLD_PRICE_PER_GRAM = 75; // USD approximate
-const SILVER_PRICE_PER_GRAM = 0.95; // USD approximate
-const NISAB_GOLD_GRAMS = 87.48; // 7.5 tola
-const NISAB_SILVER_GRAMS = 612.36; // 52.5 tola
-const ZAKAT_RATE = 0.025; // 2.5%
+interface CurrencyGroup {
+  region: string;
+  regionAr: string;
+  currencies: { code: string; name: string; nameAr: string }[];
+}
+
+const CURRENCY_GROUPS: CurrencyGroup[] = [
+  {
+    region: 'Gulf',
+    regionAr: 'الخليج',
+    currencies: [
+      { code: 'SAR', name: 'Saudi Riyal', nameAr: 'ريال سعودي' },
+      { code: 'AED', name: 'UAE Dirham', nameAr: 'درهم إماراتي' },
+      { code: 'KWD', name: 'Kuwaiti Dinar', nameAr: 'دينار كويتي' },
+      { code: 'BHD', name: 'Bahraini Dinar', nameAr: 'دينار بحريني' },
+      { code: 'OMR', name: 'Omani Rial', nameAr: 'ريال عماني' },
+      { code: 'QAR', name: 'Qatari Riyal', nameAr: 'ريال قطري' },
+    ],
+  },
+  {
+    region: 'Middle East',
+    regionAr: 'الشرق الأوسط',
+    currencies: [
+      { code: 'EGP', name: 'Egyptian Pound', nameAr: 'جنيه مصري' },
+      { code: 'JOD', name: 'Jordanian Dinar', nameAr: 'دينار أردني' },
+      { code: 'IQD', name: 'Iraqi Dinar', nameAr: 'دينار عراقي' },
+      { code: 'LBP', name: 'Lebanese Pound', nameAr: 'ليرة لبنانية' },
+      { code: 'SYP', name: 'Syrian Pound', nameAr: 'ليرة سورية' },
+    ],
+  },
+  {
+    region: 'Turkey',
+    regionAr: 'تركيا',
+    currencies: [
+      { code: 'TRY', name: 'Turkish Lira', nameAr: 'ليرة تركية' },
+    ],
+  },
+  {
+    region: 'Asia',
+    regionAr: 'آسيا',
+    currencies: [
+      { code: 'MYR', name: 'Malaysian Ringgit', nameAr: 'رينغيت ماليزي' },
+      { code: 'IDR', name: 'Indonesian Rupiah', nameAr: 'روبية إندونيسية' },
+      { code: 'PKR', name: 'Pakistani Rupee', nameAr: 'روبية باكستانية' },
+      { code: 'BDT', name: 'Bangladeshi Taka', nameAr: 'تاكا بنغلاديشية' },
+      { code: 'INR', name: 'Indian Rupee', nameAr: 'روبية هندية' },
+    ],
+  },
+  {
+    region: 'Americas',
+    regionAr: 'الأمريكتين',
+    currencies: [
+      { code: 'USD', name: 'US Dollar', nameAr: 'دولار أمريكي' },
+      { code: 'CAD', name: 'Canadian Dollar', nameAr: 'دولار كندي' },
+    ],
+  },
+  {
+    region: 'Europe',
+    regionAr: 'أوروبا',
+    currencies: [
+      { code: 'EUR', name: 'Euro', nameAr: 'يورو' },
+      { code: 'GBP', name: 'British Pound', nameAr: 'جنيه إسترليني' },
+      { code: 'CHF', name: 'Swiss Franc', nameAr: 'فرنك سويسري' },
+    ],
+  },
+  {
+    region: 'Oceania',
+    regionAr: 'أوقيانوسيا',
+    currencies: [
+      { code: 'AUD', name: 'Australian Dollar', nameAr: 'دولار أسترالي' },
+      { code: 'NZD', name: 'New Zealand Dollar', nameAr: 'دولار نيوزيلندي' },
+    ],
+  },
+];
+
+// Current approximate Nisab values in USD
+const GOLD_PRICE_PER_GRAM_USD = 75;
+const SILVER_PRICE_PER_GRAM_USD = 0.95;
+const NISAB_GOLD_GRAMS = 87.48;
+const NISAB_SILVER_GRAMS = 612.36;
+const ZAKAT_RATE = 0.025;
+
+// Fallback rates (USD base)
+const FALLBACK_RATES: Record<string, number> = {
+  USD: 1, SAR: 3.75, AED: 3.67, KWD: 0.31, BHD: 0.376, OMR: 0.385, QAR: 3.64,
+  EGP: 49.5, JOD: 0.709, IQD: 1310, LBP: 89500, SYP: 13000, TRY: 38.5,
+  MYR: 4.45, IDR: 16200, PKR: 278, BDT: 121, INR: 83.5,
+  CAD: 1.36, EUR: 0.92, GBP: 0.79, CHF: 0.88, AUD: 1.53, NZD: 1.67,
+};
 
 export default function ZakatCalculator() {
   const { user, loading: authLoading } = useAuth();
@@ -35,39 +118,85 @@ export default function ZakatCalculator() {
   const [liabilities, setLiabilities] = useState('');
   const [calculated, setCalculated] = useState(false);
   const [currency, setCurrency] = useState('USD');
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>(FALLBACK_RATES);
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data.result === 'success' && data.rates) {
+          setExchangeRates(data.rates);
+        }
+      } catch {
+        // Use fallback rates
+      } finally {
+        setRatesLoading(false);
+      }
+    };
+    fetchRates();
+  }, []);
+
+  const getRate = (code: string): number => {
+    return exchangeRates[code] || FALLBACK_RATES[code] || 1;
+  };
+
+  const convertToUSD = (amount: number, fromCurrency: string): number => {
+    const rate = getRate(fromCurrency);
+    return amount / rate;
+  };
+
+  const convertFromUSD = (amountUSD: number, toCurrency: string): number => {
+    const rate = getRate(toCurrency);
+    return amountUSD * rate;
+  };
 
   const updateAsset = (key: string, value: string) => {
     setAssets((prev) => prev.map((a) => (a.key === key ? { ...a, value } : a)));
     setCalculated(false);
   };
 
-  const calculateTotal = () => {
-    let total = 0;
+  const calculateTotalInUSD = () => {
+    let totalUSD = 0;
     assets.forEach((asset) => {
       const val = parseFloat(asset.value) || 0;
       if (asset.key === 'gold') {
-        total += val * GOLD_PRICE_PER_GRAM;
+        totalUSD += val * GOLD_PRICE_PER_GRAM_USD;
       } else if (asset.key === 'silver') {
-        total += val * SILVER_PRICE_PER_GRAM;
+        totalUSD += val * SILVER_PRICE_PER_GRAM_USD;
       } else {
-        total += val;
+        totalUSD += convertToUSD(val, currency);
       }
     });
-    return total;
+    return totalUSD;
   };
 
-  const totalAssets = calculateTotal();
-  const totalLiabilities = parseFloat(liabilities) || 0;
-  const netWorth = totalAssets - totalLiabilities;
-  const nisabGold = NISAB_GOLD_GRAMS * GOLD_PRICE_PER_GRAM;
-  const nisabSilver = NISAB_SILVER_GRAMS * SILVER_PRICE_PER_GRAM;
-  const nisab = Math.min(nisabGold, nisabSilver);
-  const isEligible = netWorth >= nisab;
-  const zakatAmount = isEligible ? netWorth * ZAKAT_RATE : 0;
+  const totalAssetsUSD = calculateTotalInUSD();
+  const totalLiabilitiesUSD = convertToUSD(parseFloat(liabilities) || 0, currency);
+  const netWorthUSD = totalAssetsUSD - totalLiabilitiesUSD;
+  const nisabGoldUSD = NISAB_GOLD_GRAMS * GOLD_PRICE_PER_GRAM_USD;
+  const nisabSilverUSD = NISAB_SILVER_GRAMS * SILVER_PRICE_PER_GRAM_USD;
+  const nisabUSD = Math.min(nisabGoldUSD, nisabSilverUSD);
+  const isEligible = netWorthUSD >= nisabUSD;
+  const zakatAmountUSD = isEligible ? netWorthUSD * ZAKAT_RATE : 0;
+
+  // Convert display values to selected currency
+  const nisabDisplay = convertFromUSD(nisabUSD, currency);
+  const totalAssetsDisplay = convertFromUSD(totalAssetsUSD, currency);
+  const totalLiabilitiesDisplay = convertFromUSD(totalLiabilitiesUSD, currency);
+  const netWorthDisplay = convertFromUSD(netWorthUSD, currency);
+  const zakatDisplay = convertFromUSD(zakatAmountUSD, currency);
+
+  const formatAmount = (amount: number): string => {
+    if (amount >= 1000000) return amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   if (authLoading) return null;
 
@@ -83,13 +212,67 @@ export default function ZakatCalculator() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Currency Selector */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-foreground">🌍 Select Currency</p>
+              {ratesLoading ? (
+                <span className="text-[10px] text-muted-foreground animate-pulse">Loading rates...</span>
+              ) : (
+                <span className="text-[10px] text-primary">✓ Live rates</span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 hover:border-primary transition-all"
+            >
+              <span className="text-foreground font-medium">{currency}</span>
+              <span className="text-muted-foreground text-xs">
+                {CURRENCY_GROUPS.flatMap(g => g.currencies).find(c => c.code === currency)?.name || currency}
+              </span>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform ${showCurrencyPicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showCurrencyPicker && (
+              <div className="mt-3 max-h-64 overflow-y-auto rounded-xl border border-border bg-card">
+                {CURRENCY_GROUPS.map((group) => (
+                  <div key={group.region}>
+                    <div className="sticky top-0 bg-secondary px-3 py-1.5 border-b border-border">
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{group.region}</p>
+                    </div>
+                    {group.currencies.map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); setCalculated(false); }}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-primary/10 transition-all ${
+                          currency === c.code ? 'bg-primary/10 border-l-2 border-primary' : ''
+                        }`}
+                      >
+                        <span className={`text-sm ${currency === c.code ? 'text-primary font-semibold' : 'text-foreground'}`}>
+                          {c.code}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{c.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Nisab Info */}
         <Card className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">Current Nisab Threshold</p>
-                <p className="text-lg font-bold text-emerald-800 dark:text-emerald-100">${nisab.toFixed(2)} {currency}</p>
+                <p className="text-lg font-bold text-emerald-800 dark:text-emerald-100">
+                  {formatAmount(nisabDisplay)} {currency}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Gold: {NISAB_GOLD_GRAMS}g</p>
@@ -98,21 +281,6 @@ export default function ZakatCalculator() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Currency Selector */}
-        <div className="flex gap-2">
-          {['USD', 'GBP', 'EUR', 'SAR'].map((c) => (
-            <Button
-              key={c}
-              size="sm"
-              variant={currency === c ? 'default' : 'outline'}
-              className={currency === c ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'text-foreground'}
-              onClick={() => setCurrency(c)}
-            >
-              {c}
-            </Button>
-          ))}
-        </div>
 
         {/* Assets Input */}
         <Card>
@@ -127,7 +295,7 @@ export default function ZakatCalculator() {
                   <label className="text-xs text-muted-foreground block mb-1">{asset.label}</label>
                   <Input
                     type="number"
-                    placeholder={asset.key === 'gold' || asset.key === 'silver' ? 'grams' : `${currency}`}
+                    placeholder={asset.key === 'gold' || asset.key === 'silver' ? 'grams' : `Amount in ${currency}`}
                     value={asset.value}
                     onChange={(e) => updateAsset(asset.key, e.target.value)}
                     className="bg-secondary"
@@ -150,7 +318,7 @@ export default function ZakatCalculator() {
                 <label className="text-xs text-muted-foreground block mb-1">Outstanding Debts & Liabilities</label>
                 <Input
                   type="number"
-                  placeholder={currency}
+                  placeholder={`Amount in ${currency}`}
                   value={liabilities}
                   onChange={(e) => { setLiabilities(e.target.value); setCalculated(false); }}
                   className="bg-secondary"
@@ -174,8 +342,9 @@ export default function ZakatCalculator() {
             <div className={`p-6 text-center ${isEligible ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'} text-white`}>
               <p className="text-sm opacity-80">Your Zakat Due</p>
               <p className="text-4xl font-bold mt-2">
-                {isEligible ? `$${zakatAmount.toFixed(2)}` : '$0.00'}
+                {isEligible ? formatAmount(zakatDisplay) : '0.00'}
               </p>
+              <p className="text-sm opacity-70 mt-1">{currency}</p>
               <p className="text-xs opacity-70 mt-2">
                 {isEligible ? '2.5% of your net zakatable wealth' : 'Below Nisab threshold - no Zakat due'}
               </p>
@@ -183,20 +352,20 @@ export default function ZakatCalculator() {
             <CardContent className="p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Assets</span>
-                <span className="font-medium text-foreground">${totalAssets.toFixed(2)}</span>
+                <span className="font-medium text-foreground">{formatAmount(totalAssetsDisplay)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Liabilities</span>
-                <span className="font-medium text-red-500 dark:text-red-400">-${totalLiabilities.toFixed(2)}</span>
+                <span className="font-medium text-red-500 dark:text-red-400">-{formatAmount(totalLiabilitiesDisplay)}</span>
               </div>
               <div className="border-t border-border pt-2 flex justify-between text-sm">
                 <span className="text-muted-foreground">Net Zakatable Wealth</span>
-                <span className="font-bold text-foreground">${netWorth.toFixed(2)}</span>
+                <span className="font-bold text-foreground">{formatAmount(netWorthDisplay)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Nisab Threshold</span>
                 <span className={`font-medium ${isEligible ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                  ${nisab.toFixed(2)} {isEligible ? '✓' : ''}
+                  {formatAmount(nisabDisplay)} {isEligible ? '✓' : ''}
                 </span>
               </div>
             </CardContent>
@@ -210,6 +379,7 @@ export default function ZakatCalculator() {
             <li>• Zakat is 2.5% of wealth held for one lunar year above Nisab</li>
             <li>• Nisab is the minimum amount that makes one liable for Zakat</li>
             <li>• Gold prices are approximate — consult current market rates</li>
+            <li>• Exchange rates are fetched live and may vary slightly</li>
             <li>• Consult a scholar for specific rulings on your situation</li>
           </ul>
         </div>

@@ -89,11 +89,11 @@ export default function Finance() {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{t('monthlyIncome')}</p>
-            <p className="text-lg font-bold text-primary">${monthlyIncome.toFixed(0)}</p>
+            <p className="text-lg font-bold text-primary">{monthlyIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{t('monthlyExpense')}</p>
-            <p className="text-lg font-bold text-red-400">${monthlyExpense.toFixed(0)}</p>
+            <p className="text-lg font-bold text-red-400">{monthlyExpense.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
           </div>
           <div className="bg-card rounded-2xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{t('savingsRate')}</p>
@@ -135,7 +135,7 @@ export default function Finance() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-primary' : 'text-red-400'}`}>
-                    {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(0)}
+                    {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                   <button onClick={() => deleteTransaction(tx.id)} className="text-muted-foreground hover:text-red-400 text-xs">✕</button>
                 </div>

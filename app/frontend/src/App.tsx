@@ -34,6 +34,7 @@ import FamilyBudget from './pages/FamilyBudget';
 import FinancialDashboard from './pages/FinancialDashboard';
 import HalalInvestment from './pages/HalalInvestment';
 import RamadanPlanner from './pages/RamadanPlanner';
+import ClassicSearch from './pages/ClassicSearch';
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const AppRoutes = () => (
     <Route path="/financial-dashboard" element={<FinancialDashboard />} />
     <Route path="/halal-investment" element={<HalalInvestment />} />
     <Route path="/ramadan-planner" element={<RamadanPlanner />} />
+    <Route path="/search" element={<ClassicSearch />} />
   </Routes>
 );
 

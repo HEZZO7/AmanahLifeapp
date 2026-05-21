@@ -83,7 +83,6 @@ export default function FinancialDashboard() {
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">💰 {language === 'ar' ? 'صافي الثروة' : 'Net Worth'}</p>
               <p className="text-xl font-bold text-[#d4a853]">{Math.round(dashboardData.netWorth).toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground">SAR</p>
             </div>
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">📈 {language === 'ar' ? 'معدل التوفير' : 'Savings Rate'}</p>
@@ -95,12 +94,10 @@ export default function FinancialDashboard() {
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">💵 {language === 'ar' ? 'إجمالي الدخل' : 'Total Income'}</p>
               <p className="text-xl font-bold text-primary">{dashboardData.totalIncome.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground">SAR</p>
             </div>
             <div className="bg-card rounded-2xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-1">🧾 {language === 'ar' ? 'إجمالي المصروفات' : 'Total Expenses'}</p>
               <p className="text-xl font-bold text-red-400">{dashboardData.totalExpenses.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground">SAR</p>
             </div>
           </div>
 
@@ -121,7 +118,7 @@ export default function FinancialDashboard() {
                     <div key={cat}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-foreground">{cat}</span>
-                        <span className="text-muted-foreground">{amount.toLocaleString()} SAR</span>
+                        <span className="text-muted-foreground">{amount.toLocaleString()}</span>
                       </div>
                       <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
                         <div

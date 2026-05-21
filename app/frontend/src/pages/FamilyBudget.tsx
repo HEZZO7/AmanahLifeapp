@@ -176,16 +176,16 @@ export default function FamilyBudget() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-card rounded-xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'الدخل' : 'Income'}</p>
-            <p className="text-sm font-bold text-primary">{Math.round(totalIncome)} SAR</p>
+            <p className="text-sm font-bold text-primary">{Math.round(totalIncome).toLocaleString()}</p>
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'المصروفات' : 'Expenses'}</p>
-            <p className="text-sm font-bold text-red-400">{Math.round(totalExpenses)} SAR</p>
+            <p className="text-sm font-bold text-red-400">{Math.round(totalExpenses).toLocaleString()}</p>
           </div>
           <div className="bg-card rounded-xl p-3 border border-border text-center">
             <p className="text-[10px] text-muted-foreground">{language === 'ar' ? 'المتبقي' : 'Balance'}</p>
             <p className={`text-sm font-bold ${totalIncome - totalExpenses >= 0 ? 'text-[#d4a853]' : 'text-red-400'}`}>
-              {Math.round(totalIncome - totalExpenses)} SAR
+              {Math.round(totalIncome - totalExpenses).toLocaleString()}
             </p>
           </div>
         </div>
@@ -241,7 +241,7 @@ export default function FamilyBudget() {
                   <div key={key} className="mb-3">
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-foreground">{label.icon} {language === 'ar' ? label.ar : label.en}</span>
-                      <span className="text-muted-foreground">{value.toLocaleString()} SAR</span>
+                      <span className="text-muted-foreground">{value.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full" style={{ width: `${progress}%` }} />
@@ -268,7 +268,7 @@ export default function FamilyBudget() {
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-foreground">{cat.icon} {language === 'ar' ? cat.nameAr : cat.name}</span>
                       <span className={over ? 'text-red-400' : 'text-muted-foreground'}>
-                        {Math.round(cat.actual)}/{cat.budgeted} SAR
+                        {Math.round(cat.actual).toLocaleString()}/{cat.budgeted.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
@@ -329,9 +329,9 @@ export default function FamilyBudget() {
                     <p className="text-xs text-muted-foreground">{entry.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-primary">+{entry.amount} {entry.currency}</p>
+                    <p className="text-sm font-bold text-primary">+{entry.amount.toLocaleString()}</p>
                     {entry.currency !== 'SAR' && (
-                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency)} SAR</p>
+                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency).toLocaleString()}</p>
                     )}
                   </div>
                 </div>
@@ -394,9 +394,9 @@ export default function FamilyBudget() {
                     <p className="text-xs text-muted-foreground">{entry.category} • {entry.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-red-400">-{entry.amount} {entry.currency}</p>
+                    <p className="text-sm font-bold text-red-400">-{entry.amount.toLocaleString()}</p>
                     {entry.currency !== 'SAR' && (
-                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency)} SAR</p>
+                      <p className="text-[10px] text-muted-foreground">≈ {convertToSAR(entry.amount, entry.currency).toLocaleString()}</p>
                     )}
                   </div>
                 </div>
