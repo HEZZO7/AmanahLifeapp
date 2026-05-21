@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import BottomNav from '@/components/BottomNav';
 
 interface ZakatItem {
   label: string;
+  labelAr: string;
   value: string;
   key: string;
   icon: string;
@@ -105,15 +107,17 @@ const FALLBACK_RATES: Record<string, number> = {
 
 export default function ZakatCalculator() {
   const { user, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
   const navigate = useNavigate();
   const [assets, setAssets] = useState<ZakatItem[]>([
-    { label: 'Cash & Bank Balance', value: '', key: 'cash', icon: '💵' },
-    { label: 'Gold (in grams)', value: '', key: 'gold', icon: '🪙' },
-    { label: 'Silver (in grams)', value: '', key: 'silver', icon: '🥈' },
-    { label: 'Investments & Stocks', value: '', key: 'investments', icon: '📈' },
-    { label: 'Business Inventory', value: '', key: 'business', icon: '🏪' },
-    { label: 'Rental Income', value: '', key: 'rental', icon: '🏠' },
-    { label: 'Other Assets', value: '', key: 'other', icon: '💎' },
+    { label: 'Cash & Bank Balance', labelAr: 'النقد والرصيد البنكي', value: '', key: 'cash', icon: '💵' },
+    { label: 'Gold (in grams)', labelAr: 'الذهب (بالغرام)', value: '', key: 'gold', icon: '🪙' },
+    { label: 'Silver (in grams)', labelAr: 'الفضة (بالغرام)', value: '', key: 'silver', icon: '🥈' },
+    { label: 'Investments & Stocks', labelAr: 'الاستثمارات والأسهم', value: '', key: 'investments', icon: '📈' },
+    { label: 'Business Inventory', labelAr: 'مخزون تجاري', value: '', key: 'business', icon: '🏪' },
+    { label: 'Rental Income', labelAr: 'دخل الإيجار', value: '', key: 'rental', icon: '🏠' },
+    { label: 'Other Assets', labelAr: 'أصول أخرى', value: '', key: 'other', icon: '💎' },
   ]);
   const [liabilities, setLiabilities] = useState('');
   const [calculated, setCalculated] = useState(false);
@@ -201,12 +205,14 @@ export default function ZakatCalculator() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">💰 Zakat Calculator</h1>
+          <h1 className="text-lg font-bold text-foreground">
+            💰 {isAr ? 'حاسبة الزكاة' : 'Zakat Calculator'}
+          </h1>
           <div className="w-16" />
         </div>
       </header>
@@ -216,11 +222,17 @@ export default function ZakatCalculator() {
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-foreground">🌍 Select Currency</p>
+              <p className="text-sm font-semibold text-foreground">
+                🌍 {isAr ? 'اختر العملة' : 'Select Currency'}
+              </p>
               {ratesLoading ? (
-                <span className="text-[10px] text-muted-foreground animate-pulse">Loading rates...</span>
+                <span className="text-[10px] text-muted-foreground animate-pulse">
+                  {isAr ? 'جاري تحميل الأسعار...' : 'Loading rates...'}
+                </span>
               ) : (
-                <span className="text-[10px] text-primary">✓ Live rates</span>
+                <span className="text-[10px] text-primary">
+                  ✓ {isAr ? 'أسعار مباشرة' : 'Live rates'}
+                </span>
               )}
             </div>
             <button
@@ -229,7 +241,10 @@ export default function ZakatCalculator() {
             >
               <span className="text-foreground font-medium">{currency}</span>
               <span className="text-muted-foreground text-xs">
-                {CURRENCY_GROUPS.flatMap(g => g.currencies).find(c => c.code === currency)?.name || currency}
+                {(() => {
+                  const found = CURRENCY_GROUPS.flatMap(g => g.currencies).find(c => c.code === currency);
+                  return found ? (isAr ? found.nameAr : found.name) : currency;
+                })()}
               </span>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform ${showCurrencyPicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -241,7 +256,9 @@ export default function ZakatCalculator() {
                 {CURRENCY_GROUPS.map((group) => (
                   <div key={group.region}>
                     <div className="sticky top-0 bg-secondary px-3 py-1.5 border-b border-border">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{group.region}</p>
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                        {isAr ? group.regionAr : group.region}
+                      </p>
                     </div>
                     {group.currencies.map((c) => (
                       <button
@@ -254,7 +271,9 @@ export default function ZakatCalculator() {
                         <span className={`text-sm ${currency === c.code ? 'text-primary font-semibold' : 'text-foreground'}`}>
                           {c.code}
                         </span>
-                        <span className="text-xs text-muted-foreground">{c.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {isAr ? c.nameAr : c.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -269,14 +288,20 @@ export default function ZakatCalculator() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">Current Nisab Threshold</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">
+                  {isAr ? 'حد النصاب الحالي' : 'Current Nisab Threshold'}
+                </p>
                 <p className="text-lg font-bold text-emerald-800 dark:text-emerald-100">
                   {formatAmount(nisabDisplay)} {currency}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Gold: {NISAB_GOLD_GRAMS}g</p>
-                <p className="text-xs text-muted-foreground">Silver: {NISAB_SILVER_GRAMS}g</p>
+              <div className={isAr ? 'text-left' : 'text-right'}>
+                <p className="text-xs text-muted-foreground">
+                  {isAr ? 'ذهب' : 'Gold'}: {NISAB_GOLD_GRAMS}{isAr ? 'غ' : 'g'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isAr ? 'فضة' : 'Silver'}: {NISAB_SILVER_GRAMS}{isAr ? 'غ' : 'g'}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -285,17 +310,25 @@ export default function ZakatCalculator() {
         {/* Assets Input */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-foreground">Your Assets</CardTitle>
+            <CardTitle className="text-base text-foreground">
+              {isAr ? 'أصولك' : 'Your Assets'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {assets.map((asset) => (
               <div key={asset.key} className="flex items-center gap-3">
                 <span className="text-xl w-8">{asset.icon}</span>
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground block mb-1">{asset.label}</label>
+                  <label className="text-xs text-muted-foreground block mb-1">
+                    {isAr ? asset.labelAr : asset.label}
+                  </label>
                   <Input
                     type="number"
-                    placeholder={asset.key === 'gold' || asset.key === 'silver' ? 'grams' : `Amount in ${currency}`}
+                    placeholder={
+                      asset.key === 'gold' || asset.key === 'silver'
+                        ? (isAr ? 'غرام' : 'grams')
+                        : (isAr ? `المبلغ بـ ${currency}` : `Amount in ${currency}`)
+                    }
                     value={asset.value}
                     onChange={(e) => updateAsset(asset.key, e.target.value)}
                     className="bg-secondary"
@@ -309,16 +342,20 @@ export default function ZakatCalculator() {
         {/* Liabilities */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-foreground">Deductions</CardTitle>
+            <CardTitle className="text-base text-foreground">
+              {isAr ? 'الخصومات' : 'Deductions'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
               <span className="text-xl w-8">📋</span>
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground block mb-1">Outstanding Debts & Liabilities</label>
+                <label className="text-xs text-muted-foreground block mb-1">
+                  {isAr ? 'الديون والالتزامات المستحقة' : 'Outstanding Debts & Liabilities'}
+                </label>
                 <Input
                   type="number"
-                  placeholder={`Amount in ${currency}`}
+                  placeholder={isAr ? `المبلغ بـ ${currency}` : `Amount in ${currency}`}
                   value={liabilities}
                   onChange={(e) => { setLiabilities(e.target.value); setCalculated(false); }}
                   className="bg-secondary"
@@ -333,37 +370,50 @@ export default function ZakatCalculator() {
           className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold"
           onClick={() => setCalculated(true)}
         >
-          Calculate Zakat
+          {isAr ? 'احسب الزكاة' : 'Calculate Zakat'}
         </Button>
 
         {/* Results */}
         {calculated && (
           <Card className="border-0 shadow-xl overflow-hidden">
             <div className={`p-6 text-center ${isEligible ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'} text-white`}>
-              <p className="text-sm opacity-80">Your Zakat Due</p>
+              <p className="text-sm opacity-80">
+                {isAr ? 'زكاتك المستحقة' : 'Your Zakat Due'}
+              </p>
               <p className="text-4xl font-bold mt-2">
                 {isEligible ? formatAmount(zakatDisplay) : '0.00'}
               </p>
               <p className="text-sm opacity-70 mt-1">{currency}</p>
               <p className="text-xs opacity-70 mt-2">
-                {isEligible ? '2.5% of your net zakatable wealth' : 'Below Nisab threshold - no Zakat due'}
+                {isEligible
+                  ? (isAr ? '٢.٥٪ من صافي ثروتك الزكوية' : '2.5% of your net zakatable wealth')
+                  : (isAr ? 'أقل من حد النصاب - لا زكاة مستحقة' : 'Below Nisab threshold - no Zakat due')
+                }
               </p>
             </div>
             <CardContent className="p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Assets</span>
+                <span className="text-muted-foreground">
+                  {isAr ? 'إجمالي الأصول' : 'Total Assets'}
+                </span>
                 <span className="font-medium text-foreground">{formatAmount(totalAssetsDisplay)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Liabilities</span>
+                <span className="text-muted-foreground">
+                  {isAr ? 'الالتزامات' : 'Liabilities'}
+                </span>
                 <span className="font-medium text-red-500 dark:text-red-400">-{formatAmount(totalLiabilitiesDisplay)}</span>
               </div>
               <div className="border-t border-border pt-2 flex justify-between text-sm">
-                <span className="text-muted-foreground">Net Zakatable Wealth</span>
+                <span className="text-muted-foreground">
+                  {isAr ? 'صافي الثروة الزكوية' : 'Net Zakatable Wealth'}
+                </span>
                 <span className="font-bold text-foreground">{formatAmount(netWorthDisplay)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Nisab Threshold</span>
+                <span className="text-muted-foreground">
+                  {isAr ? 'حد النصاب' : 'Nisab Threshold'}
+                </span>
                 <span className={`font-medium ${isEligible ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                   {formatAmount(nisabDisplay)} {isEligible ? '✓' : ''}
                 </span>
@@ -374,13 +424,15 @@ export default function ZakatCalculator() {
 
         {/* Info */}
         <div className="p-4 rounded-xl bg-secondary border border-border">
-          <h3 className="font-semibold text-foreground text-sm mb-2">ℹ️ About Zakat</h3>
+          <h3 className="font-semibold text-foreground text-sm mb-2">
+            ℹ️ {isAr ? 'عن الزكاة' : 'About Zakat'}
+          </h3>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Zakat is 2.5% of wealth held for one lunar year above Nisab</li>
-            <li>• Nisab is the minimum amount that makes one liable for Zakat</li>
-            <li>• Gold prices are approximate — consult current market rates</li>
-            <li>• Exchange rates are fetched live and may vary slightly</li>
-            <li>• Consult a scholar for specific rulings on your situation</li>
+            <li>• {isAr ? 'الزكاة هي ٢.٥٪ من الثروة المحتفظ بها لسنة قمرية فوق النصاب' : 'Zakat is 2.5% of wealth held for one lunar year above Nisab'}</li>
+            <li>• {isAr ? 'النصاب هو الحد الأدنى الذي يوجب الزكاة' : 'Nisab is the minimum amount that makes one liable for Zakat'}</li>
+            <li>• {isAr ? 'أسعار الذهب تقريبية — راجع أسعار السوق الحالية' : 'Gold prices are approximate — consult current market rates'}</li>
+            <li>• {isAr ? 'أسعار الصرف مباشرة وقد تختلف قليلاً' : 'Exchange rates are fetched live and may vary slightly'}</li>
+            <li>• {isAr ? 'استشر عالماً للأحكام الخاصة بحالتك' : 'Consult a scholar for specific rulings on your situation'}</li>
           </ul>
         </div>
       </main>
