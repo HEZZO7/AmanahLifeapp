@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { LanguageProvider, hasLanguagePreference } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import Onboarding from '@/components/Onboarding';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
@@ -90,6 +91,7 @@ const App = () => (
           <LanguageProvider>
             <AuthProvider>
               <SubscriptionProvider>
+                <Onboarding />
                 <AppRoutes />
               </SubscriptionProvider>
             </AuthProvider>

@@ -36,26 +36,31 @@ export default function PremiumGate({ requiredTier, featureName, children }: Pre
   }
 
   return (
-    <div className="relative min-h-[60vh] flex items-center justify-center">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 rounded-2xl" />
-      <div className="relative z-20 text-center px-6 py-10">
-        <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#1a4a3a] flex items-center justify-center">
-          <svg className="w-10 h-10 text-[#c9a96e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+    <div className="relative min-h-[60vh] overflow-hidden rounded-2xl">
+      {/* Blurred content preview */}
+      <div className="pointer-events-none select-none blur-[6px] opacity-50 scale-[0.98]">
+        {children}
+      </div>
+
+      {/* Overlay */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-[2px]">
+        <div className="text-center px-6 py-8 max-w-sm">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#c9a96e]/20 to-[#1a4a3a]/40 flex items-center justify-center">
+            <span className="text-3xl">✨</span>
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">{featureName}</h3>
+          <p className="text-muted-foreground text-sm mb-5">
+            {language === 'ar'
+              ? 'هذه الميزة متاحة للمشتركين في الباقة المميزة. ابدأ تجربة مجانية لمدة 7 أيام!'
+              : 'This feature is available for premium subscribers. Start a free 7-day trial!'}
+          </p>
+          <button
+            onClick={() => navigate('/subscription')}
+            className="bg-[#c9a96e] hover:bg-[#b8944f] text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#c9a96e]/20"
+          >
+            {language === 'ar' ? '✨ فتح مع المميز' : '✨ Unlock with Premium'}
+          </button>
         </div>
-        <h3 className="text-xl font-bold text-foreground mb-2">{featureName}</h3>
-        <p className="text-muted-foreground text-sm mb-6">
-          {language === 'ar'
-            ? 'هذه الميزة متاحة للمشتركين في الباقة المميزة'
-            : 'This feature is available for premium subscribers'}
-        </p>
-        <button
-          onClick={() => navigate('/subscription')}
-          className="bg-[#c9a96e] hover:bg-[#b8944f] text-white font-semibold px-8 py-3 rounded-xl transition-all"
-        >
-          {language === 'ar' ? 'ترقية الآن' : 'Upgrade Now'}
-        </button>
       </div>
     </div>
   );

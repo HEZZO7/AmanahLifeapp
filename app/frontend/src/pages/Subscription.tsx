@@ -72,10 +72,49 @@ const PLANS = [
   },
 ];
 
+const TESTIMONIALS = [
+  {
+    nameAr: 'أحمد الراشدي',
+    nameEn: 'Ahmed Al-Rashidi',
+    locationAr: 'الرياض، السعودية',
+    locationEn: 'Riyadh, Saudi Arabia',
+    quoteAr: 'أمانة غيّرت طريقة تنظيم حياتي. أصبحت أحافظ على صلواتي وأذكاري بانتظام مع تتبع ميزانية العائلة.',
+    quoteEn: 'AmanahLife changed how I organize my life. I now maintain my prayers and adhkar regularly while tracking our family budget.',
+    rating: 5,
+  },
+  {
+    nameAr: 'فاطمة المنصوري',
+    nameEn: 'Fatima Al-Mansouri',
+    locationAr: 'دبي، الإمارات',
+    locationEn: 'Dubai, UAE',
+    quoteAr: 'التخطيط الذكي بالذكاء الاصطناعي ساعدني على تحقيق أهدافي الروحية والمالية. تطبيق رائع للعائلة المسلمة!',
+    quoteEn: 'The AI planning helped me achieve my spiritual and financial goals. Amazing app for Muslim families!',
+    rating: 5,
+  },
+  {
+    nameAr: 'عمر حسين',
+    nameEn: 'Omar Hussein',
+    locationAr: 'عمّان، الأردن',
+    locationEn: 'Amman, Jordan',
+    quoteAr: 'أفضل تطبيق إسلامي استخدمته. متتبع الصيام وحاسبة الزكاة دقيقان جداً. أنصح به بشدة.',
+    quoteEn: 'Best Islamic app I have used. The fasting tracker and zakat calculator are very accurate. Highly recommend.',
+    rating: 5,
+  },
+  {
+    nameAr: 'نورة الحربي',
+    nameEn: 'Noura Al-Harbi',
+    locationAr: 'جدة، السعودية',
+    locationEn: 'Jeddah, Saudi Arabia',
+    quoteAr: 'ميزة تتبع الأهداف والعادات ممتازة. أصبحت أقرأ القرآن يومياً وأتابع تقدمي بسهولة.',
+    quoteEn: 'The goals and habits tracker is excellent. I now read Quran daily and easily track my progress.',
+    rating: 4,
+  },
+];
+
 export default function Subscription() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
-  const { tier: currentTier, billingCycle, paymentProvider: currentProvider, loading: subLoading, refetch } = useSubscription();
+  const { tier: currentTier, billingCycle, paymentProvider: currentProvider, loading: subLoading, isTrialActive, trialDaysRemaining, startTrial, refetch } = useSubscription();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>(currentProvider);
@@ -208,6 +247,9 @@ export default function Subscription() {
 
   const currentPlanName = PLANS.find(p => p.id === currentTier);
 
+  // Determine if user is on free tier (not trial, not paid)
+  const isFreeTier = currentTier === 'free' && !isTrialActive;
+
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
@@ -232,6 +274,58 @@ export default function Subscription() {
           </div>
         )}
 
+        {/* Social Proof Badge */}
+        <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#c9a96e]/10 to-[#1a4a3a]/20 border border-[#c9a96e]/20">
+          <span className="text-lg">🌍</span>
+          <span className="text-sm font-semibold text-foreground">
+            {isAr ? 'انضم إلى أكثر من 10,000 عائلة مسلمة' : 'Join 10,000+ Muslim families'}
+          </span>
+          <span className="text-lg">✨</span>
+        </div>
+
+        {/* Trial Banner */}
+        {isTrialActive && (
+          <div className="rounded-2xl p-4 border border-[#c9a96e]/40 bg-[#c9a96e]/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#c9a96e]/20 flex items-center justify-center">
+                <span className="text-xl">⏳</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-foreground">
+                  {isAr ? 'التجربة المجانية نشطة' : 'Free Trial Active'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isAr
+                    ? `متبقي ${trialDaysRemaining} ${trialDaysRemaining === 1 ? 'يوم' : 'أيام'}`
+                    : `${trialDaysRemaining} ${trialDaysRemaining === 1 ? 'day' : 'days'} remaining`}
+                </p>
+              </div>
+              <div className="text-2xl font-bold text-[#c9a96e]">{trialDaysRemaining}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Start Free Trial CTA */}
+        {isFreeTier && (
+          <div className="rounded-2xl p-5 border-2 border-dashed border-[#c9a96e]/50 bg-gradient-to-br from-[#c9a96e]/5 to-transparent text-center">
+            <span className="text-3xl mb-2 block">🎁</span>
+            <h3 className="text-lg font-bold text-foreground mb-1">
+              {isAr ? 'جرّب المميز مجاناً' : 'Try Premium Free'}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {isAr
+                ? 'احصل على جميع المميزات لمدة 7 أيام بدون دفع'
+                : 'Get all premium features for 7 days, no payment required'}
+            </p>
+            <button
+              onClick={startTrial}
+              className="bg-gradient-to-r from-[#c9a96e] to-[#a67c3d] hover:from-[#b8944f] hover:to-[#956b2e] text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#c9a96e]/20"
+            >
+              {isAr ? '🚀 ابدأ تجربة 7 أيام مجانية' : '🚀 Start 7-Day Free Trial'}
+            </button>
+          </div>
+        )}
+
         {/* Current Plan */}
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="text-sm text-muted-foreground mb-3">
@@ -244,6 +338,11 @@ export default function Subscription() {
             <div>
               <p className="text-foreground font-bold text-lg">
                 {subLoading ? '...' : (isAr ? currentPlanName?.nameAr : currentPlanName?.nameEn)}
+                {isTrialActive && (
+                  <span className="text-xs ms-2 px-2 py-0.5 rounded-full bg-[#c9a96e]/20 text-[#c9a96e]">
+                    {isAr ? 'تجربة' : 'Trial'}
+                  </span>
+                )}
               </p>
               <p className="text-xs text-muted-foreground">
                 {billingCycle === 'yearly' ? (isAr ? 'اشتراك سنوي' : 'Yearly Plan') : (isAr ? 'اشتراك شهري' : 'Monthly Plan')}
@@ -284,7 +383,7 @@ export default function Subscription() {
         </div>
 
         {/* Manage Subscription */}
-        {currentTier !== 'free' && (
+        {currentTier !== 'free' && !isTrialActive && (
           <div className="bg-card rounded-2xl p-4 border border-border">
             <h3 className="text-sm text-muted-foreground mb-2">
               {isAr ? 'إدارة الاشتراك' : 'Manage Subscription'}
@@ -427,6 +526,48 @@ export default function Subscription() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Testimonials Section */}
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h3 className="text-sm text-muted-foreground mb-1">
+            {isAr ? 'ماذا يقول مستخدمونا' : 'What Our Users Say'}
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            {isAr ? 'آراء عائلات مسلمة حول العالم' : 'Reviews from Muslim families worldwide'}
+          </p>
+          <div className="space-y-3">
+            {TESTIMONIALS.map((t, i) => (
+              <div key={i} className="rounded-xl p-4 bg-background/50 border border-border/50">
+                <div className="flex items-center gap-1 mb-2">
+                  {Array.from({ length: 5 }).map((_, si) => (
+                    <svg
+                      key={si}
+                      className={`w-3.5 h-3.5 ${si < t.rating ? 'text-[#c9a96e]' : 'text-muted-foreground/30'}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-sm text-foreground mb-2 leading-relaxed">
+                  &ldquo;{isAr ? t.quoteAr : t.quoteEn}&rdquo;
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#1a4a3a] flex items-center justify-center">
+                    <span className="text-xs text-[#c9a96e] font-bold">
+                      {(isAr ? t.nameAr : t.nameEn).charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{isAr ? t.nameAr : t.nameEn}</p>
+                    <p className="text-[10px] text-muted-foreground">{isAr ? t.locationAr : t.locationEn}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>

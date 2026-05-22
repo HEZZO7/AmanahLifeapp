@@ -7,12 +7,35 @@ type SubscriptionStatus = 'active' | 'canceled' | 'past_due';
 type BillingCycle = 'monthly' | 'yearly';
 type PaymentProvider = 'stripe' | 'lemonsqueezy' | 'paddle';
 
+const TRIAL_KEY = 'amanah-trial-start';
+const TRIAL_DURATION_DAYS = 7;
+
+function getTrialInfo(): { isTrialActive: boolean; trialDaysRemaining: number } {
+  const trialStart = localStorage.getItem(TRIAL_KEY);
+  if (!trialStart) {
+    return { isTrialActive: false, trialDaysRemaining: 0 };
+  }
+  const startDate = new Date(trialStart);
+  const now = new Date();
+  const diffMs = now.getTime() - startDate.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const remaining = TRIAL_DURATION_DAYS - diffDays;
+
+  if (remaining <= 0) {
+    return { isTrialActive: false, trialDaysRemaining: 0 };
+  }
+  return { isTrialActive: true, trialDaysRemaining: remaining };
+}
+
 interface SubscriptionContextType {
   tier: SubscriptionTier;
   status: SubscriptionStatus;
   billingCycle: BillingCycle;
   paymentProvider: PaymentProvider;
   loading: boolean;
+  isTrialActive: boolean;
+  trialDaysRemaining: number;
+  startTrial: () => void;
   refetch: () => Promise<void>;
 }
 
@@ -25,6 +48,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('stripe');
   const [loading, setLoading] = useState(true);
+  const [trialState, setTrialState] = useState(getTrialInfo);
+
+  const startTrial = useCallback(() => {
+    const now = new Date().toISOString();
+    localStorage.setItem(TRIAL_KEY, now);
+    setTrialState({ isTrialActive: true, trialDaysRemaining: TRIAL_DURATION_DAYS });
+  }, []);
+
+  // Recalculate trial on mount and periodically
+  useEffect(() => {
+    setTrialState(getTrialInfo());
+    const interval = setInterval(() => {
+      setTrialState(getTrialInfo());
+    }, 60000); // check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchSubscription = useCallback(async () => {
     if (!user) {
@@ -79,8 +118,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     fetchSubscription();
   }, [fetchSubscription]);
 
+  // Effective tier: if trial is active and DB tier is free, treat as balanced
+  const effectiveTier: SubscriptionTier = (tier === 'free' && trialState.isTrialActive) ? 'balanced' : tier;
+
   return (
-    <SubscriptionContext.Provider value={{ tier, status, billingCycle, paymentProvider, loading, refetch: fetchSubscription }}>
+    <SubscriptionContext.Provider value={{
+      tier: effectiveTier,
+      status,
+      billingCycle,
+      paymentProvider,
+      loading,
+      isTrialActive: trialState.isTrialActive,
+      trialDaysRemaining: trialState.trialDaysRemaining,
+      startTrial,
+      refetch: fetchSubscription,
+    }}>
       {children}
     </SubscriptionContext.Provider>
   );
