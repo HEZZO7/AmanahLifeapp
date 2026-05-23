@@ -320,9 +320,17 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
   };
 }
 
+function getBlogPostsByLang(lang: 'ar' | 'en') {
+  return blogPosts.filter((post) => {
+    const postLang = typeof post.frontmatter.lang === 'string' ? post.frontmatter.lang : 'en';
+    return postLang === lang;
+  });
+}
+
 export {
   blogPosts,
   getBlogPost,
+  getBlogPostsByLang,
   getBlogRoute,
   getPostSeoMeta,
   hasBlogPosts,

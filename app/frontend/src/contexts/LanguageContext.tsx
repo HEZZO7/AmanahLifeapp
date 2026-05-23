@@ -180,7 +180,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    // Fallback for prerendering (SSR/Node) where LanguageProvider is not available
+    return {
+      language: 'en' as Language,
+      setLanguage: () => {},
+      t: (key: string) => key,
+      isRTL: false,
+    };
   }
   return context;
 }

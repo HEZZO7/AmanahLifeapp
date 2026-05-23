@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import BlogArticleLayout from '@/components/blog/BlogArticleLayout';
 import MarkdownArticle from '@/components/blog/MarkdownArticle';
 import { getBlogPost, getPostSeoMeta } from '@/lib/blog';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function getSlugFromPathname(pathname: string) {
   return pathname
@@ -36,8 +37,14 @@ function getCurrentPageUrl(pathname: string) {
   return `${window.location.origin}${pathname}`;
 }
 
+const notFoundTranslations = {
+  title: { ar: 'الصفحة غير موجودة', en: 'Page Not Found' },
+  description: { ar: 'عذراً، المقال الذي تبحث عنه غير موجود أو تمت إزالته.', en: 'Sorry, the blog post you are looking for does not exist or has been removed.' },
+};
+
 const BlogPostPage = () => {
   const location = useLocation();
+  const { language } = useLanguage();
   const slug = getSlugFromPathname(location.pathname);
   const post = slug === '*' ? null : getBlogPost(slug);
 
@@ -150,9 +157,11 @@ const BlogPostPage = () => {
         <div className="space-y-6 max-w-md">
           <div className="space-y-4">
             <h1 className="text-7xl font-bold text-gray-300">404</h1>
-            <h2 className="text-2xl font-bold text-gray-800">Page Not Found</h2>
+            <h2 className="text-2xl font-bold text-gray-800">
+              {notFoundTranslations.title[language]}
+            </h2>
             <p className="text-base text-muted-foreground">
-              Sorry, the blog post you are looking for does not exist or has been removed.
+              {notFoundTranslations.description[language]}
             </p>
           </div>
         </div>
