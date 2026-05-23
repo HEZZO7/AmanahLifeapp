@@ -153,9 +153,9 @@ export default function PrayerTimes() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           <p className="text-sm text-muted-foreground">
             {language === 'ar' ? 'جاري تحميل مواقيت الصلاة...' : 'Loading prayer times...'}
           </p>
@@ -167,24 +167,22 @@ export default function PrayerTimes() {
   const completedCount = [...completed].filter((n) => n !== 'Sunrise').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-4 flex items-center h-14">
+          <h1 className="text-lg font-bold text-foreground text-start w-full">
             🕌 {language === 'ar' ? 'مواقيت الصلاة' : 'Prayer Times'}
           </h1>
-          <div className="w-16" />
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Next Prayer Card */}
         {nextPrayer && (
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-[#1FC7C1] to-[#178F8A] text-white">
             <CardContent className="p-6 text-center">
-              <p className="text-blue-100 text-sm">
+              <p className="text-teal-100 text-sm">
                 {language === 'ar' ? 'الصلاة القادمة' : 'Next Prayer'}
               </p>
               <h2 className="text-3xl font-bold mt-1">
@@ -194,7 +192,7 @@ export default function PrayerTimes() {
               </h2>
               <p className="text-xl mt-1">{nextPrayer.time}</p>
               {nextPrayer.countdown && (
-                <p className="text-blue-200 mt-2 text-sm">
+                <p className="text-teal-100 mt-2 text-sm">
                   {language === 'ar' ? 'بعد' : 'in'} {nextPrayer.countdown}
                 </p>
               )}
@@ -211,10 +209,10 @@ export default function PrayerTimes() {
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
             {language === 'ar' ? 'تقدم اليوم:' : "Today's Progress:"}{' '}
-            <span className="font-bold text-emerald-600">{completedCount}/5</span>{' '}
+            <span className="font-bold text-emerald-500">{completedCount}/5</span>{' '}
             {language === 'ar' ? 'صلوات مكتملة' : 'prayers completed'}
           </p>
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+          <div className="w-full bg-secondary rounded-full h-2 mt-2">
             <div
               className="bg-emerald-500 h-2 rounded-full transition-all"
               style={{ width: `${(completedCount / 5) * 100}%` }}
@@ -227,13 +225,13 @@ export default function PrayerTimes() {
           {prayers.map((prayer) => (
             <Card
               key={prayer.name}
-              className={`border transition-all ${completed.has(prayer.name) ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
+              className={`border transition-all ${completed.has(prayer.name) ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700' : 'bg-card border-border'}`}
             >
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{prayer.icon}</span>
                   <div>
-                    <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700' : 'text-foreground'}`}>
+                    <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}>
                       {getPrayerDisplayName(prayer.name)}
                     </p>
                     <p className="text-sm text-muted-foreground">{prayer.time}</p>
@@ -243,7 +241,7 @@ export default function PrayerTimes() {
                   <Button
                     size="sm"
                     variant={completed.has(prayer.name) ? 'default' : 'outline'}
-                    className={completed.has(prayer.name) ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                    className={completed.has(prayer.name) ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'border-border text-foreground hover:bg-secondary'}
                     onClick={() => toggleCompleted(prayer.name)}
                   >
                     {completed.has(prayer.name)

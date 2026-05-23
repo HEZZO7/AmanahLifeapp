@@ -207,13 +207,11 @@ export default function ZakatCalculator() {
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">
-            💰 {isAr ? 'متتبع العطاء' : 'Giving Tracker'}
+      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-4 flex items-center h-14">
+          <h1 className="text-lg font-bold text-foreground text-start w-full">
+            💎 {isAr ? 'الزكاة ومتتبع العطاء' : 'Zakat & Giving Tracker'}
           </h1>
-          <div className="w-16" />
         </div>
       </header>
 
@@ -425,7 +423,7 @@ export default function ZakatCalculator() {
         {/* Info */}
         <div className="p-4 rounded-xl bg-secondary border border-border">
           <h3 className="font-semibold text-foreground text-sm mb-2">
-            ℹ️ {isAr ? 'عن حاسبة العطاء' : 'About Giving Tracker'}
+            ℹ️ {isAr ? 'عن الزكاة ومتتبع العطاء' : 'About Zakat & Giving Tracker'}
           </h3>
           <ul className="text-xs text-muted-foreground space-y-1">
             <li>• {isAr ? 'يُحسب العطاء بنسبة ٢.٥٪ من الثروة المحتفظ بها لسنة فوق النصاب' : 'Giving is calculated as 2.5% of wealth held for one year above Nisab'}</li>
