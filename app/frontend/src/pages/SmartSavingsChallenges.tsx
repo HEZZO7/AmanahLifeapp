@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
 import { useSavingsNotifications } from '@/hooks/useSavingsNotifications';
+import { useDailySavingsTip } from '@/hooks/useDailySavingsTip';
 
 interface Challenge {
   id: string;
@@ -24,6 +25,13 @@ interface JoinedChallenge {
 }
 
 const STORAGE_KEY = 'amanah-savings-challenges';
+
+function getDaysRemainingStatic(joinedAt: string, duration: number): number {
+  const start = new Date(joinedAt).getTime();
+  const end = start + duration * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  return Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)));
+}
 
 const CHALLENGES: Challenge[] = [
   {
@@ -97,6 +105,25 @@ export default function SmartSavingsChallenges() {
     disableNotifications,
     celebrateMilestone: notifyCelebrateMilestone,
   } = useSavingsNotifications(language);
+
+  const tipChallenges = useMemo(() => {
+    return joinedChallenges.map(j => {
+      const challenge = CHALLENGES.find(c => c.id === j.challengeId);
+      if (!challenge) return null;
+      const daysRemaining = getDaysRemainingStatic(j.joinedAt, challenge.duration);
+      const progress = Math.min(100, Math.round((j.savedAmount / challenge.targetAmount) * 100));
+      return {
+        id: challenge.id,
+        title: isAr ? challenge.titleAr : challenge.titleEn,
+        targetAmount: challenge.targetAmount,
+        savedAmount: j.savedAmount,
+        daysRemaining,
+        progress,
+      };
+    }).filter(Boolean) as { id: string; title: string; targetAmount: number; savedAmount: number; daysRemaining: number; progress: number }[];
+  }, [joinedChallenges, isAr]);
+
+  const { tip: dailyTip, isLoading: tipLoading, refreshTip } = useDailySavingsTip(tipChallenges, language);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -239,6 +266,45 @@ export default function SmartSavingsChallenges() {
                 <p className="text-xs text-muted-foreground">{isAr ? 'إجمالي المدخرات' : 'Total Saved'}</p>
               </div>
             </div>
+
+            {/* Daily Savings Tip */}
+            {joinedChallenges.length > 0 && (
+              <div className="bg-gradient-to-r from-[#c9a96e]/10 to-primary/10 border border-[#c9a96e]/30 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">💡</span>
+                    <h3 className="text-sm font-bold text-foreground">
+                      {isAr ? 'نصيحة الادخار اليومية' : 'Daily Savings Tip'}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={refreshTip}
+                    disabled={tipLoading}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-[#c9a96e] hover:bg-[#c9a96e]/10 transition-all disabled:opacity-50"
+                    title={isAr ? 'تحديث' : 'Refresh'}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={tipLoading ? 'animate-spin' : ''}>
+                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                      <path d="M16 16h5v5" />
+                    </svg>
+                  </button>
+                </div>
+                {tipLoading ? (
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted-foreground/20 rounded-full w-full animate-pulse" />
+                    <div className="h-3 bg-muted-foreground/20 rounded-full w-3/4 animate-pulse" />
+                  </div>
+                ) : dailyTip ? (
+                  <p className="text-sm text-muted-foreground leading-relaxed">{dailyTip}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {isAr ? 'جارٍ تحميل النصيحة...' : 'Loading tip...'}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Challenge Cards */}
             {CHALLENGES.map(challenge => {
