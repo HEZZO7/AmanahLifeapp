@@ -61,7 +61,7 @@ export default function DailyRoutine() {
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">{t('dailyRoutine')}</h1>
+        <h1 className="text-xl font-bold text-foreground">🌅 {t('dailyRoutine')}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
           {completedCount}/{routines.length} {t('completed')}
         </p>

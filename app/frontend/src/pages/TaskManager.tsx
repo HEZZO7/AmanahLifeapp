@@ -88,7 +88,7 @@ export default function TaskManager() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">{t('tasks')}</h1>
+        <h1 className="text-xl font-bold text-foreground">✅ {t('tasks')}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
           {completedCount}/{filteredTasks.length} {t('completed')}
         </p>

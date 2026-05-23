@@ -127,13 +127,7 @@ export default function Planner() {
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
           <h1 className="text-xl font-bold text-foreground">
-            <svg className="inline-block w-5 h-5 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" />
-              <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" strokeLinecap="round" />
-              <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" strokeLinecap="round" />
-              <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" />
-            </svg>
-            {' '}{t('planner')}
+            📋 {t('planner')}
           </h1>
           {hijriDate && <span className="text-xs text-[#D4A017]">{hijriDate}</span>}
         </div>

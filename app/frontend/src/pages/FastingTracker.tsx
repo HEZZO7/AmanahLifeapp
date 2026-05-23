@@ -77,7 +77,7 @@ export default function FastingTracker() {
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">{t('fasting')}</h1>
+        <h1 className="text-xl font-bold text-foreground">⏱️ {t('fasting')}</h1>
         <p className="text-muted-foreground text-sm mt-0.5">{fastedDays}/30 {t('days')} {t('completed')}</p>
       </header>
 
