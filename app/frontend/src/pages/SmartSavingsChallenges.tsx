@@ -4,6 +4,7 @@ import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
 import { useSavingsNotifications } from '@/hooks/useSavingsNotifications';
 import { useDailySavingsTip } from '@/hooks/useDailySavingsTip';
+import EmailDigestToggle from '@/components/EmailDigestToggle';
 
 interface Challenge {
   id: string;
@@ -204,32 +205,35 @@ export default function SmartSavingsChallenges() {
           <h1 className="text-xl font-bold text-foreground">
             🏆 {isAr ? 'تحديات الادخار' : 'Savings Challenges'}
           </h1>
-          <button
-            onClick={notificationsEnabled ? disableNotifications : enableNotifications}
-            className={`relative p-2 rounded-lg border transition-all ${
-              notificationsEnabled
-                ? 'border-[#c9a96e]/50 bg-[#c9a96e]/10 text-[#c9a96e]'
-                : 'border-border bg-background text-muted-foreground hover:border-[#c9a96e]/30'
-            }`}
-            title={
-              permissionStatus === 'denied'
-                ? (isAr ? 'الإشعارات محظورة في المتصفح' : 'Notifications blocked in browser')
-                : notificationsEnabled
-                  ? (isAr ? 'إيقاف التذكيرات' : 'Disable Reminders')
-                  : (isAr ? 'تفعيل التذكيرات' : 'Enable Reminders')
-            }
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-            </svg>
-            {notificationsEnabled && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
-            )}
-            {permissionStatus === 'denied' && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <EmailDigestToggle />
+            <button
+              onClick={notificationsEnabled ? disableNotifications : enableNotifications}
+              className={`relative p-2 rounded-lg border transition-all ${
+                notificationsEnabled
+                  ? 'border-[#c9a96e]/50 bg-[#c9a96e]/10 text-[#c9a96e]'
+                  : 'border-border bg-background text-muted-foreground hover:border-[#c9a96e]/30'
+              }`}
+              title={
+                permissionStatus === 'denied'
+                  ? (isAr ? 'الإشعارات محظورة في المتصفح' : 'Notifications blocked in browser')
+                  : notificationsEnabled
+                    ? (isAr ? 'إيقاف التذكيرات' : 'Disable Reminders')
+                    : (isAr ? 'تفعيل التذكيرات' : 'Enable Reminders')
+              }
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              {notificationsEnabled && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+              {permissionStatus === 'denied' && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 

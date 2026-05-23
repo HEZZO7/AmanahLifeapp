@@ -87,6 +87,7 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 12: Lint and build verification
 - [x] Phase 12: Daily reminder notifications for active savings challenges (browser Notification API, milestone celebrations)
 - [x] Phase 12: AI-powered daily savings tips (DeepSeek edge function, localStorage caching, bilingual AR/EN)
+- [x] Phase 12: Weekly email digest (SMTP edge function, email_digest table, subscribe/unsubscribe toggle, personalized HTML summary)
 
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
@@ -107,4 +108,5 @@ last_updated: 2026-05-19T05:19:47Z
 - 2026-05-23: Arabic blog fix — Fixed routing for Arabic articles (added ar/:slug route), generated 5 unique Arabic hero images, updated all Arabic articles with new images, changed dark mode primary/sidebar-primary to bright teal (175 60% 50%) for better visibility on dark backgrounds. Lint/build passing.
 - 2026-05-23: Multi-currency subscription pricing — Created src/lib/currency.ts with 24 exchange rates and formatting utilities. Updated Subscription page to display prices in user's selected currency (from Settings). Base prices in USD: Balanced $6.99/$4.99 mo/yr, Family $12.99/$9.99 mo/yr. Lint/build passing.
 - 2026-05-23: Live exchange rates via Atoms Cloud — Created exchange_rates table in Supabase, deployed edge function (app_11941c8fec_exchange_rates) that fetches live rates from open.er-api.com with 12hr server cache and fallback APIs. Updated frontend currency.ts with client-side 1hr cache and async fetchExchangeRates(). Subscription page now shows live rates with source indicator (green=live, yellow=fallback). Lint/build passing.
+- 2026-05-23: Weekly email digest implemented — Created email_digest table with RLS, deployed edge function (app_11941c8fec_weekly_digest) with subscribe/send_digests actions via SMTP/nodemailer, created EmailDigestToggle component, integrated into Savings Challenges header. Lint/build passing.
 
