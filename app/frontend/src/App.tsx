@@ -39,6 +39,10 @@ import ClassicSearch from './pages/ClassicSearch';
 import ProgressAnalytics from './pages/ProgressAnalytics';
 import FamilySharedDashboard from './pages/FamilySharedDashboard';
 import BillReminders from './pages/BillReminders';
+import AILifeCoach from './pages/AILifeCoach';
+import WeeklyLifeScore from './pages/WeeklyLifeScore';
+import SmartSavingsChallenges from './pages/SmartSavingsChallenges';
+import ReceiptScanner from './pages/ReceiptScanner';
 import BlogRoutes from './blog-routes';
 
 const queryClient = new QueryClient();
@@ -84,6 +88,10 @@ const AppRoutes = () => (
     <Route path="/progress-analytics" element={<ProgressAnalytics />} />
     <Route path="/family-dashboard" element={<FamilySharedDashboard />} />
     <Route path="/bill-reminders" element={<BillReminders />} />
+    <Route path="/ai-life-coach" element={<AILifeCoach />} />
+    <Route path="/weekly-life-score" element={<WeeklyLifeScore />} />
+    <Route path="/savings-challenges" element={<SmartSavingsChallenges />} />
+    <Route path="/receipt-scanner" element={<ReceiptScanner />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
   </Routes>
 );

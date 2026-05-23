@@ -189,6 +189,10 @@ export default function HomePage() {
     { icon: '🏅', title: language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics', description: language === 'ar' ? 'تتبع وتحليل' : 'Track & analyze', path: '/progress-analytics' },
     { icon: '👨‍👩‍👧', title: language === 'ar' ? 'لوحة العائلة' : 'Family Dashboard', description: language === 'ar' ? 'مشاركة عائلية' : 'Shared family', path: '/family-dashboard' },
     { icon: '🔔', title: language === 'ar' ? 'تذكير الفواتير' : 'Bill Reminders', description: language === 'ar' ? 'تتبع الفواتير' : 'Track bills', path: '/bill-reminders' },
+    { icon: '🤖', title: language === 'ar' ? 'المدرب الذكي' : 'AI Life Coach', description: language === 'ar' ? 'نصائح مخصصة' : 'Personalized coaching', path: '/ai-life-coach' },
+    { icon: '📊', title: language === 'ar' ? 'مؤشر الحياة' : 'Life Score', description: language === 'ar' ? 'تقييم أسبوعي' : 'Weekly assessment', path: '/weekly-life-score' },
+    { icon: '🏆', title: language === 'ar' ? 'تحديات الادخار' : 'Savings Challenges', description: language === 'ar' ? 'تحديات ممتعة' : 'Gamified saving', path: '/savings-challenges' },
+    { icon: '📸', title: language === 'ar' ? 'ماسح الإيصالات' : 'Receipt Scanner', description: language === 'ar' ? 'مسح وتصنيف' : 'Scan & categorize', path: '/receipt-scanner' },
     { icon: '📝', title: language === 'ar' ? 'المدونة' : 'Blog', description: language === 'ar' ? 'مقالات ونصائح' : 'Articles & tips', path: '/blog' },
   ];
 

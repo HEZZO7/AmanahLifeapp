@@ -79,6 +79,13 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 11: Update App.tsx routes and homepage nav for new features
 - [x] Phase 11: Lint and build verification
 
+- [x] Phase 12: AI Life Coach page (premium - personalized coaching, goal-based advice, habit suggestions, motivational insights)
+- [x] Phase 12: Weekly Life Score page (premium - scoring across spiritual/health/financial/social dimensions, trend chart, recommendations)
+- [x] Phase 12: Smart Savings Challenges page (premium - gamified savings goals, challenge cards, progress tracking, milestones)
+- [x] Phase 12: Receipt Scanner page (premium - camera/upload UI, parsed receipt display, expense categorization, add to finance)
+- [x] Phase 12: Update App.tsx routes and homepage nav for new features
+- [x] Phase 12: Lint and build verification
+
 ## Progress Log
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
 - 2026-05-19: Phase 1 complete — Prayer Times, Quran Reader, Dhikr Counter, Duas Collection all built with full functionality, homepage navigation updated, lint/build passing
@@ -93,6 +100,7 @@ last_updated: 2026-05-19T05:19:47Z
 - 2026-05-21: Phase 10 complete — Progress Analytics page with 5 visualization sections: category progress bar chart, goal status pie chart, weekly trends line chart, goal status indicator cards, activity summary cards. Full Arabic/English bilingual with RTL. Linked from homepage. Lint/build passing.
 - 2026-05-23: Phase 11 complete — Family Shared Dashboard (invite flow, shared budget, goals, prayer streaks, accountability score), Bill Reminders (add/track/mark paid, due-soon warnings, payment history), Dua of the Day homepage component (30 duas with Arabic+English+transliteration, daily rotation, notification permission). All routes and nav entries added. Lint/build passing.
 - 2026-05-23: Branding & Compliance update — Rebranded app from "Islamic Life Companion" to "Smart Life Companion", renamed "Zakat Calculator" to "Giving Tracker", replaced "Budget Tracking"/"Financial Tracker" with "Lifestyle Tracking", updated route /zakat→/giving-tracker, neutralized financial/religious risk terminology across all pages, updated subscription tiers (Free/Balanced Life $24.99/Family Plan $49.99). Lint/build passing.
+- 2026-05-23: Phase 12 complete — AI Life Coach (coaching chat UI, goal-based advice, habit suggestions, Islamic wisdom, 4 categories), Weekly Life Score (5-dimension scoring with visual bars, weekly trend, recommendations), Smart Savings Challenges (5 gamified challenges with join/leave, progress tracking, milestone celebrations), Receipt Scanner (upload UI, simulated OCR, categorization, add to finance). All routes and nav entries added. Lint/build passing.
 - 2026-05-23: Blog RTL Arabic localization complete — Created 5 Arabic SEO articles in seo/content/ar/, updated blog lib with getBlogPostsByLang(), updated BlogIndexPage/BlogPostPage/BlogArticleLayout/MarkdownArticle with RTL dir, Arabic fonts, bilingual UI strings. LanguageContext made SSR-safe. Build prerendering 12 pages (5 EN + 5 AR blog posts + index + home). Lint/build passing.
 - 2026-05-23: Arabic blog fix — Fixed routing for Arabic articles (added ar/:slug route), generated 5 unique Arabic hero images, updated all Arabic articles with new images, changed dark mode primary/sidebar-primary to bright teal (175 60% 50%) for better visibility on dark backgrounds. Lint/build passing.
 - 2026-05-23: Multi-currency subscription pricing — Created src/lib/currency.ts with 24 exchange rates and formatting utilities. Updated Subscription page to display prices in user's selected currency (from Settings). Base prices in USD: Balanced $6.99/$4.99 mo/yr, Family $12.99/$9.99 mo/yr. Lint/build passing.
