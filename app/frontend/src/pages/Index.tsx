@@ -9,6 +9,7 @@ import AppLogo from '@/components/AppLogo';
 import PromoBanner from '@/components/PromoBanner';
 import SmartBriefing from '@/components/SmartBriefing';
 import Streaks from '@/components/Streaks';
+import DuaOfTheDay from '@/components/DuaOfTheDay';
 
 interface HijriInfo {
   day: string;
@@ -186,6 +187,8 @@ export default function HomePage() {
     { icon: '📈', title: language === 'ar' ? 'استثمار حلال' : 'Halal Invest', description: language === 'ar' ? 'التمويل الإسلامي' : 'Islamic finance', path: '/halal-investment' },
     { icon: '🌙', title: language === 'ar' ? 'مخطط رمضان' : 'Ramadan Plan', description: language === 'ar' ? 'رمضان والعيد' : 'Ramadan & Eid', path: '/ramadan-planner' },
     { icon: '🏅', title: language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics', description: language === 'ar' ? 'تتبع وتحليل' : 'Track & analyze', path: '/progress-analytics' },
+    { icon: '👨‍👩‍👧', title: language === 'ar' ? 'لوحة العائلة' : 'Family Dashboard', description: language === 'ar' ? 'مشاركة عائلية' : 'Shared family', path: '/family-dashboard' },
+    { icon: '🔔', title: language === 'ar' ? 'تذكير الفواتير' : 'Bill Reminders', description: language === 'ar' ? 'تتبع الفواتير' : 'Track bills', path: '/bill-reminders' },
     { icon: '📝', title: language === 'ar' ? 'المدونة' : 'Blog', description: language === 'ar' ? 'مقالات ونصائح' : 'Articles & tips', path: '/blog' },
   ];
 
@@ -297,6 +300,9 @@ export default function HomePage() {
 
         {/* Smart Briefing */}
         <SmartBriefing />
+
+        {/* Dua of the Day */}
+        <DuaOfTheDay />
 
         {/* Streaks & Achievements */}
         <Streaks />
