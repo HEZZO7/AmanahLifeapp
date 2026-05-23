@@ -38,7 +38,7 @@ const ISLAMIC_EVENTS: IslamicEvent[] = [
   // Shawwal 1447
   { name: 'Eid al-Fitr', nameAr: 'عيد الفطر', hijriMonth: 10, hijriDay: 1, description: 'Festival of Breaking the Fast', descriptionAr: 'عيد الفطر المبارك', icon: '🎉', gregorianApprox: 'Mar 30, 2026', gregorianApproxAr: '٣٠ مارس ٢٠٢٦' },
   { name: 'Six Days of Shawwal', nameAr: 'ست من شوال', hijriMonth: 10, hijriDay: 2, description: 'Recommended fasting of 6 days', descriptionAr: 'صيام ستة أيام من شوال', icon: '🌿', gregorianApprox: 'Mar 31, 2026', gregorianApproxAr: '٣١ مارس ٢٠٢٦' },
-  // Dhul Qi'dah 1447 (CURRENT MONTH ~Apr 27 - May 26, 2026)
+  // Dhul Qi'dah 1447
   { name: 'Sacred Month Begins', nameAr: 'بداية الشهر الحرام', hijriMonth: 11, hijriDay: 1, description: 'Dhul Qi\'dah - one of the four sacred months', descriptionAr: 'ذو القعدة - أحد الأشهر الحرم', icon: '🕊️', gregorianApprox: 'Apr 27, 2026', gregorianApproxAr: '٢٧ أبريل ٢٠٢٦' },
   { name: 'Hajj Preparation', nameAr: 'التهيؤ للحج', hijriMonth: 11, hijriDay: 25, description: 'Pilgrims begin preparing for Hajj journey', descriptionAr: 'يبدأ الحجاج بالتهيؤ لرحلة الحج', icon: '🧳', gregorianApprox: 'May 21, 2026', gregorianApproxAr: '٢١ مايو ٢٠٢٦' },
   // Dhul Hijjah 1447 (~May 27 - Jun 25, 2026)
@@ -65,20 +65,47 @@ const HIJRI_MONTHS_AR = [
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
 ];
 
-// Current Hijri approximation: May 23, 2026 ≈ 27 Dhul Qi'dah 1447
-const CURRENT_HIJRI_MONTH = 11; // Dhul Qi'dah
-const CURRENT_HIJRI_DAY = 27;
-const CURRENT_HIJRI_YEAR = 1447;
+/**
+ * Dynamically approximate the Hijri date based on known anchor points.
+ * This is used ONLY as a fallback when the API call fails.
+ * Anchor: 1 Muharram 1447 AH ≈ July 7, 2025 (Gregorian)
+ * Average Hijri month length: ~29.5306 days
+ */
+function approximateHijriDate(): { day: number; month: number; year: number } {
+  const anchorGregorian = new Date(2025, 6, 7); // July 7, 2025 = 1 Muharram 1447
+  const today = new Date();
+  const diffMs = today.getTime() - anchorGregorian.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const hijriDayLength = 29.5306;
+  const totalHijriDays = Math.floor(diffDays * (354.36667 / 365.25)); // scale Gregorian to Hijri
+  const hijriMonthsSinceAnchor = Math.floor(totalHijriDays / hijriDayLength);
+  const hijriDayInMonth = Math.floor(totalHijriDays - hijriMonthsSinceAnchor * hijriDayLength) + 1;
+
+  const totalMonths = hijriMonthsSinceAnchor; // months since 1 Muharram 1447
+  const yearOffset = Math.floor(totalMonths / 12);
+  const monthIndex = totalMonths % 12; // 0-based
+
+  return {
+    day: Math.min(Math.max(hijriDayInMonth, 1), 30),
+    month: monthIndex + 1, // 1-based
+    year: 1447 + yearOffset,
+  };
+}
 
 export default function IslamicCalendar() {
   const { user, loading: authLoading } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const navigate = useNavigate();
-  const [selectedMonth, setSelectedMonth] = useState<number>(CURRENT_HIJRI_MONTH);
-  const [hijriDay, setHijriDay] = useState<number>(CURRENT_HIJRI_DAY);
-  const [hijriMonth, setHijriMonth] = useState<number>(CURRENT_HIJRI_MONTH);
-  const [hijriYear, setHijriYear] = useState<number>(CURRENT_HIJRI_YEAR);
+
+  // Use dynamic fallback instead of hardcoded values
+  const fallback = approximateHijriDate();
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(fallback.month);
+  const [hijriDay, setHijriDay] = useState<number>(fallback.day);
+  const [hijriMonth, setHijriMonth] = useState<number>(fallback.month);
+  const [hijriYear, setHijriYear] = useState<number>(fallback.year);
   const [loading, setLoading] = useState(true);
 
   const hijriMonths = isAr ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
@@ -90,18 +117,25 @@ export default function IslamicCalendar() {
   useEffect(() => {
     const fetchHijriDate = async () => {
       try {
-        const today = new Date();
-        const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-        const res = await fetch(`https://api.aladhan.com/v1/gpiToH/${dateStr}`);
+        // Use Makkah city timings endpoint which returns the Hijri date based on Makkah timezone
+        const res = await fetch(
+          'https://api.aladhan.com/v1/timingsByCity?city=Makkah&country=Saudi+Arabia&method=4'
+        );
         const data = await res.json();
-        if (data?.data?.hijri) {
-          setHijriDay(parseInt(data.data.hijri.day));
-          setHijriMonth(data.data.hijri.month.number);
-          setHijriYear(parseInt(data.data.hijri.year));
-          setSelectedMonth(data.data.hijri.month.number);
+
+        if (data?.data?.date?.hijri) {
+          const hijri = data.data.date.hijri;
+          const day = parseInt(hijri.day, 10);
+          const month = hijri.month.number;
+          const year = parseInt(hijri.year, 10);
+
+          setHijriDay(day);
+          setHijriMonth(month);
+          setHijriYear(year);
+          setSelectedMonth(month);
         }
       } catch {
-        // Use fallback values already set
+        // Fallback values already set from approximateHijriDate()
       } finally {
         setLoading(false);
       }
@@ -111,7 +145,7 @@ export default function IslamicCalendar() {
 
   // Get upcoming events from current date forward (next ~3 months)
   const getUpcomingEvents = () => {
-    const upcoming: (IslamicEvent & { sortKey: number; isNextYear?: boolean })[] = [];
+    const upcoming: (IslamicEvent & { sortKey: number })[] = [];
 
     for (const event of ISLAMIC_EVENTS) {
       let sortKey = 0;
