@@ -115,7 +115,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    fetchSubscription();
+    try {
+      fetchSubscription();
+    } catch {
+      // Silently handle - defaults are already set
+      setLoading(false);
+    }
   }, [fetchSubscription]);
 
   // Effective tier: if trial is active and DB tier is free, treat as balanced
@@ -138,10 +143,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultSubscription: SubscriptionContextType = {
+  tier: 'free',
+  status: 'active',
+  billingCycle: 'monthly',
+  paymentProvider: 'stripe',
+  loading: false,
+  isTrialActive: false,
+  trialDaysRemaining: 0,
+  startTrial: () => {},
+  refetch: async () => {},
+};
+
 export function useSubscription() {
   const context = useContext(SubscriptionContext);
   if (context === undefined) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
+    // Return safe defaults instead of throwing - prevents blank page crashes
+    return defaultSubscription;
   }
   return context;
 }

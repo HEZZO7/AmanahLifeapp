@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { LanguageProvider, hasLanguagePreference } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import Onboarding from '@/components/Onboarding';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -97,23 +98,25 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <SubscriptionProvider>
-                <Onboarding />
-                <AppRoutes />
-              </SubscriptionProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <SubscriptionProvider>
+                  <Onboarding />
+                  <AppRoutes />
+                </SubscriptionProvider>
+              </AuthProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

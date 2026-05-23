@@ -200,6 +200,19 @@ export default function HomePage() {
     !searchQuery || item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const getPrayerNameTranslation = (name: string): string => {
+    if (language !== 'ar') return name;
+    const prayerNames: Record<string, string> = {
+      'Fajr': 'الفجر',
+      'Dhuhr': 'الظهر',
+      'Asr': 'العصر',
+      'Maghrib': 'المغرب',
+      'Isha': 'العشاء',
+      'Fajr (tomorrow)': 'الفجر (غداً)',
+    };
+    return prayerNames[name] || name;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -376,7 +389,7 @@ export default function HomePage() {
               onClick={() => navigate('/prayer-times')}
             >
               <p className="text-teal-100 text-xs">{t('nextPrayer')}</p>
-              <p className="text-xl font-bold text-white mt-0.5">{nextPrayer.name}</p>
+              <p className="text-xl font-bold text-white mt-0.5">{getPrayerNameTranslation(nextPrayer.name)}</p>
               <p className="text-teal-200 text-sm">{nextPrayer.time}</p>
             </div>
           )}

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface AppSettings {
   currency: string;
@@ -41,22 +42,33 @@ const COUNTRIES = [
   { code: 'NZ', nameAr: 'نيوزيلندا', nameEn: 'New Zealand', currency: 'NZD', symbol: 'NZ$', flag: '🇳🇿' },
 ];
 
+const DEFAULT_SETTINGS: AppSettings = {
+  currency: 'QAR',
+  country: 'QA',
+  showHijri: true,
+  showIslamicEvents: true,
+  ramadanMode: false,
+  easternNumerals: false,
+};
+
+function getSafeSettings(): AppSettings {
+  try {
+    const stored = localStorage.getItem('amanah-settings');
+    if (stored) {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+    }
+  } catch {
+    // Corrupted localStorage - reset
+  }
+  return DEFAULT_SETTINGS;
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    const stored = localStorage.getItem('amanah-settings');
-    return stored ? JSON.parse(stored) : {
-      currency: 'QAR',
-      country: 'QA',
-      showHijri: true,
-      showIslamicEvents: true,
-      ramadanMode: false,
-      easternNumerals: false,
-    };
-  });
+  const [settings, setSettings] = useState<AppSettings>(getSafeSettings);
 
   useEffect(() => {
     localStorage.setItem('amanah-settings', JSON.stringify(settings));
