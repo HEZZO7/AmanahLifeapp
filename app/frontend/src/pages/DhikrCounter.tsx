@@ -77,7 +77,7 @@ export default function DhikrCounter() {
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
           <h1 className="text-lg font-bold text-foreground">
-            📿 {language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'}
+            🔢 {language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'}
           </h1>
           <div className="w-16" />
         </div>
