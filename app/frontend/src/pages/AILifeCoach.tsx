@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
 
 interface Goal {
