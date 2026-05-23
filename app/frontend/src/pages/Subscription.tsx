@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
-import { formatPrice, getUserCurrency, fetchExchangeRates } from '@/lib/currency';
+import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
 import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
 
@@ -90,7 +90,19 @@ export default function Subscription() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
-  const [userCurrency] = useState<string>(() => getUserCurrency());
+  const [userCurrency, setUserCurrency] = useState<string>(() => getUserCurrency());
+
+  const handleCurrencyChange = (newCurrency: string) => {
+    setUserCurrency(newCurrency);
+    try {
+      const stored = localStorage.getItem('amanah-settings');
+      const settings = stored ? JSON.parse(stored) : {};
+      settings.currency = newCurrency;
+      localStorage.setItem('amanah-settings', JSON.stringify(settings));
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   // Live exchange rates
   const [liveRates, setLiveRates] = useState<Record<string, number> | null>(null);
@@ -480,11 +492,24 @@ export default function Subscription() {
             })}
           </div>
 
-          {/* Currency Note with live rates indicator */}
-          <div className="text-center mt-3 space-y-0.5">
-            <p className="text-xs text-muted-foreground">
-              {isAr ? `الأسعار معروضة بـ ${userCurrency}` : `Prices shown in ${userCurrency}`}
-            </p>
+          {/* Currency Selector with live rates indicator */}
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <label className="text-xs text-muted-foreground font-medium">
+                {isAr ? 'العملة:' : 'Currency:'}
+              </label>
+              <select
+                value={userCurrency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="rounded-lg border border-border bg-card text-sm px-3 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e] transition-all"
+              >
+                {Object.entries(CURRENCY_SYMBOLS).map(([code, symbol]) => (
+                  <option key={code} value={code}>
+                    {code} ({symbol})
+                  </option>
+                ))}
+              </select>
+            </div>
             {ratesMeta && (
               <p className="text-[10px] text-muted-foreground/70 flex items-center justify-center gap-1">
                 <span className={`inline-block w-1.5 h-1.5 rounded-full ${ratesMeta.source === 'fallback' ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
