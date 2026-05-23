@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
+import PageHeader from '@/components/PageHeader';
 
 interface SearchResult {
   type: string;

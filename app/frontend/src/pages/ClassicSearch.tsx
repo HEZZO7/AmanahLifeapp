@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface SearchItem {
   title: string;
