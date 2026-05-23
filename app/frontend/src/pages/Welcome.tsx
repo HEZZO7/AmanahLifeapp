@@ -21,7 +21,7 @@ export default function Welcome() {
       <div className="mb-8 flex flex-col items-center">
         <AppLogo className="w-28 h-28 mb-4 mx-auto" />
         <h1 className="text-3xl font-bold text-white mb-1">AmanahLife</h1>
-        <p className="text-gray-400 text-sm">رفيقك الإسلامي | Your Islamic Companion</p>
+        <p className="text-gray-400 text-sm">رفيقك الذكي | Your Smart Companion</p>
       </div>
 
       {/* Language Selection */}

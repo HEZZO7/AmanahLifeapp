@@ -226,7 +226,7 @@ export default function RamadanPlanner() {
             {Object.entries(data.budget).map(([key, value]) => {
               const labels: Record<string, { en: string; ar: string; icon: string }> = {
                 food: { en: 'Food & Groceries', ar: 'الطعام والمشتريات', icon: '🍽️' },
-                charity: { en: 'Charity & Zakat', ar: 'الصدقة والزكاة', icon: '🤲' },
+                charity: { en: 'Charity & Giving', ar: 'الصدقة والعطاء', icon: '🤲' },
                 gifts: { en: 'Gifts', ar: 'الهدايا', icon: '🎁' },
                 decorations: { en: 'Decorations', ar: 'الزينة', icon: '🏮' },
               };

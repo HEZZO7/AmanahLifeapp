@@ -61,7 +61,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <AppLogo className="w-20 h-20 mb-4 mx-auto" />
           <h1 className="text-3xl font-bold text-foreground">AmanahLife</h1>
-          <p className="text-muted-foreground mt-1">Your Islamic Life Companion</p>
+          <p className="text-muted-foreground mt-1">Your Smart Life Companion</p>
         </div>
 
         <Card className="border-0 shadow-xl">
@@ -114,7 +114,7 @@ export default function Login() {
               <form onSubmit={handleSignUp}>
                 <CardContent className="space-y-4">
                   <CardDescription className="text-center">
-                    Create an account to start your Islamic life journey.
+                    Create an account to start your smart life journey.
                   </CardDescription>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>

@@ -1,0 +1,133 @@
+ATOMS DEV PROMPT — AMANAHLIFE BRAND + PRICING + COMPLIANCE FIX
+
+Please apply the following updates across the entire application (UI, onboarding, pricing, marketing screens, and branding system) to ensure clean SaaS positioning, payment provider compliance, and consistent branding.
+
+1. BRANDING UPDATE (GLOBAL CHANGE)
+❌ Replace all occurrences of:
+“Your Islamic Life Companion”
+✅ With:
+
+“Your Smart Life Companion”
+
+Requirement:
+Update across:
+onboarding screens
+landing page
+dashboard headers
+marketing copy
+app UI labels
+2. PRICING STRUCTURE REVIEW (SAAS COMPLIANCE FIX)
+
+Current structure is generally good, but must be adjusted for payment approval safety.
+
+⚠️ 2.1 ZAKAT CALCULATOR (HIGH RISK COMPONENT)
+Problem:
+“Zakat Calculator” may be classified as:
+financial compliance tool
+religious financial advisory feature
+Risk level:
+
+🔴 Medium–High
+
+Required fix:
+
+Replace or remove from Free plan:
+
+Preferred replacements:
+
+“Charity Tracker”
+“Giving Tracker”
+
+OR remove entirely from MVP scope if needed.
+
+⚠️ 2.2 BUDGET TRACKING FEATURE
+Problem:
+
+May trigger fintech classification if positioned as money management.
+
+Risk level:
+
+🟡 Medium
+
+Required fix:
+
+Rename everywhere to:
+
+“Lifestyle Tracking”
+“Spending Awareness”
+“Personal Progress Insights”
+DO NOT position as:
+budgeting tool
+financial management
+money tracking system
+⚠️ 2.3 PRAYER / QURAN / DHIKR FEATURES
+Status:
+Safe to keep
+No payment issue alone
+Requirement:
+
+Ensure these are positioned as:
+
+wellness tools
+lifestyle support features
+productivity companions
+
+NOT financial or transactional features.
+
+3. SUBSCRIPTION TIERS (APPROVED STRUCTURE)
+
+Keep structure but refine naming consistency:
+
+🌱 Free Plan
+Prayer Times
+Quran Reader
+Dhikr Counter
+Basic Planner
+⭐ Balanced Life — $24.99/month
+Advanced Reminders
+Lifestyle Tracking (NOT budget)
+AI Insights
+Smart Planning
+Daily Reviews
+👑 Family Plan — $49.99/month
+All Balanced features
+Family Sharing
+Shared Dashboard
+Document Vault
+4. REMOVE HIGH-RISK FINANCIAL TERMINOLOGY
+❌ Remove or avoid:
+Budget Tracking
+Zakat Calculator
+Financial framing of features
+Any “financial advisory” implication
+5. BRAND POSITIONING STANDARD
+
+AmanahLife must be positioned as:
+
+A subscription-based productivity and lifestyle SaaS platform for daily planning, habits, and personal organization.
+
+NOT:
+
+financial platform
+religious financial tool
+marketplace
+ecosystem payment system
+6. KEY APPROVAL INSIGHT
+
+Payment processors typically reject apps due to:
+
+financial compliance features (Zakat = sensitive)
+fintech positioning
+unclear ecosystem structure
+
+NOT due to:
+
+productivity tools
+wellness features
+content-based apps
+FINAL GOAL
+Ensure consistent “Smart Life Companion” branding
+Maintain clean SaaS subscription model
+Remove financial/religious risk triggers
+Improve approval probability with payment providers
+Keep UI simple, neutral, and globally scalable

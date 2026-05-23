@@ -211,7 +211,7 @@ export default function ZakatCalculator() {
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="w-16" />
           <h1 className="text-lg font-bold text-foreground">
-            💰 {isAr ? 'حاسبة الزكاة' : 'Zakat Calculator'}
+            💰 {isAr ? 'متتبع العطاء' : 'Giving Tracker'}
           </h1>
           <div className="w-16" />
         </div>
@@ -370,7 +370,7 @@ export default function ZakatCalculator() {
           className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold"
           onClick={() => setCalculated(true)}
         >
-          {isAr ? 'احسب الزكاة' : 'Calculate Zakat'}
+          {isAr ? 'احسب المبلغ' : 'Calculate Giving'}
         </Button>
 
         {/* Results */}
@@ -378,7 +378,7 @@ export default function ZakatCalculator() {
           <Card className="border-0 shadow-xl overflow-hidden">
             <div className={`p-6 text-center ${isEligible ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'} text-white`}>
               <p className="text-sm opacity-80">
-                {isAr ? 'زكاتك المستحقة' : 'Your Zakat Due'}
+                {isAr ? 'المبلغ المستحق' : 'Your Giving Amount'}
               </p>
               <p className="text-4xl font-bold mt-2">
                 {isEligible ? formatAmount(zakatDisplay) : '0.00'}
@@ -386,8 +386,8 @@ export default function ZakatCalculator() {
               <p className="text-sm opacity-70 mt-1">{currency}</p>
               <p className="text-xs opacity-70 mt-2">
                 {isEligible
-                  ? (isAr ? '٢.٥٪ من صافي ثروتك الزكوية' : '2.5% of your net zakatable wealth')
-                  : (isAr ? 'أقل من حد النصاب - لا زكاة مستحقة' : 'Below Nisab threshold - no Zakat due')
+                  ? (isAr ? '٢.٥٪ من صافي ثروتك المؤهلة' : '2.5% of your net eligible wealth')
+                  : (isAr ? 'أقل من حد النصاب - لا مبلغ مستحق' : 'Below Nisab threshold - no giving due')
                 }
               </p>
             </div>
@@ -406,7 +406,7 @@ export default function ZakatCalculator() {
               </div>
               <div className="border-t border-border pt-2 flex justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {isAr ? 'صافي الثروة الزكوية' : 'Net Zakatable Wealth'}
+                  {isAr ? 'صافي الثروة المؤهلة' : 'Net Eligible Wealth'}
                 </span>
                 <span className="font-bold text-foreground">{formatAmount(netWorthDisplay)}</span>
               </div>
@@ -425,11 +425,11 @@ export default function ZakatCalculator() {
         {/* Info */}
         <div className="p-4 rounded-xl bg-secondary border border-border">
           <h3 className="font-semibold text-foreground text-sm mb-2">
-            ℹ️ {isAr ? 'عن الزكاة' : 'About Zakat'}
+            ℹ️ {isAr ? 'عن حاسبة العطاء' : 'About Giving Tracker'}
           </h3>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• {isAr ? 'الزكاة هي ٢.٥٪ من الثروة المحتفظ بها لسنة قمرية فوق النصاب' : 'Zakat is 2.5% of wealth held for one lunar year above Nisab'}</li>
-            <li>• {isAr ? 'النصاب هو الحد الأدنى الذي يوجب الزكاة' : 'Nisab is the minimum amount that makes one liable for Zakat'}</li>
+            <li>• {isAr ? 'يُحسب العطاء بنسبة ٢.٥٪ من الثروة المحتفظ بها لسنة فوق النصاب' : 'Giving is calculated as 2.5% of wealth held for one year above Nisab'}</li>
+            <li>• {isAr ? 'النصاب هو الحد الأدنى الذي يوجب العطاء' : 'Nisab is the minimum threshold that triggers a giving obligation'}</li>
             <li>• {isAr ? 'أسعار الذهب تقريبية — راجع أسعار السوق الحالية' : 'Gold prices are approximate — consult current market rates'}</li>
             <li>• {isAr ? 'أسعار الصرف مباشرة وقد تختلف قليلاً' : 'Exchange rates are fetched live and may vary slightly'}</li>
             <li>• {isAr ? 'استشر عالماً للأحكام الخاصة بحالتك' : 'Consult a scholar for specific rulings on your situation'}</li>

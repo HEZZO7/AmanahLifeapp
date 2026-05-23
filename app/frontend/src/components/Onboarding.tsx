@@ -9,14 +9,14 @@ const steps = [
     titleAr: 'مرحباً بك في أمانة',
     titleEn: 'Welcome to AmanahLife',
     descAr: 'رفيقك الشامل للحياة الإسلامية المتوازنة. نساعدك على تنظيم عبادتك، أموالك، وأهدافك في مكان واحد.',
-    descEn: 'Your comprehensive companion for a balanced Islamic life. We help you organize your worship, finances, and goals in one place.',
+    descEn: 'Your comprehensive companion for a balanced, purposeful life. We help you organize your wellness, lifestyle, and goals in one place.',
   },
   {
     icon: '⭐',
     titleAr: 'المميزات الأساسية',
     titleEn: 'Key Features',
     descAr: 'أوقات الصلاة • قارئ القرآن • عداد الأذكار • حاسبة الزكاة • متتبع الصيام • إدارة المهام • التخطيط المالي',
-    descEn: 'Prayer Times • Quran Reader • Dhikr Counter • Zakat Calculator • Fasting Tracker • Task Manager • Financial Planning',
+    descEn: 'Prayer Times • Quran Reader • Dhikr Counter • Giving Tracker • Fasting Tracker • Task Manager • Lifestyle Planning',
   },
   {
     icon: '💎',
@@ -30,7 +30,7 @@ const steps = [
     titleAr: 'هيا نبدأ!',
     titleEn: "Let's Get Started!",
     descAr: 'ابدأ رحلتك نحو حياة إسلامية منظمة ومتوازنة. بارك الله فيك!',
-    descEn: 'Begin your journey towards an organized and balanced Islamic life. May Allah bless you!',
+    descEn: 'Begin your journey towards an organized and balanced life. We are here to support you every step of the way!',
   },
 ];
 

@@ -62,7 +62,7 @@ const AppRoutes = () => (
     <Route path="/dhikr" element={<DhikrCounter />} />
     <Route path="/duas" element={<DuasCollection />} />
     <Route path="/qibla" element={<QiblaFinder />} />
-    <Route path="/zakat" element={<ZakatCalculator />} />
+    <Route path="/giving-tracker" element={<ZakatCalculator />} />
     <Route path="/calendar" element={<IslamicCalendar />} />
     <Route path="/daily-routine" element={<DailyRoutine />} />
     <Route path="/fasting" element={<FastingTracker />} />

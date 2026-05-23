@@ -22,7 +22,7 @@ const BlogIndexPage = () => (
           </h1>
         </div>
         <p className="text-muted-foreground text-lg">
-          Articles and tips to enhance your Islamic lifestyle
+          Articles and tips to enhance your balanced lifestyle
         </p>
       </div>
     </div>
