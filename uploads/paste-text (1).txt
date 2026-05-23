@@ -1,0 +1,65 @@
+🚀 ATOMS DEV PROMPT — PAYMENT GATEWAY ARCHITECTURE REFACTOR (LEMON SQUEEZY PRIMARY)
+
+Please update the payment gateway architecture and checkout UI for AmanahLife to ensure clean SaaS compliance, high approval probability with Lemon Squeezy, and scalable production-ready billing infrastructure.
+
+1. MULTI-PAYMENT SYSTEM (BACKEND ONLY — UI MUST NOT SHOW IT)
+
+✅ Required architecture:
+The system may support multiple payment providers internally:
+
+- Stripe (backend-ready only)
+- Paddle (backend-ready only)
+- Lemon Squeezy (PRIMARY ACTIVE PROVIDER)
+
+❌ IMPORTANT UI RULE:
+Users must NOT see:
+
+- payment gateway selection
+- Stripe / Paddle / Lemon Squeezy logos
+- payment method provider choices
+
+Remove all payment gateway options from frontend UI completely.
+
+✅ Required frontend behavior:
+Users should only see:
+
+- “Upgrade”
+- “Subscribe”
+- “Start Free Trial”
+
+The system should automatically process subscriptions internally through Lemon Squeezy only.
+
+2. PRIMARY CHECKOUT PROVIDER
+
+- Lemon Squeezy must be the active live billing provider
+- All subscriptions and upgrades must redirect directly to Lemon Squeezy checkout
+- Ensure proper handling of:
+  - subscription creation
+  - renewals
+  - cancellations
+  - webhook synchronization
+  - billing status updates
+
+3. CHECKOUT UX REQUIREMENTS
+
+- Single clean “Upgrade” button per plan
+- No payment provider selection screens
+- No payment gateway branding in UI
+- Fully responsive mobile checkout experience
+- Smooth redirect and return flow after successful payment
+
+4. INTERNAL FLEXIBILITY (FUTURE-PROOFING)
+
+Even though Lemon Squeezy is the only visible payment system:
+
+- Keep Stripe and Paddle integrations modular in backend architecture
+- Ensure they can be activated later without requiring frontend redesign
+- Maintain abstraction layer for future provider switching if needed
+
+FINAL GOAL
+
+- Clean SaaS subscription experience
+- Lemon Squeezy as the only visible payment flow
+- Hidden scalable multi-gateway backend architecture
+- Professional App Store-level checkout UX
+- Reduced compliance and approval friction

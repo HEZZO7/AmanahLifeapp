@@ -4,40 +4,8 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 
-type PaymentProvider = 'stripe' | 'lemonsqueezy' | 'paddle';
-
-const CHECKOUT_ENDPOINTS: Record<PaymentProvider, string> = {
-  stripe: 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_stripe_checkout',
-  lemonsqueezy: 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout',
-  paddle: 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_paddle_checkout',
-};
-
-const PAYMENT_PROVIDERS: { id: PaymentProvider; icon: string; nameAr: string; nameEn: string; descAr: string; descEn: string }[] = [
-  {
-    id: 'stripe',
-    icon: '💳',
-    nameAr: 'سترايب',
-    nameEn: 'Stripe',
-    descAr: 'بطاقات الائتمان والخصم',
-    descEn: 'Credit & debit cards',
-  },
-  {
-    id: 'lemonsqueezy',
-    icon: '🍋',
-    nameAr: 'ليمون سكويزي',
-    nameEn: 'Lemon Squeezy',
-    descAr: 'دفع عالمي مع ضريبة مدمجة',
-    descEn: 'Global payments with built-in tax',
-  },
-  {
-    id: 'paddle',
-    icon: '🏓',
-    nameAr: 'بادل',
-    nameEn: 'Paddle',
-    descAr: 'دفع آمن مع فواتير تلقائية',
-    descEn: 'Secure payments with auto-invoicing',
-  },
-];
+// Primary payment provider — Lemon Squeezy (only visible flow)
+const CHECKOUT_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout';
 
 const PLANS = [
   {
@@ -114,10 +82,9 @@ const TESTIMONIALS = [
 export default function Subscription() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
-  const { tier: currentTier, billingCycle, paymentProvider: currentProvider, loading: subLoading, isTrialActive, trialDaysRemaining, startTrial, refetch } = useSubscription();
+  const { tier: currentTier, billingCycle, loading: subLoading, isTrialActive, trialDaysRemaining, startTrial, refetch } = useSubscription();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
-  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>(currentProvider);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
@@ -146,11 +113,6 @@ export default function Subscription() {
     setBilling(billingCycle);
   }, [billingCycle]);
 
-  // Update selected provider when subscription data loads
-  useEffect(() => {
-    setSelectedProvider(currentProvider);
-  }, [currentProvider]);
-
   const handleUpgrade = async (tier: 'balanced' | 'family') => {
     setCheckoutLoading(tier);
     try {
@@ -164,9 +126,7 @@ export default function Subscription() {
         return;
       }
 
-      const endpoint = CHECKOUT_ENDPOINTS[selectedProvider];
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(CHECKOUT_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,7 +173,7 @@ export default function Subscription() {
       }
 
       const response = await fetch(
-        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_stripe_portal',
+        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout',
         {
           method: 'POST',
           headers: {
@@ -221,6 +181,7 @@ export default function Subscription() {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
+            action: 'manage',
             returnUrl: window.location.href,
           }),
         }
@@ -351,78 +312,31 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Payment Method Selection */}
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <h3 className="text-sm text-muted-foreground mb-3">
-            {isAr ? 'طريقة الدفع' : 'Payment Method'}
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_PROVIDERS.map((provider) => {
-              const isSelected = selectedProvider === provider.id;
-              return (
-                <button
-                  key={provider.id}
-                  onClick={() => setSelectedProvider(provider.id)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
-                    isSelected
-                      ? 'border-[#c9a96e] bg-[#c9a96e]/10'
-                      : 'border-[#1a4a3a] hover:border-[#2a5a4a]'
-                  }`}
-                >
-                  <span className="text-2xl">{provider.icon}</span>
-                  <span className="text-xs font-semibold text-foreground">
-                    {isAr ? provider.nameAr : provider.nameEn}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground text-center leading-tight">
-                    {isAr ? provider.descAr : provider.descEn}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Manage Subscription */}
         {currentTier !== 'free' && !isTrialActive && (
           <div className="bg-card rounded-2xl p-4 border border-border">
             <h3 className="text-sm text-muted-foreground mb-2">
               {isAr ? 'إدارة الاشتراك' : 'Manage Subscription'}
             </h3>
-            {currentProvider === 'stripe' ? (
-              <>
-                <p className="text-xs text-muted-foreground mb-4">
-                  {isAr
-                    ? 'إدارة طريقة الدفع، عرض الفواتير، أو إلغاء الاشتراك'
-                    : 'Manage payment method, view invoices, or cancel subscription'}
-                </p>
-                <button
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#c9a96e] text-[#c9a96e] hover:bg-[#c9a96e]/10 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  <span>
-                    {portalLoading
-                      ? (isAr ? 'جاري التحميل...' : 'Loading...')
-                      : (isAr ? 'إدارة الاشتراك' : 'Manage Subscription')}
-                  </span>
-                </button>
-              </>
-            ) : (
-              <div className="rounded-xl bg-[#1a4a3a]/50 p-3 border border-[#2a5a4a]">
-                <p className="text-xs text-muted-foreground">
-                  {currentProvider === 'lemonsqueezy'
-                    ? (isAr
-                      ? 'لإدارة اشتراكك، يرجى زيارة لوحة تحكم ليمون سكويزي من خلال رابط الإدارة المرسل إلى بريدك الإلكتروني.'
-                      : 'To manage your subscription, please visit the Lemon Squeezy dashboard via the management link sent to your email.')
-                    : (isAr
-                      ? 'لإدارة اشتراكك، يرجى زيارة لوحة تحكم بادل من خلال رابط الإدارة المرسل إلى بريدك الإلكتروني.'
-                      : 'To manage your subscription, please visit the Paddle dashboard via the management link sent to your email.')}
-                </p>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground mb-4">
+              {isAr
+                ? 'إدارة طريقة الدفع، عرض الفواتير، أو إلغاء الاشتراك'
+                : 'Manage payment method, view invoices, or cancel subscription'}
+            </p>
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#c9a96e] text-[#c9a96e] hover:bg-[#c9a96e]/10 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              <span>
+                {portalLoading
+                  ? (isAr ? 'جاري التحميل...' : 'Loading...')
+                  : (isAr ? 'إدارة الاشتراك' : 'Manage Subscription')}
+              </span>
+            </button>
           </div>
         )}
 
