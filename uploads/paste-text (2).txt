@@ -1,0 +1,136 @@
+Here’s a clean, developer-ready message you can send to Atoms Dev:
+
+
+---
+
+🚀 ATOMS DEV — GOOGLE LOGIN (SUPABASE) ISSUE: 403 ERROR
+
+Hi team,
+
+I have fully implemented the Google login setup exactly as provided in the Supabase + Google Cloud configuration guide.
+
+However, when attempting to log in using Google, I receive the following error:
+
+> 403. That’s an error.
+We’re sorry, but you do not have access to this page.
+
+
+
+
+---
+
+🔍 Issue Summary
+
+Google OAuth login is configured in:
+
+Supabase Authentication settings
+
+Google Cloud Console OAuth credentials
+
+
+Redirect URLs and configuration were added as instructed
+
+However, login attempt fails with 403 access denied error
+
+
+
+---
+
+⚠️ Expected Behavior
+
+User should be able to:
+
+Click “Continue with Google”
+
+Authenticate successfully
+
+Be redirected back into the app session
+
+
+
+
+---
+
+❌ Current Behavior
+
+Google login redirects to error page:
+
+403 access denied
+
+
+Login flow does not complete
+
+
+
+---
+
+🛠️ Please investigate the following:
+
+1. OAuth Redirect URI mismatch
+
+Verify Supabase callback URL matches Google Cloud OAuth settings exactly
+
+
+
+2. Authorized domains issue
+
+Ensure app domain is added in:
+
+Google Cloud OAuth “Authorized JavaScript origins”
+
+“Authorized redirect URIs”
+
+
+
+
+3. Supabase Auth configuration
+
+Confirm Google provider is enabled
+
+Check client ID + secret are correctly saved
+
+
+
+4. Google Cloud Consent Screen
+
+Ensure app is in “Testing” or “Production” correctly
+
+Verify test users are added if in testing mode
+
+
+
+5. Domain / hosting mismatch
+
+Ensure redirect is not blocked due to:
+
+localhost vs production domain mismatch
+
+HTTPS requirement
+
+
+
+
+
+
+---
+
+🎯 Goal
+
+Fix authentication so Google login works smoothly without 403 errors and completes full Supabase session login flow.
+
+
+---
+
+Please check for any missing configuration, mismatch, or bug in the OAuth flow and correct it.
+
+
+---
+
+If you want, I can also:
+
+debug this with you step-by-step (very fast fix usually)
+
+or tell you the exact most likely cause in 2–3 minutes based on your setup
+
+
+Just tell me 👍
