@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
+import { useSavingsNotifications } from '@/hooks/useSavingsNotifications';
 
 interface Challenge {
   id: string;
@@ -89,6 +90,13 @@ export default function SmartSavingsChallenges() {
   const [celebratingMilestone, setCelebratingMilestone] = useState<string | null>(null);
   const [addAmountId, setAddAmountId] = useState<string | null>(null);
   const [addValue, setAddValue] = useState('');
+  const {
+    permissionStatus,
+    isEnabled: notificationsEnabled,
+    enableNotifications,
+    disableNotifications,
+    celebrateMilestone: notifyCelebrateMilestone,
+  } = useSavingsNotifications(language);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -134,6 +142,9 @@ export default function SmartSavingsChallenges() {
           newMilestones.push(milestone);
           setCelebratingMilestone(`${challengeId}-${milestone}`);
           setTimeout(() => setCelebratingMilestone(null), 3000);
+          // Send browser notification for milestone
+          const challengeName = isAr ? challenge.titleAr : challenge.titleEn;
+          notifyCelebrateMilestone(challengeName, milestone);
         }
       }
 
@@ -162,10 +173,36 @@ export default function SmartSavingsChallenges() {
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center h-14">
+        <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
           <h1 className="text-xl font-bold text-foreground">
             🏆 {isAr ? 'تحديات الادخار' : 'Savings Challenges'}
           </h1>
+          <button
+            onClick={notificationsEnabled ? disableNotifications : enableNotifications}
+            className={`relative p-2 rounded-lg border transition-all ${
+              notificationsEnabled
+                ? 'border-[#c9a96e]/50 bg-[#c9a96e]/10 text-[#c9a96e]'
+                : 'border-border bg-background text-muted-foreground hover:border-[#c9a96e]/30'
+            }`}
+            title={
+              permissionStatus === 'denied'
+                ? (isAr ? 'الإشعارات محظورة في المتصفح' : 'Notifications blocked in browser')
+                : notificationsEnabled
+                  ? (isAr ? 'إيقاف التذكيرات' : 'Disable Reminders')
+                  : (isAr ? 'تفعيل التذكيرات' : 'Enable Reminders')
+            }
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            {notificationsEnabled && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
+            )}
+            {permissionStatus === 'denied' && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </button>
         </div>
       </header>
 
