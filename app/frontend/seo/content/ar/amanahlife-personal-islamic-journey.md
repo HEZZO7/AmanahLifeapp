@@ -3,22 +3,22 @@ title: "كيف يحوّل أمانة لايف رحلتك الإسلامية ال
 description: "ارتقِ برحلتك الإسلامية الشخصية مع أمانة لايف. تتبع صلواتك، حدد أهدافك، أدر صيامك، وعزز عافيتك الإسلامية بمخطط يومي شامل ومتكامل."
 keywords: "تحديد الأهداف الإسلامية, متتبع الصيام, العافية الإسلامية, متابعة قراءة القرآن, المخطط اليومي المسلم"
 lang: "ar"
-hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfa7aaagsq/amanahlife-personal-islamic-journey-hero.png"
+hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png"
 og_url: "https://atoms.template.com/blog/ar/amanahlife-personal-islamic-journey"
-og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfa7aaagsq/amanahlife-personal-islamic-journey-hero.png"
+og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png"
 og_image_alt: "كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
 twitter_creator: "@atoms_dev"
 twitter_title: "كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية"
 twitter_description: "ارتقِ برحلتك الإسلامية الشخصية مع أمانة لايف. تتبع صلواتك، حدد أهدافك، أدر صيامك، وعزز عافيتك الإسلامية بمخطط يومي شامل."
-twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfa7aaagsq/amanahlife-personal-islamic-journey-hero.png"
+twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png"
 twitter_image_alt: "كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية"
 ---
 
 # كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية
 
-![كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfa7aaagsq/amanahlife-personal-islamic-journey-hero.png)
+![كيف يحوّل أمانة لايف رحلتك الإسلامية الشخصية](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png)
 
 يسعى كثير من المسلمين إلى تحقيق التوازن بين تطلعاتهم الروحية ومسؤولياتهم اليومية. الرغبة في صلة أعمق بالله والمواظبة على العبادات والنمو الشخصي الشامل تتنافس مع متطلبات العمل والأسرة والحياة العصرية. يحتاج المسلم المعاصر إلى أداة ذكية تدمج الإيمان مع الوظائف العملية بسلاسة تامة.
 

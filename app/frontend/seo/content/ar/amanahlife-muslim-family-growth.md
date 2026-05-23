@@ -3,22 +3,22 @@ title: "تمكين العائلة المسلمة: أمانة لايف للنمو
 description: "اكتشف كيف يمكن لتطبيق أمانة لايف تمكين عائلتك المسلمة من خلال أدوات روحية متكاملة وإدارة مالية حلال وميزات إنتاجية جماعية لتحقيق النمو والانسجام الأسري."
 keywords: "ميزانية العائلة الإسلامية, التخطيط المالي الحلال, إنتاجية العائلة المسلمة, متابعة القرآن العائلي, تطبيق إسلامي عائلي"
 lang: "ar"
-hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfdlaaagtq/amanahlife-muslim-family-growth-hero.png"
+hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png"
 og_url: "https://atoms.template.com/blog/ar/amanahlife-muslim-family-growth"
-og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfdlaaagtq/amanahlife-muslim-family-growth-hero.png"
+og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png"
 og_image_alt: "تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
 twitter_creator: "@atoms_dev"
 twitter_title: "تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام"
 twitter_description: "اكتشف كيف يمكن لتطبيق أمانة لايف تمكين عائلتك المسلمة من خلال أدوات روحية متكاملة وإدارة مالية حلال وميزات إنتاجية جماعية."
-twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfdlaaagtq/amanahlife-muslim-family-growth-hero.png"
+twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png"
 twitter_image_alt: "تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام"
 ---
 
 # تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام
 
-![تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfdlaaagtq/amanahlife-muslim-family-growth-hero.png)
+![تمكين العائلة المسلمة: أمانة لايف للنمو الجماعي والانسجام](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png)
 
 تواجه العائلات المسلمة في العصر الحديث تحديات فريدة في الحفاظ على هويتها الإسلامية وتعزيز النمو الجماعي داخل الأسرة. يتطلب التوفيق بين الالتزامات الروحية والروتين اليومي والتخطيط المالي وتحقيق الأهداف المشتركة أداة رقمية شاملة تدعم جميع جوانب الحياة الأسرية. هنا يبرز أمانة لايف كحل متكامل يجمع بين الأدوات الروحية وميزات الإنتاجية والإدارة المالية الحلال.
 

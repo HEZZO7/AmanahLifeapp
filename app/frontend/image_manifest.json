@@ -1,0 +1,58 @@
+{
+  "status": "success",
+  "results": [
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Elegant Islamic spiritual companion app hero banner with Arabic calligraphy elements, a glowing crescent moon, prayer beads (misbaha), and a serene mosque silhouette at dawn. Teal and gold color palette with geometric Islamic patterns in the background. Modern digital art style with warm spiritual atmosphere.",
+      "style": "photorealistic",
+      "filename": "ar-blog-islamic-spiritual-companion-hero.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3hiaagta/ar-blog-muslim-family-growth-hero.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Muslim family growth and development concept art showing a happy Muslim family (parents and children) in a modern home setting with books, a tablet showing an app, and Islamic geometric decorations. Warm golden light, teal accents, contemporary lifestyle photography feel. Diverse family bonding moment.",
+      "style": "photorealistic",
+      "filename": "ar-blog-muslim-family-growth-hero.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3wqaagsq/ar-blog-personal-islamic-journey-hero.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Personal Islamic journey visualization showing a path through a beautiful garden leading to a luminous mosque, with floating Quran pages, prayer mat, and compass (Qibla direction). Ethereal teal and emerald green tones with golden sunlight rays. Spiritual self-improvement concept.",
+      "style": "photorealistic",
+      "filename": "ar-blog-personal-islamic-journey-hero.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Productivity and halal finance concept showing a modern workspace with a laptop displaying charts, gold coins, a calculator, and Islamic geometric patterns as decorative elements. Clean desk setup with teal and gold color scheme. Professional Muslim entrepreneur aesthetic.",
+      "style": "photorealistic",
+      "filename": "ar-blog-productivity-halal-finance-hero.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdabq3aaagrq/ar-blog-solve-lifestyle-challenges-hero.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdabq3aaagrq/ar-blog-solve-lifestyle-challenges-hero.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdabq3aaagrq/ar-blog-solve-lifestyle-challenges-hero.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Solving Muslim lifestyle challenges concept art showing a person using a smartphone app with various Islamic life icons floating around (prayer clock, Quran, mosque, family, money). Modern minimalist style with teal gradient background and golden accent particles. Problem-solving and technology theme.",
+      "style": "photorealistic",
+      "filename": "ar-blog-solve-lifestyle-challenges-hero.jpg"
+    }
+  ],
+  "success_count": 5,
+  "failed_count": 0,
+  "message": "Generated 5/5 images"
+}

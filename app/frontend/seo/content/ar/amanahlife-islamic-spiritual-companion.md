@@ -3,22 +3,22 @@ title: "أمانة لايف: رفيقك الروحي الإسلامي الشام
 description: "اكتشف تطبيق أمانة لايف، الرفيق الروحي الإسلامي المتكامل. تتبع صلواتك، اقرأ القرآن، عدّ أذكارك، حدد اتجاه القبلة، وأدر حياتك الإسلامية بسهولة تامة."
 keywords: "تتبع الصلاة, متابعة قراءة القرآن, عداد الأذكار, تطبيق إسلامي, محدد القبلة, أذكار يومية"
 lang: "ar"
-hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfeuqaagra/amanahlife-islamic-spiritual-companion-hero.png"
+hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png"
 og_url: "https://atoms.template.com/blog/ar/amanahlife-islamic-spiritual-companion"
-og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfeuqaagra/amanahlife-islamic-spiritual-companion-hero.png"
+og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png"
 og_image_alt: "أمانة لايف: رفيقك الروحي الإسلامي الشامل"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
 twitter_creator: "@atoms_dev"
 twitter_title: "أمانة لايف: رفيقك الروحي الإسلامي الشامل"
 twitter_description: "اكتشف تطبيق أمانة لايف، الرفيق الروحي الإسلامي المتكامل. تتبع صلواتك، اقرأ القرآن، عدّ أذكارك، حدد اتجاه القبلة، وأدر حياتك الإسلامية بسهولة تامة."
-twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfeuqaagra/amanahlife-islamic-spiritual-companion-hero.png"
+twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png"
 twitter_image_alt: "أمانة لايف: رفيقك الروحي الإسلامي الشامل"
 ---
 
 # أمانة لايف: رفيقك الروحي الإسلامي الشامل
 
-![أمانة لايف: رفيقك الروحي الإسلامي الشامل](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfeuqaagra/amanahlife-islamic-spiritual-companion-hero.png)
+![أمانة لايف: رفيقك الروحي الإسلامي الشامل](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3myaagtq/ar-blog-islamic-spiritual-companion-hero.png)
 
 في عالمنا المعاصر المليء بالمشاغل والالتزامات، يواجه المسلم تحديات حقيقية في الحفاظ على صلته الروحية بالله عز وجل. تتزاحم متطلبات الحياة اليومية مع الرغبة في أداء العبادات بانتظام والتقرب إلى الله. هنا يأتي دور تطبيق أمانة لايف كرفيق روحي متكامل، صُمم خصيصاً ليكون منصة شاملة تدعم نموك الروحي وإنتاجيتك اليومية ورفاهيتك المالية، كل ذلك ضمن إطار إسلامي أصيل.
 

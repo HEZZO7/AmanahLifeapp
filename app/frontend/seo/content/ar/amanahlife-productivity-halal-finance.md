@@ -3,22 +3,22 @@ title: "أتقن حياتك: الإنتاجية والمالية الحلال م
 description: "حوّل حياتك مع أمانة لايف، التطبيق الأمثل للإنتاجية الإسلامية والمالية الحلال. نظّم رحلتك الروحية، أدر أموالك، وخطط بسهولة وفق المبادئ الإسلامية."
 keywords: "إنتاجية المسلم, تطبيق مالي إسلامي, استثمار حلال, مخطط يومي مسلم, ميزانية العائلة الإسلامية"
 lang: "ar"
-hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
+hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png"
 og_url: "https://atoms.template.com/blog/ar/amanahlife-productivity-halal-finance"
-og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
+og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png"
 og_image_alt: "أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
 twitter_creator: "@atoms_dev"
 twitter_title: "أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف"
 twitter_description: "حوّل حياتك مع أمانة لايف، التطبيق الأمثل للإنتاجية الإسلامية والمالية الحلال. نظّم رحلتك الروحية، أدر أموالك، وخطط بسهولة."
-twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
+twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png"
 twitter_image_alt: "أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف"
 ---
 
 # أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف
 
-![أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png)
+![أتقن حياتك: الإنتاجية والمالية الحلال مع أمانة لايف](https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-23/pdaa3dyaagra/ar-blog-productivity-halal-finance-hero.png)
 
 يسعى المسلم المعاصر إلى تحقيق التوازن بين النمو الروحي والمسؤوليات اليومية مع الالتزام بالمبادئ الإسلامية في كل تعاملاته. إدارة الوقت بفعالية وضمان حلال المعاملات المالية يتطلبان أدوات متخصصة تفهم احتياجات المسلم الفريدة. أمانة لايف يقدم حلاً متكاملاً يجمع بين الإنتاجية والإدارة المالية الحلال في منصة واحدة سهلة الاستخدام.
 

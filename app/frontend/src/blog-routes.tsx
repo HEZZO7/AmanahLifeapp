@@ -8,6 +8,7 @@ const BlogRoutes = () => (
   <Routes>
     <Route index element={<BlogIndexPage />} />
     <Route path=":slug" element={<BlogPostPage />} />
+    <Route path="ar/:slug" element={<BlogPostPage />} />
     {/* MODULE_BLOG_ROUTES_START */}
     {/* MODULE_BLOG_ROUTES_END */}
     <Route path="*" element={<Navigate to="/blog/" replace />} />
