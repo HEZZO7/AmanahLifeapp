@@ -88,7 +88,7 @@ const TESTIMONIALS = [
     locationAr: 'دبي، الإمارات',
     locationEn: 'Dubai, UAE',
     quoteAr: 'التخطيط الذكي بالذكاء الاصطناعي ساعدني على تحقيق أهدافي الروحية والمالية. تطبيق رائع للعائلة المسلمة!',
-    quoteEn: 'The AI planning helped me achieve my spiritual and financial goals. Amazing app for Muslim families!',
+    quoteEn: 'The AI planning helped me achieve my personal and lifestyle goals. Amazing productivity app!',
     rating: 5,
   },
   {
@@ -278,7 +278,7 @@ export default function Subscription() {
         <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#c9a96e]/10 to-[#1a4a3a]/20 border border-[#c9a96e]/20">
           <span className="text-lg">🌍</span>
           <span className="text-sm font-semibold text-foreground">
-            {isAr ? 'انضم إلى أكثر من 10,000 عائلة مسلمة' : 'Join 10,000+ Muslim families'}
+            {isAr ? 'رفيقك الذكي لحياة أكثر تنظيمًا وتوازنًا' : 'Your smart companion for a more organized and balanced life'}
           </span>
           <span className="text-lg">✨</span>
         </div>
@@ -535,7 +535,7 @@ export default function Subscription() {
             {isAr ? 'ماذا يقول مستخدمونا' : 'What Our Users Say'}
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
-            {isAr ? 'آراء عائلات مسلمة حول العالم' : 'Reviews from Muslim families worldwide'}
+            {isAr ? 'آراء المستخدمين حول العالم' : 'Reviews from users worldwide'}
           </p>
           <div className="space-y-3">
             {TESTIMONIALS.map((t, i) => (
