@@ -186,6 +186,7 @@ export default function HomePage() {
     { icon: '📈', title: language === 'ar' ? 'استثمار حلال' : 'Halal Invest', description: language === 'ar' ? 'التمويل الإسلامي' : 'Islamic finance', path: '/halal-investment' },
     { icon: '🌙', title: language === 'ar' ? 'مخطط رمضان' : 'Ramadan Plan', description: language === 'ar' ? 'رمضان والعيد' : 'Ramadan & Eid', path: '/ramadan-planner' },
     { icon: '🏅', title: language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics', description: language === 'ar' ? 'تتبع وتحليل' : 'Track & analyze', path: '/progress-analytics' },
+    { icon: '📝', title: language === 'ar' ? 'المدونة' : 'Blog', description: language === 'ar' ? 'مقالات ونصائح' : 'Articles & tips', path: '/blog' },
   ];
 
   const filteredNavItems = navItems.filter(item =>

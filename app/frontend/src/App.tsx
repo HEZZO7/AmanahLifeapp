@@ -37,6 +37,7 @@ import HalalInvestment from './pages/HalalInvestment';
 import RamadanPlanner from './pages/RamadanPlanner';
 import ClassicSearch from './pages/ClassicSearch';
 import ProgressAnalytics from './pages/ProgressAnalytics';
+import BlogRoutes from './blog-routes';
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,7 @@ const AppRoutes = () => (
     <Route path="/ramadan-planner" element={<RamadanPlanner />} />
     <Route path="/search" element={<ClassicSearch />} />
     <Route path="/progress-analytics" element={<ProgressAnalytics />} />
+    <Route path="/blog/*" element={<BlogRoutes />} />
   </Routes>
 );
 

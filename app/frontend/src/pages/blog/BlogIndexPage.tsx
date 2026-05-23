@@ -1,65 +1,95 @@
 import { Link } from 'react-router-dom';
 import { blogPosts, getBlogRoute } from '@/lib/blog';
+import { ArrowLeft, BookOpen, Calendar } from 'lucide-react';
 
 const BlogIndexPage = () => (
-  <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_36%),linear-gradient(180deg,_#f8fafc_0%,_#eff6ff_100%)] text-slate-900">
-    <section className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
-      <div className="max-w-3xl space-y-5">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-700">
-          Blog Starter
-        </p>
-        <h1 className="font-serif text-4xl leading-tight text-slate-950 sm:text-5xl">
-          Start with a blog section that is ready to grow with your SEO site
-        </h1>
-        <p className="text-lg leading-8 text-slate-600">
-          This is the starter blog index. Add Markdown files under
-          `seo/content/` and the site will automatically generate the list,
-          article pages, and prerender routes.
+  <main className="min-h-screen bg-background text-foreground">
+    <div className="bg-gradient-to-b from-primary/20 to-background px-4 pt-12 pb-8">
+      <div className="max-w-4xl mx-auto">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Home</span>
+        </Link>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground">
+            Blog
+          </h1>
+        </div>
+        <p className="text-muted-foreground text-lg">
+          Articles and tips to enhance your Islamic lifestyle
         </p>
       </div>
+    </div>
 
-      <div className="mt-12 grid gap-6">
+    <section className="mx-auto max-w-4xl px-4 py-8">
+      <div className="grid gap-6 md:grid-cols-2">
         {blogPosts.length > 0 ? (
           blogPosts.map((post) => (
             <article
               key={post.slug}
-              className="rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-sm shadow-sky-100/60 transition-transform duration-200 hover:-translate-y-1"
+              className="group rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300"
             >
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                {post.frontmatter.date ? <span>{post.frontmatter.date}</span> : null}
-                {post.frontmatter.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-sky-50 px-3 py-1 text-sky-700"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <h2 className="mt-4 font-serif text-2xl text-slate-950">
-                <Link className="hover:text-sky-700" to={getBlogRoute(post.slug)}>
-                  {post.title}
+              {post.frontmatter.hero_image && (
+                <div className="aspect-video overflow-hidden">
+                  <img
+                    src={post.frontmatter.hero_image as string}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div className="p-5">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                  <Calendar className="w-3 h-3" />
+                  <span>{post.frontmatter.date || '2026'}</span>
+                </div>
+                <h2 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
+                  <Link to={getBlogRoute(post.slug)}>
+                    {post.title}
+                  </Link>
+                </h2>
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {post.description}
+                </p>
+                {post.frontmatter.keywords && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(typeof post.frontmatter.keywords === 'string'
+                      ? post.frontmatter.keywords.split(',')
+                      : post.frontmatter.keywords
+                    )
+                      .slice(0, 3)
+                      .map((kw: string) => (
+                        <span
+                          key={kw}
+                          className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary"
+                        >
+                          {kw.trim()}
+                        </span>
+                      ))}
+                  </div>
+                )}
+                <Link
+                  to={getBlogRoute(post.slug)}
+                  className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
+                >
+                  Read article →
                 </Link>
-              </h2>
-              <p className="mt-3 text-base leading-7 text-slate-600">
-                {post.description}
-              </p>
-              <Link
-                to={getBlogRoute(post.slug)}
-                className="mt-5 inline-flex text-sm font-semibold text-sky-700 underline underline-offset-4"
-              >
-                Read article
-              </Link>
+              </div>
             </article>
           ))
         ) : (
-          <section className="rounded-[2rem] border border-dashed border-sky-200 bg-white/80 p-8">
-            <h2 className="font-serif text-2xl text-slate-950">No articles yet</h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              Add Markdown files under `seo/content/` and article cards will
-              appear here automatically. This keeps the starter clean by default
-              while making it easy to begin publishing content for your own SEO
-              strategy.
+          <section className="col-span-full rounded-2xl border border-dashed border-border bg-card p-8">
+            <h2 className="text-2xl font-bold text-foreground">No articles yet</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
+              Articles will appear here soon. Check back later for content about
+              Islamic lifestyle, productivity, and halal finance.
             </p>
           </section>
         )}
