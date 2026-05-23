@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
-import { formatPrice, getUserCurrency } from '@/lib/currency';
+import { formatPrice, getUserCurrency, fetchExchangeRates } from '@/lib/currency';
+import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
 
 // Primary payment provider — Lemon Squeezy (only visible flow)
@@ -90,6 +91,22 @@ export default function Subscription() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
   const [userCurrency] = useState<string>(() => getUserCurrency());
+
+  // Live exchange rates
+  const [liveRates, setLiveRates] = useState<Record<string, number> | null>(null);
+  const [ratesMeta, setRatesMeta] = useState<{ source: string; updated_at: string } | null>(null);
+
+  // Fetch live rates on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetchExchangeRates().then((result: ExchangeRateResult) => {
+      if (!cancelled) {
+        setLiveRates(result.rates);
+        setRatesMeta({ source: result.source, updated_at: result.updated_at });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Handle URL params for success/canceled
   useEffect(() => {
@@ -212,6 +229,25 @@ export default function Subscription() {
 
   // Determine if user is on free tier (not trial, not paid)
   const isFreeTier = currentTier === 'free' && !isTrialActive;
+
+  // Helper to format price with live rates
+  const fmtPrice = (priceUSD: number) => {
+    return formatPrice(priceUSD, userCurrency, liveRates ?? undefined);
+  };
+
+  // Format the "last updated" indicator
+  const getRatesIndicator = () => {
+    if (!ratesMeta) return null;
+    if (ratesMeta.source === 'fallback') {
+      return isAr ? 'أسعار تقريبية' : 'Approximate rates';
+    }
+    if (ratesMeta.updated_at) {
+      const date = new Date(ratesMeta.updated_at);
+      const timeStr = date.toLocaleTimeString(isAr ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit' });
+      return isAr ? `آخر تحديث: ${timeStr}` : `Updated: ${timeStr}`;
+    }
+    return isAr ? 'أسعار حية' : 'Live rates';
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
@@ -395,7 +431,7 @@ export default function Subscription() {
                         </span>
                       ) : (
                         <div>
-                          <span className="text-[#c9a96e] font-bold text-lg">{formatPrice(price, userCurrency)}</span>
+                          <span className="text-[#c9a96e] font-bold text-lg">{fmtPrice(price)}</span>
                           <span className="text-muted-foreground text-xs">
                             {' '}{isAr ? '/شهر' : '/mo'}
                           </span>
@@ -444,10 +480,18 @@ export default function Subscription() {
             })}
           </div>
 
-          {/* Currency Note */}
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            {isAr ? `الأسعار معروضة بـ ${userCurrency}` : `Prices shown in ${userCurrency}`}
-          </p>
+          {/* Currency Note with live rates indicator */}
+          <div className="text-center mt-3 space-y-0.5">
+            <p className="text-xs text-muted-foreground">
+              {isAr ? `الأسعار معروضة بـ ${userCurrency}` : `Prices shown in ${userCurrency}`}
+            </p>
+            {ratesMeta && (
+              <p className="text-[10px] text-muted-foreground/70 flex items-center justify-center gap-1">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${ratesMeta.source === 'fallback' ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
+                {getRatesIndicator()}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Testimonials Section */}
