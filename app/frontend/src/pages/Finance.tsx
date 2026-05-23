@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 type TransactionType = 'income' | 'expense';
 type IncomeCategory = 'salary' | 'freelance' | 'investment' | 'gift' | 'other';
@@ -80,9 +81,7 @@ export default function Finance() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">💰 {t('finance')}</h1>
-      </header>
+      <PageHeader icon="💰" title={t('finance')} />
 
       <div className="px-4 py-4 space-y-4">
         {/* Summary Cards */}

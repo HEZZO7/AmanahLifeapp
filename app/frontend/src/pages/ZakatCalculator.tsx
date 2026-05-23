@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface ZakatItem {
   label: string;
@@ -206,14 +207,7 @@ export default function ZakatCalculator() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center h-14">
-          <h1 className="text-lg font-bold text-foreground text-start w-full">
-            💎 {isAr ? 'الزكاة ومتتبع العطاء' : 'Zakat & Giving Tracker'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="💎" title={isAr ? 'الزكاة ومتتبع العطاء' : 'Zakat & Giving Tracker'} />
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Currency Selector */}

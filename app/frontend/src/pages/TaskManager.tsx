@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 type Priority = 'high' | 'medium' | 'low';
 type Category = 'worship' | 'work' | 'personal' | 'health';
@@ -87,12 +88,12 @@ export default function TaskManager() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">✅ {t('tasks')}</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
+      <PageHeader icon="✅" title={t('tasks')} />
+      <div className="px-4 pt-2">
+        <p className="text-muted-foreground text-sm">
           {completedCount}/{filteredTasks.length} {t('completed')}
         </p>
-      </header>
+      </div>
 
       {/* Week Calendar Strip */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">

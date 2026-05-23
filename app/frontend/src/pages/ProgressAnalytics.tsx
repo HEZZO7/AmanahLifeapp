@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 import {
   BarChart,
   Bar,
@@ -183,20 +184,7 @@ export default function ProgressAnalytics() {
 
   return (
     <div className="min-h-screen bg-background pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-16 gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="w-9 h-9 rounded-full bg-card flex items-center justify-center border border-border"
-          >
-            <span className={`text-foreground ${isRTL ? 'rotate-180' : ''}`}>←</span>
-          </button>
-          <h1 className="text-xl font-bold text-foreground">
-            🏅 {language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="🏅" title={language === 'ar' ? 'تحليلات التقدم' : 'Progress Analytics'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Section 1: Individual Progress by Category */}

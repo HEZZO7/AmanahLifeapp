@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface FamilyMember {
   id: string;
@@ -144,13 +145,7 @@ export default function FamilyBudget() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-foreground">
-            {language === 'ar' ? '👨‍👩‍👧‍👦 ميزانية العائلة' : '👨‍👩‍👧‍👦 Family Budget'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="👨‍👩‍👧‍👦" title={language === 'ar' ? 'ميزانية العائلة' : 'Family Budget'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Tabs */}

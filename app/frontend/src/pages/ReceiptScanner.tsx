@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
 
 interface ParsedItem {
@@ -157,19 +158,17 @@ export default function ReceiptScanner() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-foreground">
-            📸 {isAr ? 'ماسح الإيصالات' : 'Receipt Scanner'}
-          </h1>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="text-xs text-primary border border-primary/30 px-2 py-1 rounded-lg"
-          >
-            {isAr ? 'السجل' : 'History'}
-          </button>
-        </div>
-      </header>
+      <PageHeader icon="📸" title={isAr ? 'ماسح الإيصالات' : 'Receipt Scanner'} />
+
+      {/* Action Button */}
+      <div className="max-w-lg mx-auto px-4 pt-3 flex justify-end">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="text-xs text-primary border border-primary/30 px-2 py-1 rounded-lg"
+        >
+          {isAr ? 'السجل' : 'History'}
+        </button>
+      </div>
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <PremiumGate requiredTier="balanced" featureName={isAr ? 'ماسح الإيصالات' : 'Receipt Scanner'}>

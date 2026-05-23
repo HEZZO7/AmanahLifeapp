@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface PrayerTime {
   name: string;
@@ -168,14 +169,7 @@ export default function PrayerTimes() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center h-14">
-          <h1 className="text-lg font-bold text-foreground text-start w-full">
-            🕌 {language === 'ar' ? 'مواقيت الصلاة' : 'Prayer Times'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="🕌" title={language === 'ar' ? 'مواقيت الصلاة' : 'Prayer Times'} />
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Next Prayer Card */}

@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface HijriDate {
   day: string;
@@ -108,16 +109,7 @@ export default function IslamicCalendar() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">
-            📅 {isAr ? 'التقويم الإسلامي' : 'Islamic Calendar'}
-          </h1>
-          <div className="w-16" />
-        </div>
-      </header>
+      <PageHeader icon="📅" title={isAr ? 'التقويم الإسلامي' : 'Islamic Calendar'} />
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Today's Hijri Date */}

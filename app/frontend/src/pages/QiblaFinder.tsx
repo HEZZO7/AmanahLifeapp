@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 export default function QiblaFinder() {
   const { user, loading: authLoading } = useAuth();
@@ -82,16 +83,7 @@ export default function QiblaFinder() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="w-16" />
-          <h1 className="text-lg font-bold text-gray-900 dark:text-foreground">
-            🧭 {isAr ? 'محدد القبلة' : 'Qibla Finder'}
-          </h1>
-          <div className="w-16" />
-        </div>
-      </header>
+      <PageHeader icon="🧭" title={isAr ? 'محدد القبلة' : 'Qibla Finder'} />
 
       <main className="max-w-md mx-auto px-4 py-8 space-y-6">
         {error && (

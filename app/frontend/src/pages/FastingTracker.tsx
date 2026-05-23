@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface DayStatus {
   date: string;
@@ -76,10 +77,10 @@ export default function FastingTracker() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">⏱️ {t('fasting')}</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">{fastedDays}/30 {t('days')} {t('completed')}</p>
-      </header>
+      <PageHeader icon="⏱️" title={t('fasting')} />
+      <div className="px-4 pt-2">
+        <p className="text-muted-foreground text-sm">{fastedDays}/30 {t('days')} {t('completed')}</p>
+      </div>
 
       <div className="px-4 py-4 space-y-4">
         {/* Today's Status */}

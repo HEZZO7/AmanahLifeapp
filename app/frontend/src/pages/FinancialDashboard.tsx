@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
+import PageHeader from '@/components/PageHeader';
 
 interface Transaction {
   type: string;
@@ -68,13 +69,7 @@ export default function FinancialDashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center h-14">
-          <h1 className="text-xl font-bold text-foreground text-start w-full">
-            📊 {language === 'ar' ? 'لوحة التحكم المالية' : 'Financial Dashboard'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="📊" title={language === 'ar' ? 'لوحة التحكم المالية' : 'Financial Dashboard'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <PremiumGate requiredTier="balanced" featureName={language === 'ar' ? 'لوحة التحكم المالية' : 'Financial Dashboard'}>

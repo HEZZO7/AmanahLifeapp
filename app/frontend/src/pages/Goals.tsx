@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface Goal {
   id: string;
@@ -94,17 +95,18 @@ export default function Goals() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-foreground">🎯 {t('goals')}</h1>
+      <PageHeader
+        icon="🎯"
+        title={t('goals')}
+        rightAction={
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
           >
             + {t('addGoal')}
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Add Goal Form */}

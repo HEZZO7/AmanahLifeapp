@@ -162,13 +162,7 @@ export default function WeeklyLifeScore() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center h-14">
-          <h1 className="text-xl font-bold text-foreground text-start w-full">
-            💯 {isAr ? 'مؤشر الحياة الأسبوعي' : 'Weekly Life Score'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="💯" title={isAr ? 'مؤشر الحياة الأسبوعي' : 'Weekly Life Score'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <PremiumGate requiredTier="balanced" featureName={isAr ? 'مؤشر الحياة' : 'Weekly Life Score'}>

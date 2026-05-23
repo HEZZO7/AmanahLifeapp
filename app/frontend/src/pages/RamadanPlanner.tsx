@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface RamadanDay {
   day: number;
@@ -89,13 +90,7 @@ export default function RamadanPlanner() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-foreground">
-            {language === 'ar' ? '🌙 مخطط رمضان والعيد' : '🌙 Ramadan & Eid Planner'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="🌙" title={language === 'ar' ? 'مخطط رمضان والعيد' : 'Ramadan & Eid Planner'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Countdown */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface Dhikr {
   id: string;
@@ -108,10 +109,10 @@ export default function Adhkar() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">📿 {t('adhkar')}</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">{totalDone}/{totalRequired} {t('completed')}</p>
-      </header>
+      <PageHeader icon="📿" title={t('adhkar')} />
+      <div className="px-4 pt-2">
+        <p className="text-muted-foreground text-sm">{totalDone}/{totalRequired} {t('completed')}</p>
+      </div>
 
       {/* Category Tabs */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">

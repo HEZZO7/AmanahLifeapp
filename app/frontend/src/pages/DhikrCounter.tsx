@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface DhikrPreset {
   id: string;
@@ -72,16 +73,7 @@ export default function DhikrCounter() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="w-16" />
-          <h1 className="text-lg font-bold text-foreground">
-            🔢 {language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'}
-          </h1>
-          <div className="w-16" />
-        </div>
-      </header>
+      <PageHeader icon="🔢" title={language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'} />
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Daily Stats */}

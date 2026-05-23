@@ -53,13 +53,7 @@ export default function AIPlanning() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center h-14">
-          <h1 className="text-xl font-bold text-foreground">
-            🧠 {isAr ? 'التخطيط الذكي' : 'Smart Planning'}
-          </h1>
-        </div>
-      </header>
+      <PageHeader icon="🧠" title={isAr ? 'التخطيط الذكي' : 'Smart Planning'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <PremiumGate requiredTier="balanced" featureName={isAr ? 'التخطيط الذكي' : 'Smart Planning'}>

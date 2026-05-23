@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface WellnessEntry {
   date: string;
@@ -62,19 +63,20 @@ export default function Wellness() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-lg mx-auto px-4 flex items-center justify-between h-14">
-          <h1 className="text-xl font-bold text-foreground">💚 {t('wellness')}</h1>
-          {!todayEntry && (
+      <PageHeader
+        icon="💚"
+        title={t('wellness')}
+        rightAction={
+          !todayEntry ? (
             <button
               onClick={() => setShowForm(!showForm)}
               className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               + {t('logToday')}
             </button>
-          )}
-        </div>
-      </header>
+          ) : undefined
+        }
+      />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {/* Log Form */}

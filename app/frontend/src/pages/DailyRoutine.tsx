@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 interface Routine {
   id: string;
@@ -59,13 +60,12 @@ export default function DailyRoutine() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-foreground">🌅 {t('dailyRoutine')}</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
+      <PageHeader icon="🌅" title={t('dailyRoutine')} />
+      <div className="px-4 pt-2">
+        <p className="text-muted-foreground text-sm">
           {completedCount}/{routines.length} {t('completed')}
         </p>
-      </header>
+      </div>
 
       {/* Progress Bar */}
       <div className="px-4 py-4">

@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 import { useNavigate } from 'react-router-dom';
 
 interface FamilyMember {
@@ -122,22 +123,14 @@ export default function FamilySharedDashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground">
-              {isRTL ? '→' : '←'}
-            </button>
-            <h1 className="text-xl font-bold text-foreground">
-              {language === 'ar' ? '👨‍👩‍👧 لوحة العائلة' : '👨‍👩‍👧 Family Dashboard'}
-            </h1>
-          </div>
-          <Button size="sm" onClick={() => setShowInvite(true)}>
-            {language === 'ar' ? '+ دعوة' : '+ Invite'}
-          </Button>
-        </div>
-      </header>
+      <PageHeader icon="👨‍👩‍👧" title={language === 'ar' ? 'لوحة العائلة' : 'Family Dashboard'} />
+
+      {/* Action Button */}
+      <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
+        <Button size="sm" onClick={() => setShowInvite(true)}>
+          {language === 'ar' ? '+ دعوة' : '+ Invite'}
+        </Button>
+      </div>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Invite Modal */}
