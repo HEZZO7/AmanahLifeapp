@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
+import { formatPrice, getUserCurrency } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
 
 // Primary payment provider — Lemon Squeezy (only visible flow)
@@ -22,8 +23,8 @@ const PLANS = [
     id: 'balanced' as const,
     nameAr: 'الحياة المتوازنة',
     nameEn: 'Balanced Life',
-    monthlyPrice: 24.99,
-    yearlyPrice: 19.99,
+    monthlyPrice: 6.99,
+    yearlyPrice: 4.99,
     icon: '⭐',
     featuresAr: ['تذكيرات متقدمة', 'تتبع نمط الحياة', 'رؤى الذكاء الاصطناعي', 'التخطيط الذكي', 'المراجعات اليومية'],
     featuresEn: ['Advanced Reminders', 'Lifestyle Tracking', 'AI Insights', 'Smart Planning', 'Daily Reviews'],
@@ -32,8 +33,8 @@ const PLANS = [
     id: 'family' as const,
     nameAr: 'أمانة العائلة',
     nameEn: 'Family Plan',
-    monthlyPrice: 49.99,
-    yearlyPrice: 39.99,
+    monthlyPrice: 12.99,
+    yearlyPrice: 9.99,
     icon: '👑',
     featuresAr: ['جميع مميزات الحياة المتوازنة', 'مشاركة العائلة', 'لوحة مشتركة', 'خزنة المستندات'],
     featuresEn: ['All Balanced features', 'Family Sharing', 'Shared Dashboard', 'Document Vault'],
@@ -88,6 +89,7 @@ export default function Subscription() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
+  const [userCurrency] = useState<string>(() => getUserCurrency());
 
   // Handle URL params for success/canceled
   useEffect(() => {
@@ -393,7 +395,7 @@ export default function Subscription() {
                         </span>
                       ) : (
                         <div>
-                          <span className="text-[#c9a96e] font-bold text-lg">{price}</span>
+                          <span className="text-[#c9a96e] font-bold text-lg">{formatPrice(price, userCurrency)}</span>
                           <span className="text-muted-foreground text-xs">
                             {' '}{isAr ? '/شهر' : '/mo'}
                           </span>
@@ -441,6 +443,11 @@ export default function Subscription() {
               );
             })}
           </div>
+
+          {/* Currency Note */}
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            {isAr ? `الأسعار معروضة بـ ${userCurrency}` : `Prices shown in ${userCurrency}`}
+          </p>
         </div>
 
         {/* Testimonials Section */}
