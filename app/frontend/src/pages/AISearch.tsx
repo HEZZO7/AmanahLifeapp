@@ -3,6 +3,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
 import PageHeader from '@/components/PageHeader';
+import SearchHistory from '@/components/SearchHistory';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
 
 interface SearchResult {
   type: string;
@@ -39,19 +41,36 @@ export default function AISearch() {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const { history, addSearch, deleteSearch, clearHistory, isLoading: historyLoading } = useSearchHistory('ai');
 
   const categories = isAr ? CATEGORIES_AR : CATEGORIES_EN;
   const results = isAr ? SAMPLE_RESULTS_AR : SAMPLE_RESULTS_EN;
   const chips = isAr ? SUGGESTION_CHIPS_AR : SUGGESTION_CHIPS_EN;
 
   const handleSearch = (searchQuery?: string) => {
-    if (searchQuery) setQuery(searchQuery);
+    const q = searchQuery || query;
+    if (q.trim()) {
+      if (searchQuery) setQuery(searchQuery);
+      addSearch(q.trim());
+      setShowResults(true);
+      setIsFocused(false);
+    }
+  };
+
+  const handleHistorySelect = (selectedQuery: string) => {
+    setQuery(selectedQuery);
+    setIsFocused(false);
+    addSearch(selectedQuery);
     setShowResults(true);
   };
 
   const filteredResults = activeCategory === 0
     ? results
     : results.filter(r => r.type === categories[activeCategory]);
+
+  const showHistory = isFocused && !query.trim() && history.length > 0;
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
@@ -69,11 +88,26 @@ export default function AISearch() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder={isAr ? 'ابحث في بياناتك...' : 'Search your data...'}
                 className="w-full bg-card border border-border rounded-2xl ps-12 pe-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
               />
             </div>
+
+            {/* Search History */}
+            {showHistory && (
+              <div className="bg-card/50 rounded-2xl p-3 border border-border">
+                <SearchHistory
+                  history={history}
+                  isLoading={historyLoading}
+                  onSelect={handleHistorySelect}
+                  onDelete={deleteSearch}
+                  onClearAll={clearHistory}
+                />
+              </div>
+            )}
 
             {/* Suggestion Chips */}
             <div className="flex flex-wrap gap-2">
@@ -131,7 +165,7 @@ export default function AISearch() {
             )}
 
             {/* Empty State */}
-            {!showResults && (
+            {!showResults && !showHistory && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#1a4a3a] flex items-center justify-center">
                   <span className="text-3xl">🔍</span>

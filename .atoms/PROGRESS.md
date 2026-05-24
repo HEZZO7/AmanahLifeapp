@@ -90,6 +90,7 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 12: Weekly email digest (SMTP edge function, email_digest table, subscribe/unsubscribe toggle, personalized HTML summary)
 
 ## Progress Log
+- 2026-05-23: Search History feature implemented — created search_history table in Supabase with RLS, built useSearchHistory hook (fetch/add/delete/clear with deduplication), created SearchHistory component (bilingual AR/EN, relative timestamps, click-to-search, delete), integrated into both ClassicSearch and AISearch pages. Lint/build passing.
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
 - 2026-05-19: Phase 1 complete — Prayer Times, Quran Reader, Dhikr Counter, Duas Collection all built with full functionality, homepage navigation updated, lint/build passing
 - 2026-05-19: Phase 2 complete — Bottom nav bar, enhanced homepage (Hijri date, next prayer, daily verse, streak), Qibla Finder, Zakat Calculator, Islamic Calendar, Arabic typography (Amiri font), UI polish all implemented, lint/build passing

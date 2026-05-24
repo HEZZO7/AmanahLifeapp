@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import SearchHistory from '@/components/SearchHistory';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
 
 interface SearchItem {
   title: string;
@@ -48,6 +50,9 @@ export default function ClassicSearch() {
   const isAr = language === 'ar';
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const { history, addSearch, deleteSearch, clearHistory, isLoading: historyLoading } = useSearchHistory('classic');
 
   const categories = isAr ? CATEGORIES_AR : CATEGORIES;
 
@@ -76,6 +81,21 @@ export default function ClassicSearch() {
     return items;
   }, [query, activeCategory]);
 
+  const handleSearchSubmit = () => {
+    if (query.trim()) {
+      addSearch(query.trim());
+    }
+  };
+
+  const handleHistorySelect = (selectedQuery: string) => {
+    setQuery(selectedQuery);
+    setIsFocused(false);
+    // Save to history again to bump timestamp
+    addSearch(selectedQuery);
+  };
+
+  const showHistory = isFocused && !query.trim() && history.length > 0;
+
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
       <PageHeader icon="🔍" title={isAr ? 'البحث' : 'Search'} />
@@ -91,11 +111,29 @@ export default function ClassicSearch() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearchSubmit();
+              }}
               placeholder={isAr ? 'ابحث عن صفحة أو ميزة...' : 'Search pages, features, content...'}
               className="w-full bg-card border border-border rounded-2xl ps-12 pe-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-all"
               autoFocus
             />
           </div>
+
+          {/* Search History */}
+          {showHistory && (
+            <div className="bg-card/50 rounded-2xl p-3 border border-border">
+              <SearchHistory
+                history={history}
+                isLoading={historyLoading}
+                onSelect={handleHistorySelect}
+                onDelete={deleteSearch}
+                onClearAll={clearHistory}
+              />
+            </div>
+          )}
 
           {/* Category Filters */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
