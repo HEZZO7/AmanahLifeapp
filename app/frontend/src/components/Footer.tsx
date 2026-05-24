@@ -66,7 +66,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="mailto:support@amanahlife.co"
+              href="mailto:support@amanahlife.com"
               className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-colors"
               aria-label="Email"
             >
