@@ -30,7 +30,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/login');
+      navigate('/landing');
     }
   }, [user, loading, navigate]);
 

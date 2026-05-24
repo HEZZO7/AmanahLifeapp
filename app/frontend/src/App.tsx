@@ -45,12 +45,18 @@ import WeeklyLifeScore from './pages/WeeklyLifeScore';
 import SmartSavingsChallenges from './pages/SmartSavingsChallenges';
 import ReceiptScanner from './pages/ReceiptScanner';
 import BlogRoutes from './blog-routes';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import RefundPolicy from './pages/RefundPolicy';
+import ContactSupport from './pages/ContactSupport';
+import PricingPage from './pages/PricingPage';
+import LandingPage from './pages/LandingPage';
 
 const queryClient = new QueryClient();
 
 function WelcomeGuard() {
   if (!hasLanguagePreference()) {
-    return <Navigate to="/welcome" replace />;
+    return <Navigate to="/landing" replace />;
   }
   return <Index />;
 }
@@ -93,6 +99,12 @@ const AppRoutes = () => (
     <Route path="/weekly-life-score" element={<WeeklyLifeScore />} />
     <Route path="/savings-challenges" element={<SmartSavingsChallenges />} />
     <Route path="/receipt-scanner" element={<ReceiptScanner />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} />
+    <Route path="/terms" element={<TermsOfService />} />
+    <Route path="/refund" element={<RefundPolicy />} />
+    <Route path="/contact" element={<ContactSupport />} />
+    <Route path="/pricing" element={<PricingPage />} />
+    <Route path="/landing" element={<LandingPage />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
   </Routes>
 );

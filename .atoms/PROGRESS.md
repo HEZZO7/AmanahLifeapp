@@ -89,7 +89,18 @@ last_updated: 2026-05-19T05:19:47Z
 - [x] Phase 12: AI-powered daily savings tips (DeepSeek edge function, localStorage caching, bilingual AR/EN)
 - [x] Phase 12: Weekly email digest (SMTP edge function, email_digest table, subscribe/unsubscribe toggle, personalized HTML summary)
 
+- [x] Phase 13: Privacy Policy page (bilingual, GDPR/CCPA, data collection details)
+- [x] Phase 13: Terms of Service page (bilingual, subscription terms, account responsibilities)
+- [x] Phase 13: Refund Policy page (bilingual, clear conditions, timeframes, cancellation)
+- [x] Phase 13: Contact/Support page (bilingual, contact form, FAQ, support email)
+- [x] Phase 13: Pricing page (standalone, feature comparison, FAQ, CTA)
+- [x] Phase 13: Landing page (hero, features, screenshots, pricing preview, footer)
+- [x] Phase 13: Routing updates (/privacy, /terms, /refund, /contact, /pricing, /landing)
+- [x] Phase 13: Footer component (reusable, links to all legal pages)
+- [x] Phase 13: Lint and build verification
+
 ## Progress Log
+- 2026-05-24: Phase 13 — Added Privacy Policy, Terms of Service, Refund Policy, Contact/Support, standalone Pricing page, public Landing page for unauthenticated users, reusable Footer component, updated routing. All bilingual AR/EN. Lint/build passing.
 - 2026-05-23: Search History feature implemented — created search_history table in Supabase with RLS, built useSearchHistory hook (fetch/add/delete/clear with deduplication), created SearchHistory component (bilingual AR/EN, relative timestamps, click-to-search, delete), integrated into both ClassicSearch and AISearch pages. Lint/build passing.
 - 2026-05-18: Supabase connected, auth system implemented (email/password + Google OAuth), login page and authenticated homepage created, lint/build passing
 - 2026-05-19: Phase 1 complete — Prayer Times, Quran Reader, Dhikr Counter, Duas Collection all built with full functionality, homepage navigation updated, lint/build passing
