@@ -97,10 +97,10 @@ export default function ContactSupport() {
           <div className="flex items-center gap-3">
             <span className="text-xl">📧</span>
             <a
-              href="mailto:support@amanahlife.app"
+              href="mailto:support@amanahlife.co"
               className="text-primary hover:underline"
             >
-              support@amanahlife.app
+              support@amanahlife.co
             </a>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
+import AppLogo from '@/components/AppLogo';
 
 function useInView() {
   const ref = useRef<HTMLDivElement>(null);
@@ -121,7 +122,7 @@ export default function LandingPage() {
       <nav className="border-b border-border/50 bg-background/95 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🌟</span>
+            <AppLogo className="w-10 h-10" />
             <div className="flex flex-col">
               <span className="text-lg font-bold text-foreground">{isAr ? 'أمانة لايف' : 'AmanahLife'}</span>
               <span className="text-[10px] text-muted-foreground leading-tight">{isAr ? 'رفيقك الذكي لحياة متوازنة' : 'Smart Life Companion'}</span>

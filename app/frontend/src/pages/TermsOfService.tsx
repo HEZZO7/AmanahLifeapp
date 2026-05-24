@@ -64,8 +64,8 @@ export default function TermsOfService() {
     {
       title: isAr ? 'تواصل معنا' : 'Contact',
       content: isAr
-        ? 'لأي أسئلة حول هذه الشروط، يرجى التواصل معنا عبر البريد الإلكتروني: support@amanahlife.app'
-        : 'For any questions about these terms, please contact us via email: support@amanahlife.app',
+        ? 'لأي أسئلة حول هذه الشروط، يرجى التواصل معنا عبر البريد الإلكتروني: support@amanahlife.co'
+        : 'For any questions about these terms, please contact us via email: support@amanahlife.co',
     },
   ];
 

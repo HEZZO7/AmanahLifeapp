@@ -1,5 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import AppLogo from '@/components/AppLogo';
 
 export default function Footer() {
   const { language, isRTL } = useLanguage();
@@ -20,7 +21,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Brand */}
           <div className="flex items-center gap-2">
-            <span className="text-xl">🌟</span>
+            <AppLogo className="w-8 h-8" />
             <div className="flex flex-col">
               <span className="font-bold text-foreground">{isAr ? 'أمانة لايف' : 'AmanahLife'}</span>
               <span className="text-xs text-muted-foreground">{isAr ? 'رفيقك الذكي لحياة متوازنة' : 'Smart Life Companion'}</span>
@@ -65,7 +66,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="mailto:support@amanahlife.app"
+              href="mailto:support@amanahlife.co"
               className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-colors"
               aria-label="Email"
             >

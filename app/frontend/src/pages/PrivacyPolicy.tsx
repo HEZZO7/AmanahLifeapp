@@ -98,10 +98,10 @@ export default function PrivacyPolicy() {
               : 'If you have any questions about this privacy policy, please contact us at:'}
           </p>
           <a
-            href="mailto:support@amanahlife.app"
+            href="mailto:support@amanahlife.co"
             className="text-primary hover:underline mt-2 inline-block"
           >
-            support@amanahlife.app
+            support@amanahlife.co
           </a>
         </div>
       </main>
