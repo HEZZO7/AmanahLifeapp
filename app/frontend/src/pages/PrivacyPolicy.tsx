@@ -74,8 +74,8 @@ export default function PrivacyPolicy() {
           </p>
           <p className="text-muted-foreground mt-3">
             {isAr
-              ? 'نحن في Smart Life Companion نقدر خصوصيتك ونلتزم بحماية بياناتك الشخصية. توضح هذه السياسة كيف نجمع ونستخدم ونحمي معلوماتك.'
-              : 'At Smart Life Companion, we value your privacy and are committed to protecting your personal data. This policy explains how we collect, use, and protect your information.'}
+              ? 'نحن في أمانة لايف نقدر خصوصيتك ونلتزم بحماية بياناتك الشخصية. توضح هذه السياسة كيف نجمع ونستخدم ونحمي معلوماتك.'
+              : 'At AmanahLife, we value your privacy and are committed to protecting your personal data. This policy explains how we collect, use, and protect your information.'}
           </p>
         </div>
 
@@ -98,10 +98,10 @@ export default function PrivacyPolicy() {
               : 'If you have any questions about this privacy policy, please contact us at:'}
           </p>
           <a
-            href="mailto:support@smartlifecompanion.app"
+            href="mailto:support@amanahlife.app"
             className="text-primary hover:underline mt-2 inline-block"
           >
-            support@smartlifecompanion.app
+            support@amanahlife.app
           </a>
         </div>
       </main>

@@ -40,7 +40,7 @@ function generateDigestEmail(savingsData: any): string {
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #0a2e1f 0%, #1a4a35 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
       <h1 style="color: #c9a96e; margin: 0; font-size: 24px;">🏆 Your Weekly Savings Digest</h1>
-      <p style="color: #a0c4b0; margin: 8px 0 0; font-size: 14px;">Smart Life Companion</p>
+      <p style="color: #a0c4b0; margin: 8px 0 0; font-size: 14px;">AmanahLife</p>
     </div>
 
     <!-- Summary -->
@@ -227,7 +227,7 @@ serve(async (req: Request) => {
           await transporter.sendMail({
             from: smtpFrom,
             to: user.email,
-            subject: '🏆 Your Weekly Savings Digest - Smart Life Companion',
+            subject: '🏆 Your Weekly Savings Digest - AmanahLife',
             html: emailHtml,
           });
 

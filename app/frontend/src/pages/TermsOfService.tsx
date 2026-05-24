@@ -10,8 +10,8 @@ export default function TermsOfService() {
     {
       title: isAr ? 'قبول الشروط' : 'Acceptance of Terms',
       content: isAr
-        ? 'باستخدامك لتطبيق Smart Life Companion، فإنك توافق على الالتزام بهذه الشروط والأحكام. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام خدماتنا.'
-        : 'By using Smart Life Companion, you agree to be bound by these terms and conditions. If you do not agree to any part of these terms, please do not use our services.',
+        ? 'باستخدامك لتطبيق أمانة لايف، فإنك توافق على الالتزام بهذه الشروط والأحكام. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام خدماتنا.'
+        : 'By using AmanahLife, you agree to be bound by these terms and conditions. If you do not agree to any part of these terms, please do not use our services.',
     },
     {
       title: isAr ? 'تسجيل الحساب' : 'Account Registration',
@@ -34,8 +34,8 @@ export default function TermsOfService() {
     {
       title: isAr ? 'الملكية الفكرية' : 'Intellectual Property',
       content: isAr
-        ? 'جميع المحتويات والعلامات التجارية والبرمجيات المتعلقة بـ Smart Life Companion مملوكة لنا أو مرخصة لنا. لا يجوز لك نسخ أو تعديل أو توزيع أو بيع أي جزء من خدماتنا دون إذن كتابي مسبق.'
-        : 'All content, trademarks, and software related to Smart Life Companion are owned by us or licensed to us. You may not copy, modify, distribute, or sell any part of our services without prior written permission.',
+        ? 'جميع المحتويات والعلامات التجارية والبرمجيات المتعلقة بـ أمانة لايف مملوكة لنا أو مرخصة لنا. لا يجوز لك نسخ أو تعديل أو توزيع أو بيع أي جزء من خدماتنا دون إذن كتابي مسبق.'
+        : 'All content, trademarks, and software related to AmanahLife are owned by us or licensed to us. You may not copy, modify, distribute, or sell any part of our services without prior written permission.',
     },
     {
       title: isAr ? 'محتوى المستخدم' : 'User Content',
@@ -64,8 +64,8 @@ export default function TermsOfService() {
     {
       title: isAr ? 'تواصل معنا' : 'Contact',
       content: isAr
-        ? 'لأي أسئلة حول هذه الشروط، يرجى التواصل معنا عبر البريد الإلكتروني: support@smartlifecompanion.app'
-        : 'For any questions about these terms, please contact us via email: support@smartlifecompanion.app',
+        ? 'لأي أسئلة حول هذه الشروط، يرجى التواصل معنا عبر البريد الإلكتروني: support@amanahlife.app'
+        : 'For any questions about these terms, please contact us via email: support@amanahlife.app',
     },
   ];
 
@@ -80,8 +80,8 @@ export default function TermsOfService() {
           </p>
           <p className="text-muted-foreground mt-3">
             {isAr
-              ? 'يرجى قراءة هذه الشروط بعناية قبل استخدام تطبيق Smart Life Companion.'
-              : 'Please read these terms carefully before using Smart Life Companion.'}
+              ? 'يرجى قراءة هذه الشروط بعناية قبل استخدام تطبيق أمانة لايف.'
+              : 'Please read these terms carefully before using AmanahLife.'}
           </p>
         </div>
 

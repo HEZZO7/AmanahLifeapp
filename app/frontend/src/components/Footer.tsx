@@ -21,7 +21,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="flex items-center gap-2">
             <span className="text-xl">🌟</span>
-            <span className="font-bold text-foreground">Smart Life Companion</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-foreground">{isAr ? 'أمانة لايف' : 'AmanahLife'}</span>
+              <span className="text-xs text-muted-foreground">{isAr ? 'رفيقك الذكي لحياة متوازنة' : 'Smart Life Companion'}</span>
+            </div>
           </div>
 
           {/* Links */}
@@ -62,7 +65,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="mailto:support@smartlifecompanion.app"
+              href="mailto:support@amanahlife.app"
               className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-colors"
               aria-label="Email"
             >
@@ -76,7 +79,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="mt-6 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
-            © 2026 Smart Life Companion. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+            © 2026 AmanahLife. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </p>
         </div>
       </div>

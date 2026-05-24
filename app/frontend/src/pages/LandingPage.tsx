@@ -122,7 +122,10 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🌟</span>
-            <span className="text-lg font-bold text-foreground">Smart Life Companion</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold text-foreground">{isAr ? 'أمانة لايف' : 'AmanahLife'}</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">{isAr ? 'رفيقك الذكي لحياة متوازنة' : 'Smart Life Companion'}</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center bg-card border border-border rounded-full p-0.5">
