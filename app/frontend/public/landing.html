@@ -92,10 +92,32 @@ img{max-width:100%;display:block}
 .phone-dots{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:3}
 .phone-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);opacity:0.4;transition:all var(--transition)}
 .phone-dot.active{background:var(--teal);opacity:1;width:18px;border-radius:3px}
-.trust-strip{padding:40px 0;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft)}
-.trust-strip .container{display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.85rem}
-.trust-item svg{width:20px;height:20px;color:var(--teal)}
+.trust-strip {
+  background: #112920;
+  border-top: 1px solid rgba(31,199,193,0.15);
+  border-bottom: 1px solid rgba(31,199,193,0.15);
+  padding: 18px 24px;
+}
+.trust-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #9DB8B0;
+  white-space: nowrap;
+}
+.trust-item span:first-child {
+  font-size: 1rem;
+}
 .section{padding:100px 0}
 .section-header{text-align:center;max-width:640px;margin:0 auto 60px}
 .section-label{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--teal-dim);border-radius:var(--r-pill);font-size:0.75rem;color:var(--teal);font-weight:600;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px}
@@ -122,14 +144,74 @@ img{max-width:100%;display:block}
 .step-num{width:56px;height:56px;border-radius:50%;background:var(--teal-dim);border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:var(--teal);margin:0 auto 20px;position:relative;z-index:1}
 .step h3{font-size:1.1rem;font-weight:600;margin-bottom:8px}
 .step p{font-size:0.88rem;color:var(--text-muted)}
-.pricing-toggle{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:48px}
-.pricing-toggle span{font-size:0.9rem;color:var(--text-muted)}
-.pricing-toggle span.active{color:var(--text-white);font-weight:600}
-.toggle-track{width:56px;height:28px;background:var(--bg-surface);border:2px solid var(--border-soft);border-radius:14px;position:relative;cursor:pointer;transition:all var(--transition)}
-.toggle-track.yearly{background:var(--teal-dim);border-color:var(--teal)}
-.toggle-thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;background:var(--teal);border-radius:50%;transition:all var(--transition)}
-.toggle-track.yearly .toggle-thumb{left:calc(100% - 22px)}
-.save-badge{padding:2px 8px;background:var(--gold-dim);color:var(--gold);font-size:0.7rem;font-weight:600;border-radius:var(--r-pill)}
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+.toggle-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #9DB8B0;
+  transition: color 0.25s;
+  user-select: none;
+}
+.toggle-label.active {
+  color: #ffffff;
+}
+.toggle-track {
+  width: 52px;
+  height: 28px;
+  background: #1FC7C1;
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 3px;
+  flex-shrink: 0;
+  outline: none;
+  transition: background 0.25s;
+}
+.toggle-track:focus-visible {
+  box-shadow: 0 0 0 3px rgba(31,199,193,0.4);
+}
+.toggle-thumb {
+  width: 22px;
+  height: 22px;
+  background: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+.toggle-track.yearly .toggle-thumb {
+  transform: translateX(24px);
+}
+.save-badge {
+  background: rgba(201,151,42,0.15);
+  border: 1px solid #C9972A;
+  color: #C9972A;
+  border-radius: 100px;
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.save-badge.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+@keyframes fadeInDown {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
 .pricing-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:60px}
 .pricing-card{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-card);padding:32px;position:relative;transition:all var(--transition)}
 .pricing-card:hover{transform:translateY(-4px)}
@@ -175,10 +257,35 @@ img{max-width:100%;display:block}
 .testimonial-card .avatar{width:36px;height:36px;border-radius:50%;background:var(--teal-dim);display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:600;color:var(--teal)}
 .testimonial-card .author-info .name{font-size:0.85rem;font-weight:600}
 .testimonial-card .author-info .role{font-size:0.75rem;color:var(--text-muted)}
-.stats-section{background:var(--bg-surface);border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft)}
+.stats-section{background:#112920;border-top:1px solid rgba(31,199,193,0.15);border-bottom:1px solid rgba(31,199,193,0.15);padding:48px 24px}
+.stats-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 48px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.stat-item {
+  text-align: center;
+  min-width: 140px;
+}
+.stat-number {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  color: #1FC7C1;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: 'Inter', sans-serif;
+}
+.stat-label {
+  font-size: 0.85rem;
+  color: #9DB8B0;
+  line-height: 1.4;
+}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;text-align:center}
 .stat-item .stat-num{font-size:2.4rem;font-weight:800;color:var(--teal)}
-.stat-item .stat-label{font-size:0.85rem;color:var(--text-muted);margin-top:4px}
 .final-cta{text-align:center;padding:100px 0;position:relative}
 .final-cta::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(31,199,193,0.06) 0%,transparent 70%);pointer-events:none}
 .final-cta h2{font-size:2.4rem;font-weight:700;margin-bottom:16px}
@@ -357,15 +464,15 @@ img{max-width:100%;display:block}
 </div>
 </div>
 </section>
-<section class="trust-strip reveal">
-<div class="container">
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm3 7V7a3 3 0 10-6 0v2h6z"/></svg><span data-i18n="trust_1">Bank-Level Encryption</span></div>
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg><span data-i18n="trust_2">GDPR Compliant</span></div>
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg><span data-i18n="trust_3">No Hidden Fees</span></div>
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg><span data-i18n="trust_4">10,000+ Users</span></div>
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg><span data-i18n="trust_5">24/7 Support</span></div>
-<div class="trust-item"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg><span data-i18n="trust_6">Lightning Fast</span></div>
-</div>
+<section class="trust-strip">
+  <div class="trust-inner">
+    <div class="trust-item"><span>🔒</span><span>SSL Encrypted</span></div>
+    <div class="trust-item"><span>💳</span><span>Powered by Lemon Squeezy</span></div>
+    <div class="trust-item"><span>🌍</span><span>GDPR Compliant</span></div>
+    <div class="trust-item"><span>🔄</span><span>14-Day Money-Back</span></div>
+    <div class="trust-item"><span>⭐</span><span>4.9 App Rating</span></div>
+    <div class="trust-item"><span>🕌</span><span>Built for Muslims Worldwide</span></div>
+  </div>
 </section>
 
 <section class="section" id="features">
@@ -431,11 +538,16 @@ img{max-width:100%;display:block}
 <h2 class="section-title" data-i18n="pricing_title">Simple, Transparent Pricing</h2>
 <p class="section-desc" data-i18n="pricing_desc">Start free, upgrade when you are ready. No hidden fees, cancel anytime.</p>
 </div>
-<div class="pricing-toggle reveal">
-<span id="monthlyLabel" class="active" data-i18n="pricing_monthly">Monthly</span>
-<button class="toggle-track" id="pricingToggle" aria-label="Toggle yearly pricing"><div class="toggle-thumb"></div></button>
-<span id="yearlyLabel" data-i18n="pricing_yearly">Yearly</span>
-<span class="save-badge" data-i18n="pricing_save">Save 30%</span>
+<div class="toggle-wrapper reveal">
+  <span class="toggle-label" id="label-monthly">Monthly</span>
+  <div class="toggle-track" id="pricingToggle" role="switch" aria-checked="false" aria-labelledby="label-monthly label-yearly" tabindex="0">
+    <div class="toggle-thumb"></div>
+  </div>
+  <span class="toggle-label" id="label-yearly">Yearly</span>
+  <span class="save-badge" id="saveBadge">Save 30%</span>
+</div>
+<div id="savings-banner" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:32px;background:rgba(201,151,42,0.08);border:1px solid rgba(201,151,42,0.3);border-radius:10px;padding:12px 20px;color:#C9972A;font-size:0.9rem;font-weight:600;animation:fadeInDown 0.3s ease;">
+  💰 You save $24/year on Balanced · $47/year on Family
 </div>
 <div class="pricing-cards reveal">
 <div class="pricing-card">
@@ -458,7 +570,20 @@ img{max-width:100%;display:block}
 <div class="popular-badge" data-i18n="plan_popular_badge">Most Popular</div>
 <h3 data-i18n="plan_balanced_name">Balanced Life</h3>
 <p style="font-size:0.82rem;color:var(--text-muted)" data-i18n="plan_balanced_tagline">For individuals serious about growth</p>
-<div class="price" id="balancedPrice">$6.99<span data-i18n="plan_balanced_period"> / month</span></div>
+<div class="price" id="balancedPrice">
+<div class="price-monthly">
+  <span class="price-amount">$6.99</span>
+  <span class="price-period">/mo</span>
+</div>
+<div class="price-yearly" style="display:none">
+  <div>
+    <span style="text-decoration:line-through;color:#9DB8B0;font-size:1rem">$6.99</span>
+    <span class="price-amount">$4.89</span>
+    <span class="price-period">/mo</span>
+  </div>
+  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px">billed $58.69/yr</div>
+</div>
+</div>
 <p class="price-note" id="balancedNote" data-i18n="plan_balanced_note">Billed monthly</p>
 <ul>
 <li data-i18n="plan_balanced_f1">Everything in Free</li>
@@ -476,7 +601,20 @@ img{max-width:100%;display:block}
 <div class="pricing-card">
 <h3 data-i18n="plan_family_name">Family Plan</h3>
 <p style="font-size:0.82rem;color:var(--text-muted)" data-i18n="plan_family_tagline">For families growing together</p>
-<div class="price" id="familyPrice">$12.99<span data-i18n="plan_family_period"> / month</span></div>
+<div class="price" id="familyPrice">
+<div class="price-monthly">
+  <span class="price-amount">$12.99</span>
+  <span class="price-period">/mo</span>
+</div>
+<div class="price-yearly" style="display:none">
+  <div>
+    <span style="text-decoration:line-through;color:#9DB8B0;font-size:1rem">$12.99</span>
+    <span class="price-amount">$9.09</span>
+    <span class="price-period">/mo</span>
+  </div>
+  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px">billed $109.09/yr</div>
+</div>
+</div>
 <p class="price-note" id="familyNote" data-i18n="plan_family_note">Billed monthly</p>
 <ul>
 <li data-i18n="plan_family_f1">Everything in Balanced</li>
@@ -542,6 +680,27 @@ img{max-width:100%;display:block}
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q8">What happens if I cancel my subscription?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a8">If you cancel, you will retain access to premium features until the end of your current billing period. After that, your account reverts to the free plan. All your data is preserved. You can resubscribe anytime to regain premium access.</p></div></div>
 </div>
 </div>
+</section>
+
+<section class="stats-section" id="stats-counter">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-number" data-target="10000" data-suffix="+">0+</div>
+      <div class="stat-label" data-en="Active Users" data-ar="المستخدمون النشطون">Active Users</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-target="4.9" data-suffix="/5" data-decimal="true">0/5</div>
+      <div class="stat-label" data-en="Average Rating" data-ar="متوسط التقييم">Average Rating</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-target="14" data-suffix=" Days">0 Days</div>
+      <div class="stat-label" data-en="Money-Back Guarantee" data-ar="ضمان استرداد الأموال">Money-Back Guarantee</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-target="2" data-suffix=" Languages">0 Languages</div>
+      <div class="stat-label" data-en="Arabic & English" data-ar="عربي وإنجليزي">Arabic & English</div>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="testimonials">
@@ -859,38 +1018,54 @@ function handleCheckout(plan) {
 }
 
 // ===== PRICING TOGGLE =====
-function updatePricing() {
-  var track = document.getElementById('pricingToggle');
-  var monthlyLabel = document.getElementById('monthlyLabel');
-  var yearlyLabel = document.getElementById('yearlyLabel');
-  var balancedPrice = document.getElementById('balancedPrice');
-  var balancedNote = document.getElementById('balancedNote');
-  var familyPrice = document.getElementById('familyPrice');
-  var familyNote = document.getElementById('familyNote');
-  if (isYearly) {
-    track.classList.add('yearly');
-    monthlyLabel.classList.remove('active');
-    yearlyLabel.classList.add('active');
-    balancedPrice.innerHTML = '$4.89<span>' + (translations[currentLang].plan_balanced_period || ' / month') + '</span>';
-    balancedNote.textContent = currentLang === 'ar' ? '$58.69 \u064A\u064F\u062F\u0641\u0639 \u0633\u0646\u0648\u064A\u0627\u064B' : '$58.69 billed annually';
-    familyPrice.innerHTML = '$9.09<span>' + (translations[currentLang].plan_family_period || ' / month') + '</span>';
-    familyNote.textContent = currentLang === 'ar' ? '$109.09 \u064A\u064F\u062F\u0641\u0639 \u0633\u0646\u0648\u064A\u0627\u064B' : '$109.09 billed annually';
-  } else {
-    track.classList.remove('yearly');
-    monthlyLabel.classList.add('active');
-    yearlyLabel.classList.remove('active');
-    balancedPrice.innerHTML = '$6.99<span>' + (translations[currentLang].plan_balanced_period || ' / month') + '</span>';
-    balancedNote.textContent = translations[currentLang].plan_balanced_note || 'Billed monthly';
-    familyPrice.innerHTML = '$12.99<span>' + (translations[currentLang].plan_family_period || ' / month') + '</span>';
-    familyNote.textContent = translations[currentLang].plan_family_note || 'Billed monthly';
+var toggle = document.getElementById('pricingToggle');
+var saveBadge = document.getElementById('saveBadge');
+var labelMonthly = document.getElementById('label-monthly');
+var labelYearly = document.getElementById('label-yearly');
+
+function setToggle(yearly) {
+  isYearly = yearly;
+  toggle.classList.toggle('yearly', yearly);
+  toggle.setAttribute('aria-checked', yearly.toString());
+  saveBadge.classList.toggle('visible', yearly);
+  labelMonthly.classList.toggle('active', !yearly);
+  labelYearly.classList.toggle('active', yearly);
+  
+  document.querySelectorAll('.price-monthly').forEach(function(el) {
+    el.style.display = yearly ? 'none' : 'block';
+  });
+  document.querySelectorAll('.price-yearly').forEach(function(el) {
+    el.style.display = yearly ? 'block' : 'none';
+  });
+  
+  var balancedCta = document.getElementById('balanced-cta');
+  if (balancedCta) {
+    balancedCta.textContent = yearly ? 'Subscribe & Save 30%' : 'Subscribe Now';
   }
-  localStorage.setItem('pricing_yearly', isYearly);
+  
+  var savingsBanner = document.getElementById('savings-banner');
+  if (savingsBanner) {
+    savingsBanner.style.display = yearly ? 'flex' : 'none';
+  }
+
+  localStorage.setItem('al_pricing', yearly ? 'yearly' : 'monthly');
 }
 
-document.getElementById('pricingToggle').addEventListener('click', function() {
-  isYearly = !isYearly;
-  updatePricing();
+toggle.addEventListener('click', function() { setToggle(!isYearly); });
+toggle.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    setToggle(!isYearly);
+  }
 });
+
+var saved = localStorage.getItem('al_pricing');
+if (saved === 'yearly') setToggle(true);
+else labelMonthly.classList.add('active');
+
+function updatePricing() {
+  setToggle(isYearly);
+}
 
 // ===== LANGUAGE SYSTEM =====
 function setLanguage(lang) {
@@ -1083,6 +1258,44 @@ window.addEventListener('resize', checkSticky, { passive: true });
   if (isYearly) updatePricing();
   if (currentLang !== 'en') setLanguage(currentLang);
 })();
+
+// ===== Stats counter animation =====
+function easeOut(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function animateCounter(el) {
+  var target = parseFloat(el.dataset.target);
+  var suffix = el.dataset.suffix || '';
+  var isDecimal = el.dataset.decimal === 'true';
+  var duration = 2000;
+  var startTime = null;
+
+  function step(timestamp) {
+    if (!startTime) startTime = timestamp;
+    var elapsed = timestamp - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = easeOut(progress);
+    var current = isDecimal
+      ? (eased * target).toFixed(1)
+      : Math.floor(eased * target).toLocaleString();
+    el.textContent = current + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+var statsCounterObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('.stat-number').forEach(function(el) { animateCounter(el); });
+      statsCounterObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.3 });
+
+var statsCounterSection = document.querySelector('.stats-section');
+if (statsCounterSection) statsCounterObserver.observe(statsCounterSection);
 </script>
 </body>
 </html>
