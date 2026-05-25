@@ -23,14 +23,12 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json().catch(() => null);
-    if (!body || !body.tier || !body.billing) {
+    if (!body) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: tier, billing" }),
+        JSON.stringify({ error: "Missing request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const { tier, billing, successUrl, cancelUrl } = body;
 
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
@@ -54,6 +52,77 @@ Deno.serve(async (req: Request) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Handle "manage" action — return Lemon Squeezy customer portal URL
+    if (body.action === "manage") {
+      console.log(JSON.stringify({ requestId, userId: user.id, action: "manage" }));
+
+      const lsApiKey = Deno.env.get("LEMONSQUEEZY_API_KEY");
+      const storeId = Deno.env.get("APP_11941c8fec_LEMONSQUEEZY_STORE_ID");
+
+      if (!lsApiKey || !storeId) {
+        return new Response(
+          JSON.stringify({ error: "Lemon Squeezy not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Find customer by email
+      const customerSearchUrl = `https://api.lemonsqueezy.com/v1/customers?filter[store_id]=${storeId}&filter[email]=${encodeURIComponent(user.email || "")}`;
+      const customerResponse = await fetch(customerSearchUrl, {
+        method: "GET",
+        headers: {
+          "Accept": "application/vnd.api+json",
+          "Authorization": `Bearer ${lsApiKey}`,
+        },
+      });
+
+      if (!customerResponse.ok) {
+        console.error(JSON.stringify({ requestId, action: "customer_search_error", status: customerResponse.status }));
+        return new Response(
+          JSON.stringify({ error: "no_subscription", message: "Unable to find subscription" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const customerData = await customerResponse.json();
+      const customers = customerData.data;
+
+      if (!customers || customers.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "no_subscription", message: "No active subscription found" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get customer portal URL from the first matching customer
+      const customer = customers[0];
+      const portalUrl = customer.attributes?.urls?.customer_portal;
+
+      if (!portalUrl) {
+        return new Response(
+          JSON.stringify({ error: "no_subscription", message: "Customer portal not available" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(JSON.stringify({ requestId, action: "manage_portal", customerId: customer.id }));
+
+      return new Response(
+        JSON.stringify({ url: portalUrl }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // For checkout action, require tier and billing
+    if (!body.tier || !body.billing) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: tier, billing" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { tier, billing, successUrl, cancelUrl } = body;
 
     console.log(JSON.stringify({ requestId, userId: user.id, tier, billing }));
 

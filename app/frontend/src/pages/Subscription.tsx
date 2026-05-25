@@ -221,6 +221,13 @@ export default function Subscription() {
       const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.error === 'no_subscription') {
+        setMessage({
+          type: 'canceled',
+          text: isAr
+            ? 'لم يتم العثور على اشتراك نشط. يرجى الاشتراك أولاً.'
+            : 'No active subscription found. Please subscribe first.',
+        });
       } else {
         setMessage({
           type: 'canceled',
