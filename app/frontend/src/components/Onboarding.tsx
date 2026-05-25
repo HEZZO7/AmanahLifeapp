@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const ONBOARDING_KEY = 'amanah-onboarding-complete';
+
+const PUBLIC_PATHS = ['/landing', '/privacy', '/terms', '/refund', '/contact', '/pricing', '/blog', '/login', '/auth'];
 
 const steps = [
   {
@@ -36,17 +39,22 @@ const steps = [
 
 export default function Onboarding() {
   const { language } = useLanguage();
+  const location = useLocation();
   const isAr = language === 'ar';
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
 
+  const isPublicPage = PUBLIC_PATHS.some((p) => location.pathname.startsWith(p));
+
   useEffect(() => {
     const completed = localStorage.getItem(ONBOARDING_KEY);
-    if (!completed) {
+    if (!completed && !isPublicPage) {
       setVisible(true);
+    } else if (isPublicPage) {
+      setVisible(false);
     }
-  }, []);
+  }, [isPublicPage]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {

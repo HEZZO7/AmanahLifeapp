@@ -1,36 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/Footer';
 import AppLogo from '@/components/AppLogo';
 
-function useInView() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return { ref, isVisible };
-}
-
 function AnimatedSection({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  const { ref, isVisible } = useInView();
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
-    >
+    <div className={className}>
       {children}
     </div>
   );
@@ -47,31 +23,55 @@ export default function LandingPage() {
       icon: '🕌',
       title: isAr ? 'أوقات الصلاة' : 'Prayer Times',
       desc: isAr ? 'أوقات دقيقة مع تنبيهات وتتبع الأداء' : 'Accurate times with alerts and performance tracking',
+      premium: false,
     },
     {
       icon: '📖',
       title: isAr ? 'قارئ القرآن' : 'Quran Reader',
       desc: isAr ? 'اقرأ واحفظ مع علامات مرجعية وتتبع التقدم' : 'Read and memorize with bookmarks and progress tracking',
+      premium: false,
     },
     {
       icon: '💰',
       title: isAr ? 'التتبع المالي' : 'Financial Tracking',
       desc: isAr ? 'ميزانية ذكية وتتبع المصروفات والادخار' : 'Smart budgeting, expense tracking, and savings',
+      premium: false,
     },
     {
       icon: '🤖',
       title: isAr ? 'المدرب الذكي' : 'AI Coaching',
       desc: isAr ? 'نصائح مخصصة وتخطيط ذكي بالذكاء الاصطناعي' : 'Personalized advice and AI-powered planning',
+      premium: true,
     },
     {
       icon: '👨‍👩‍👧‍👦',
       title: isAr ? 'مشاركة عائلية' : 'Family Sharing',
       desc: isAr ? 'لوحة عائلية مشتركة وأهداف جماعية' : 'Shared family dashboard and group goals',
+      premium: true,
     },
     {
       icon: '🌐',
       title: isAr ? 'متعدد اللغات' : 'Multi-Language',
       desc: isAr ? 'دعم كامل للعربية والإنجليزية مع RTL' : 'Full Arabic and English support with RTL',
+      premium: false,
+    },
+    {
+      icon: '📷',
+      title: isAr ? 'ماسح الفواتير' : 'Receipt Scanner',
+      desc: isAr ? 'امسح الفواتير وصنّف المصروفات تلقائياً' : 'Scan receipts and auto-categorize expenses',
+      premium: true,
+    },
+    {
+      icon: '📊',
+      title: isAr ? 'نقاط الحياة الأسبوعية' : 'Weekly Life Score',
+      desc: isAr ? 'تتبع صحتك الروحية والجسدية والمالية' : 'Track your spiritual, health, and financial wellness',
+      premium: true,
+    },
+    {
+      icon: '🎯',
+      title: isAr ? 'ادخار ذكي' : 'Smart Savings',
+      desc: isAr ? 'تحديات ادخار مع مكافآت وإنجازات' : 'Gamified savings challenges with milestones',
+      premium: true,
     },
   ];
 
@@ -114,6 +114,184 @@ export default function LandingPage() {
         ? 'المدرب الذكي يقدم نصائح مفيدة جداً. أشعر بتحسن كبير في إنتاجيتي.'
         : 'The AI coach provides very useful advice. I feel a great improvement in my productivity.',
       role: isAr ? 'رائد أعمال' : 'Entrepreneur',
+    },
+  ];
+
+  const showcaseScreens = [
+    {
+      label: isAr ? 'لوحة التحكم' : 'Dashboard',
+      content: (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white">AmanahLife</span>
+            <div className="flex items-center gap-1 bg-[#1a3d2e] rounded-full px-2 py-0.5">
+              <span className="text-[9px] text-primary">EN</span>
+              <span className="text-[9px] text-muted-foreground">/</span>
+              <span className="text-[9px] text-muted-foreground">عربي</span>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-[#C9972A]/20 to-[#C9972A]/5 border border-[#C9972A]/30 rounded-xl p-3 text-center">
+            <span className="text-lg font-bold text-[#C9972A]">0 days 🔥</span>
+            <p className="text-[9px] text-muted-foreground mt-0.5">{isAr ? 'سلسلة الصلاة' : 'Prayer Streak'}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[9px] text-muted-foreground">{isAr ? 'المهام' : 'Tasks'}</p>
+              <p className="text-xs font-bold text-white">0/0</p>
+            </div>
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[9px] text-muted-foreground">{isAr ? 'الصلاة' : 'Prayer'}</p>
+              <p className="text-xs font-bold text-white">0/5</p>
+            </div>
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[9px] text-muted-foreground">{isAr ? 'الأهداف' : 'Goals'}</p>
+              <p className="text-xs font-bold text-white">0</p>
+            </div>
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[9px] text-muted-foreground">{isAr ? 'الادخار' : 'Savings'}</p>
+              <p className="text-xs font-bold text-white">+0</p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: isAr ? 'أوقات الصلاة' : 'Prayer Times',
+      content: (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-white">🕌 {isAr ? 'أوقات الصلاة' : 'Prayer Times'}</p>
+          <div className="bg-gradient-to-r from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-3">
+            <p className="text-[9px] text-muted-foreground">{isAr ? 'الصلاة القادمة' : 'Next Prayer'}</p>
+            <p className="text-sm font-bold text-primary">{isAr ? 'الظهر' : 'Dhuhr'} 12:18</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">{isAr ? 'بعد ٥ ساعات و٤٣ دقيقة' : 'in 5h 43m'}</p>
+          </div>
+          <p className="text-[9px] text-muted-foreground text-center">📍 {isAr ? 'الموقع الحالي' : 'Current Location'}</p>
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1 h-1.5 bg-[#1a3d2e] rounded-full overflow-hidden">
+              <div className="h-full w-0 bg-primary rounded-full"></div>
+            </div>
+            <span className="text-[9px] text-muted-foreground">0/5</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: isAr ? 'القرآن' : 'Quran Reader',
+      content: (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-white">📖 {isAr ? 'القرآن' : 'Quran'}</p>
+          <div className="bg-[#1a3d2e] rounded-xl p-3">
+            <p className="text-[9px] text-muted-foreground">{isAr ? 'متابعة القراءة' : 'Continue Reading'}</p>
+            <p className="text-sm font-bold text-white mt-0.5">{isAr ? 'البقرة' : 'Al-Baqara'}</p>
+            <button className="mt-2 px-3 py-1 bg-primary/20 text-primary text-[9px] rounded-lg font-medium">
+              {isAr ? 'استئناف' : 'Resume'}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between bg-[#1a3d2e] rounded-lg p-2">
+              <div>
+                <p className="text-[10px] font-medium text-white">{isAr ? 'الفاتحة' : 'Al-Faatiha'}</p>
+                <p className="text-[8px] text-muted-foreground">{isAr ? '٧ آيات' : '7 ayahs'}</p>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-arabic">الفاتحة</span>
+            </div>
+            <div className="flex items-center justify-between bg-[#1a3d2e] rounded-lg p-2">
+              <div>
+                <p className="text-[10px] font-medium text-white">{isAr ? 'البقرة' : 'Al-Baqara'}</p>
+                <p className="text-[8px] text-muted-foreground">{isAr ? '٢٨٦ آية' : '286 ayahs'}</p>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-arabic">البقرة</span>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: isAr ? 'المدرب الذكي' : 'AI Coach',
+      content: (
+        <div className="space-y-3 relative">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-white">🤖 {isAr ? 'المدرب الذكي' : 'AI Life Coach'}</p>
+            <span className="text-[8px] bg-[#C9972A]/20 text-[#C9972A] border border-[#C9972A]/30 rounded-full px-1.5 py-0.5 font-semibold">Premium</span>
+          </div>
+          <div className="space-y-2 opacity-30 blur-[2px]">
+            <div className="h-2.5 bg-[#1a3d2e] rounded w-full"></div>
+            <div className="h-2.5 bg-[#1a3d2e] rounded w-4/5"></div>
+            <div className="h-2.5 bg-[#1a3d2e] rounded w-3/5"></div>
+            <div className="h-2.5 bg-[#1a3d2e] rounded w-full"></div>
+            <div className="h-2.5 bg-[#1a3d2e] rounded w-2/3"></div>
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pt-6">
+            <span className="text-2xl mb-1">✨</span>
+            <p className="text-[10px] font-bold text-white">{isAr ? 'المدرب الذكي' : 'AI Life Coach'}</p>
+            <button className="mt-1.5 px-3 py-1 bg-[#C9972A] text-white text-[8px] rounded-lg font-semibold">
+              {isAr ? 'فتح بالاشتراك' : 'Unlock with Premium'}
+            </button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: isAr ? 'المالية' : 'Finance',
+      content: (
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-white">💰 {isAr ? 'المالية' : 'Finance'}</p>
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[8px] text-muted-foreground">{isAr ? 'الدخل' : 'Income'}</p>
+              <p className="text-[10px] font-bold text-green-400">0</p>
+            </div>
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[8px] text-muted-foreground">{isAr ? 'المصروفات' : 'Expenses'}</p>
+              <p className="text-[10px] font-bold text-red-400">0</p>
+            </div>
+            <div className="bg-[#1a3d2e] rounded-lg p-2 text-center">
+              <p className="text-[8px] text-muted-foreground">{isAr ? 'الادخار' : 'Savings'}</p>
+              <p className="text-[10px] font-bold text-[#C9972A]">0%</p>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[8px] text-muted-foreground">{isAr ? 'معدل الادخار' : 'Savings Rate'}</span>
+              <span className="text-[8px] text-muted-foreground">0%</span>
+            </div>
+            <div className="h-1.5 bg-[#1a3d2e] rounded-full overflow-hidden">
+              <div className="h-full w-0 bg-[#C9972A] rounded-full"></div>
+            </div>
+          </div>
+          <p className="text-[9px] text-muted-foreground text-center italic">{isAr ? 'لا توجد معاملات بعد' : 'No transactions yet'}</p>
+        </div>
+      ),
+    },
+    {
+      label: isAr ? 'العائلة' : 'Family Dashboard',
+      content: (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-white">👨‍👩‍👧‍👦 {isAr ? 'العائلة' : 'Family'}</p>
+            <span className="text-[8px] bg-primary/20 text-primary border border-primary/30 rounded-lg px-1.5 py-0.5 font-medium">+ {isAr ? 'دعوة' : 'Invite'}</span>
+          </div>
+          <div className="bg-gradient-to-r from-[#C9972A]/10 to-transparent border border-[#C9972A]/20 rounded-xl p-3 text-center">
+            <p className="text-[8px] text-muted-foreground">{isAr ? 'نقاط المسؤولية' : 'Accountability Score'}</p>
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <span className="text-sm font-bold text-[#C9972A]">0%</span>
+              <span className="text-sm">🏆</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground mb-1.5">{isAr ? 'أفراد العائلة (١)' : 'Family Members (1)'}</p>
+            <div className="flex items-center gap-2 bg-[#1a3d2e] rounded-lg p-2">
+              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-[8px] text-primary">👤</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-[9px] font-medium text-white">{isAr ? 'أنت' : 'You'}</p>
+                <p className="text-[7px] text-muted-foreground">{isAr ? 'مسؤول / مالك' : 'Admin / Owner'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
     },
   ];
 
@@ -259,10 +437,90 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, i) => (
               <AnimatedSection key={i}>
-                <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 hover:border-primary/50 hover:shadow-lg transition-all duration-300">
+                <div
+                  className={`relative overflow-visible bg-card border border-border rounded-2xl p-5 sm:p-6 transition-all duration-300 ${
+                    feature.premium
+                      ? 'hover:border-[#C9972A]/50 hover:shadow-lg hover:shadow-[#C9972A]/10'
+                      : 'hover:border-primary/50 hover:shadow-lg'
+                  }`}
+                >
+                  {feature.premium && (
+                    <span
+                      className={`absolute -top-3 ${isRTL ? 'left-4' : 'right-4'} bg-[#C9972A]/10 border border-[#C9972A]/40 text-[#C9972A] rounded-full px-2.5 py-0.5 text-xs font-semibold`}
+                    >
+                      ✨ Premium
+                    </span>
+                  )}
                   <span className="text-3xl sm:text-4xl block mb-3 sm:mb-4">{feature.icon}</span>
                   <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{feature.title}</h3>
                   <p className="text-muted-foreground text-sm">{feature.desc}</p>
+
+                  {/* AI Coaching preview */}
+                  {feature.icon === '🤖' && (
+                    <div className="mt-4 rounded-xl p-3 bg-[#C9972A]/5 border border-[#C9972A]/20">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C9972A]"></span>
+                        <span className="text-[10px] text-muted-foreground ml-1 uppercase tracking-wide">Live preview</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic m-0">
+                        {isAr
+                          ? '"أكملت ٣ من ٥ صلوات هذا الأسبوع. انتظام الفجر يحتاج اهتماماً. إليك خطة التحسين..."'
+                          : '"You completed 3/5 prayers this week. Your Fajr consistency needs attention. Here\'s your 7-day plan..."'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Receipt Scanner preview */}
+                  {feature.icon === '📷' && (
+                    <div className="mt-4 rounded-xl p-3 bg-primary/5 border border-primary/15">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        <span className="text-[10px] text-muted-foreground ml-1 uppercase tracking-wide">Live preview</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="text-xl flex-shrink-0">📷</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground italic">{isAr ? 'جارٍ مسح الفاتورة...' : 'Scanning receipt...'}</span>
+                          <span className="text-xs text-green-500 font-semibold">{isAr ? '✓ أُضيف: قهوة $٤.٥٠ ← المصروفات' : '✓ Added: Coffee $4.50 → Expenses'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* App Showcase */}
+      <section className="py-12 sm:py-16 px-4 bg-[#112920]">
+        <div className="max-w-5xl mx-auto">
+          <AnimatedSection>
+            <div className="text-center mb-10 sm:mb-12">
+              <span className="inline-block bg-primary/10 border border-primary text-primary rounded-full px-4 py-1 text-xs font-semibold mb-4">
+                {isAr ? 'التطبيق' : 'THE APP'}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                {isAr ? 'شاهد التطبيق أثناء العمل' : 'See the App in Action'}
+              </h2>
+              <p className="text-[#9DB8B0] text-sm">
+                {isAr ? 'شاشات حقيقية من التطبيق. بدون تصاميم وهمية.' : 'Real screens from the app. No mockups.'}
+              </p>
+            </div>
+          </AnimatedSection>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {showcaseScreens.map((screen, i) => (
+              <AnimatedSection key={i}>
+                <div className="min-w-[240px] sm:min-w-0 snap-start flex flex-col gap-3">
+                  <div className="bg-[#0A1A14] border border-primary/15 rounded-2xl p-3.5 flex-1">
+                    {screen.content}
+                  </div>
+                  <p className="text-center text-sm font-semibold text-primary">{screen.label}</p>
                 </div>
               </AnimatedSection>
             ))}
