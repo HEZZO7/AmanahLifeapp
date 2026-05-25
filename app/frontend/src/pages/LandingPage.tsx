@@ -40,6 +40,7 @@ export default function LandingPage() {
   const { language, isRTL, setLanguage } = useLanguage();
   const isAr = language === 'ar';
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const features = [
     {
@@ -128,7 +129,9 @@ export default function LandingPage() {
               <span className="text-[10px] text-muted-foreground leading-tight">{isAr ? 'رفيقك الذكي لحياة متوازنة' : 'Smart Life Companion'}</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Desktop Nav Actions - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-3">
             <div className="flex items-center bg-card border border-border rounded-full p-0.5">
               <button
                 onClick={() => setLanguage('en')}
@@ -156,25 +159,79 @@ export default function LandingPage() {
               {isAr ? 'ابدأ مجاناً' : 'Get Started'}
             </button>
           </div>
+
+          {/* Mobile Hamburger Button - visible on mobile only */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg border border-border hover:bg-card transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border bg-background/98 backdrop-blur-md px-4 py-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+            {/* Language Toggle */}
+            <div className="flex items-center justify-center">
+              <div className="flex items-center bg-card border border-border rounded-full p-0.5">
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-all ${language === 'en' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                >
+                  EN
+                </button>
+                <button
+                  onClick={() => setLanguage('ar')}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-all ${language === 'ar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                >
+                  عربي
+                </button>
+              </div>
+            </div>
+            {/* Sign In */}
+            <button
+              onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}
+              className="w-full px-4 py-3 text-sm font-medium text-foreground border border-border rounded-lg hover:bg-card transition-colors"
+            >
+              {isAr ? 'تسجيل الدخول' : 'Sign In'}
+            </button>
+            {/* Get Started */}
+            <button
+              onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}
+              className="w-full px-4 py-3 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+            >
+              {isAr ? 'ابدأ مجاناً' : 'Get Started'}
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
+      <section className="py-12 sm:py-16 md:py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <AnimatedSection>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
               {isAr ? 'رفيقك لحياة متوازنة وهادفة' : 'Your Companion for a Balanced, Purposeful Life'}
             </h1>
-            <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground mt-4 max-w-2xl mx-auto px-2">
               {isAr
                 ? 'تطبيق شامل يجمع بين تتبع العبادات، إدارة المالية، التخطيط الذكي، والمدرب الشخصي بالذكاء الاصطناعي.'
                 : 'An all-in-one app combining worship tracking, financial management, smart planning, and AI-powered personal coaching.'}
             </p>
-            <div className="flex items-center justify-center gap-4 mt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6 sm:mt-8 px-4 sm:px-0">
               <button
                 onClick={() => navigate('/login')}
-                className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+                className="w-full sm:w-auto px-8 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-base sm:text-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
               >
                 {isAr ? 'ابدأ الآن' : 'Get Started'}
               </button>
@@ -182,7 +239,7 @@ export default function LandingPage() {
                 onClick={() => {
                   document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="px-8 py-3 border border-border text-foreground rounded-xl font-semibold text-lg hover:bg-card transition-colors"
+                className="w-full sm:w-auto px-8 py-3 border border-border text-foreground rounded-xl font-semibold text-base sm:text-lg hover:bg-card transition-colors"
               >
                 {isAr ? 'اعرف المزيد' : 'Learn More'}
               </button>
@@ -192,19 +249,19 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-16 px-4 bg-card/50">
+      <section id="features" className="py-12 sm:py-16 px-4 bg-card/50">
         <div className="max-w-6xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl font-bold text-foreground text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-8 sm:mb-12">
               {isAr ? 'كل ما تحتاجه في مكان واحد' : 'Everything You Need in One Place'}
             </h2>
           </AnimatedSection>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, i) => (
               <AnimatedSection key={i}>
-                <div className="bg-card border border-border rounded-2xl p-6 hover:border-primary/50 hover:shadow-lg transition-all duration-300">
-                  <span className="text-4xl block mb-4">{feature.icon}</span>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{feature.title}</h3>
+                <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 hover:border-primary/50 hover:shadow-lg transition-all duration-300">
+                  <span className="text-3xl sm:text-4xl block mb-3 sm:mb-4">{feature.icon}</span>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{feature.title}</h3>
                   <p className="text-muted-foreground text-sm">{feature.desc}</p>
                 </div>
               </AnimatedSection>
@@ -214,21 +271,21 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 px-4">
+      <section className="py-12 sm:py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl font-bold text-foreground text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-8 sm:mb-12">
               {isAr ? 'كيف يعمل' : 'How It Works'}
             </h2>
           </AnimatedSection>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {steps.map((step, i) => (
               <AnimatedSection key={i}>
                 <div className="text-center">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center mx-auto mb-4">
-                    <span className="text-xl font-bold text-primary">{step.num}</span>
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center mx-auto mb-4">
+                    <span className="text-lg sm:text-xl font-bold text-primary">{step.num}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{step.title}</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{step.title}</h3>
                   <p className="text-muted-foreground text-sm">{step.desc}</p>
                 </div>
               </AnimatedSection>
@@ -238,27 +295,27 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-16 px-4 bg-card/50">
+      <section className="py-12 sm:py-16 px-4 bg-card/50">
         <div className="max-w-4xl mx-auto text-center">
           <AnimatedSection>
-            <h2 className="text-3xl font-bold text-foreground mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
               {isAr ? 'خطط بسيطة وشفافة' : 'Simple, Transparent Pricing'}
             </h2>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-muted-foreground mb-6 sm:mb-8">
               {isAr ? 'ابدأ مجاناً. قم بالترقية عندما تكون جاهزاً.' : 'Start free. Upgrade when you are ready.'}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-card border border-border rounded-xl p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
                 <h3 className="font-bold text-foreground">{isAr ? 'مجاني' : 'Free'}</h3>
                 <p className="text-2xl font-bold text-foreground mt-2">$0</p>
                 <p className="text-sm text-muted-foreground mt-1">{isAr ? 'الميزات الأساسية' : 'Basic features'}</p>
               </div>
-              <div className="bg-card border-2 border-[#D4A017] rounded-xl p-5 shadow-lg">
+              <div className="bg-card border-2 border-[#D4A017] rounded-xl p-4 sm:p-5 shadow-lg">
                 <h3 className="font-bold text-[#D4A017]">{isAr ? 'المتوازنة' : 'Balanced'}</h3>
                 <p className="text-2xl font-bold text-foreground mt-2">$6.99<span className="text-sm text-muted-foreground">/{isAr ? 'شهر' : 'mo'}</span></p>
                 <p className="text-sm text-muted-foreground mt-1">{isAr ? 'ميزات AI متقدمة' : 'Advanced AI features'}</p>
               </div>
-              <div className="bg-card border border-border rounded-xl p-5">
+              <div className="bg-card border border-border rounded-xl p-4 sm:p-5">
                 <h3 className="font-bold text-foreground">{isAr ? 'العائلة' : 'Family'}</h3>
                 <p className="text-2xl font-bold text-foreground mt-2">$12.99<span className="text-sm text-muted-foreground">/{isAr ? 'شهر' : 'mo'}</span></p>
                 <p className="text-sm text-muted-foreground mt-1">{isAr ? 'حتى 6 أفراد' : 'Up to 6 members'}</p>
@@ -275,18 +332,18 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 px-4">
+      <section className="py-12 sm:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <AnimatedSection>
-            <h2 className="text-3xl font-bold text-foreground text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-8 sm:mb-12">
               {isAr ? 'ماذا يقول مستخدمونا' : 'What Our Users Say'}
             </h2>
           </AnimatedSection>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {testimonials.map((t, i) => (
               <AnimatedSection key={i}>
-                <div className="bg-card border border-border rounded-2xl p-6">
-                  <p className="text-muted-foreground text-sm italic mb-4">"{t.text}"</p>
+                <div className="bg-card border border-border rounded-2xl p-5 sm:p-6">
+                  <p className="text-muted-foreground text-sm italic mb-4">&ldquo;{t.text}&rdquo;</p>
                   <div>
                     <p className="font-bold text-foreground text-sm">{t.name}</p>
                     <p className="text-xs text-muted-foreground">{t.role}</p>
@@ -299,18 +356,18 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-primary/5">
+      <section className="py-12 sm:py-16 px-4 bg-primary/5">
         <div className="max-w-3xl mx-auto text-center">
           <AnimatedSection>
-            <h2 className="text-3xl font-bold text-foreground mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
               {isAr ? 'ابدأ رحلتك اليوم' : 'Start Your Journey Today'}
             </h2>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-muted-foreground mb-6 sm:mb-8 px-2">
               {isAr ? 'انضم إلى آلاف المستخدمين الذين يعيشون حياة أكثر توازناً وإنتاجية.' : 'Join thousands of users living a more balanced and productive life.'}
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="px-10 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+              className="w-full sm:w-auto px-10 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-base sm:text-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
             >
               {isAr ? 'سجّل مجاناً' : 'Sign Up Free'}
             </button>
