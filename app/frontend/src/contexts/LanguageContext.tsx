@@ -147,13 +147,35 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const stored = localStorage.getItem('amanah_language');
-    return (stored as Language) || 'en';
+    // Priority: URL param > al_lang (from landing page) > amanah_language > default 'en'
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLang = urlParams.get('lang');
+      if (urlLang === 'ar' || urlLang === 'en') {
+        // Persist URL param choice
+        localStorage.setItem('amanah_language', urlLang);
+        localStorage.setItem('al_lang', urlLang);
+        localStorage.setItem('amanah_lang', urlLang);
+        return urlLang;
+      }
+      const alLang = localStorage.getItem('al_lang');
+      if (alLang === 'ar' || alLang === 'en') {
+        localStorage.setItem('amanah_language', alLang);
+        return alLang;
+      }
+      const stored = localStorage.getItem('amanah_language');
+      if (stored === 'ar' || stored === 'en') {
+        return stored;
+      }
+    }
+    return 'en';
   });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('amanah_language', lang);
+    localStorage.setItem('al_lang', lang);
+    localStorage.setItem('amanah_lang', lang);
   };
 
   const t = (key: string): string => {

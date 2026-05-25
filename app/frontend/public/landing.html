@@ -1388,6 +1388,8 @@ function updatePricing() {
 function setLanguage(lang) {
   currentLang = lang;
   localStorage.setItem('amanah_lang', lang);
+  localStorage.setItem('al_lang', lang);
+  localStorage.setItem('amanah_language', lang);
   var html = document.documentElement;
   html.setAttribute('lang', lang);
   html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
@@ -1415,7 +1417,16 @@ function setLanguage(lang) {
       el.textContent = translations[lang][key];
     }
   });
+  // Update all internal links with ?lang= parameter
+  updateInternalLinks(lang);
   updatePricing();
+}
+
+function updateInternalLinks(lang) {
+  document.querySelectorAll('a[href^="/"]').forEach(function(a) {
+    var href = a.getAttribute('href').split('?')[0];
+    a.setAttribute('href', href + '?lang=' + lang);
+  });
 }
 
 // ===== INTERSECTION OBSERVER (REVEAL + SCROLL SPY) =====
@@ -1620,6 +1631,8 @@ function toggleTheme() {
   // Load saved language
   var savedLang = localStorage.getItem('amanah_lang') || 'en';
   if (savedLang !== 'en') setLanguage(savedLang);
+  // Always update internal links with current language on load
+  updateInternalLinks(currentLang);
 })();
 
 // ===== Stats counter animation =====
