@@ -193,6 +193,18 @@ export default function Subscription() {
   const handleManageSubscription = useCallback(async () => {
     setPortalLoading(true);
     try {
+      // If user is on free tier, no subscription to manage
+      if (currentTier === 'free') {
+        setMessage({
+          type: 'canceled',
+          text: isAr
+            ? 'ليس لديك اشتراك نشط حالياً. اختر خطة للاشتراك.'
+            : 'You don\'t have an active subscription. Choose a plan to subscribe.',
+        });
+        setPortalLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setMessage({
@@ -204,7 +216,7 @@ export default function Subscription() {
       }
 
       const response = await fetch(
-        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout',
+        CHECKOUT_ENDPOINT,
         {
           method: 'POST',
           headers: {
@@ -221,28 +233,32 @@ export default function Subscription() {
       const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
-      } else if (data.error === 'no_subscription') {
+      } else if (data.error === 'no_subscription' || data.error === 'Lemon Squeezy not configured') {
         setMessage({
           type: 'canceled',
           text: isAr
-            ? 'لم يتم العثور على اشتراك نشط. يرجى الاشتراك أولاً.'
-            : 'No active subscription found. Please subscribe first.',
+            ? 'إدارة الاشتراك غير متاحة حالياً. يرجى التواصل مع الدعم.'
+            : 'Subscription management is not available yet. Please contact support.',
         });
       } else {
         setMessage({
           type: 'canceled',
-          text: isAr ? 'حدث خطأ أثناء فتح بوابة الإدارة' : 'Error opening management portal',
+          text: isAr
+            ? 'إدارة الاشتراك غير متاحة حالياً. يرجى التواصل مع الدعم.'
+            : 'Subscription management is not available yet. Please contact support.',
         });
       }
     } catch {
       setMessage({
         type: 'canceled',
-        text: isAr ? 'حدث خطأ في الاتصال' : 'Connection error occurred',
+        text: isAr
+          ? 'إدارة الاشتراك غير متاحة حالياً. يرجى التواصل مع الدعم.'
+          : 'Subscription management is not available yet. Please contact support.',
       });
     } finally {
       setPortalLoading(false);
     }
-  }, [isAr]);
+  }, [isAr, currentTier]);
 
   const currentPlanName = PLANS.find(p => p.id === currentTier);
 
