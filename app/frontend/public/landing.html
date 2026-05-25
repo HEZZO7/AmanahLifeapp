@@ -395,6 +395,37 @@ img{max-width:100%;display:block}
 .phone-screen-content{transition:none}
 *{transition-duration:0.01ms!important;animation-duration:0.01ms!important}
 }
+/* TOGGLE FORCE FIX - DO NOT REMOVE */
+.toggle-track {
+  width: 52px !important;
+  height: 28px !important;
+  background: #1FC7C1 !important;
+  border-radius: 100px !important;
+  position: relative !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+  overflow: hidden !important;
+}
+.toggle-thumb {
+  width: 20px !important;
+  height: 20px !important;
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  position: absolute !important;
+  top: 4px !important;
+  left: 4px !important;
+  transition: left 0.25s cubic-bezier(0.4,0,0.2,1) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.toggle-track.yearly .toggle-thumb {
+  left: 28px !important;
+  transform: none !important;
+}
 </style>
 </head>
 <body>
