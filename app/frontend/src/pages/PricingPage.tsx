@@ -23,7 +23,7 @@ export default function PricingPage() {
     },
     {
       name: isAr ? 'الحياة المتوازنة' : 'Balanced Life',
-      price: { monthly: 6.99, yearly: 4.99 },
+      price: { monthly: 6.99, yearly: 4.89 },
       description: isAr ? 'للمستخدم الجاد' : 'For the dedicated user',
       features: isAr
         ? ['كل ميزات المجاني', 'المدرب الذكي AI', 'البحث الذكي AI', 'تحديات الادخار', 'ماسح الإيصالات', 'مؤشر الحياة الأسبوعي', 'أهداف غير محدودة', 'تصدير البيانات', 'تحليلات متقدمة']
@@ -33,7 +33,7 @@ export default function PricingPage() {
     },
     {
       name: isAr ? 'خطة العائلة' : 'Family Plan',
-      price: { monthly: 12.99, yearly: 9.99 },
+      price: { monthly: 12.99, yearly: 9.09 },
       description: isAr ? 'لكل العائلة' : 'For the whole family',
       features: isAr
         ? ['كل ميزات المتوازنة', 'لوحة العائلة المشتركة', 'حتى 6 أفراد', 'ميزانية عائلية', 'أهداف مشتركة', 'تتبع الصلاة العائلي', 'دعم أولوية', 'تقارير عائلية']
@@ -102,20 +102,20 @@ export default function PricingPage() {
 
         {/* Monthly/Yearly Toggle */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <span className={`text-sm ${!isYearly ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
-            {isAr ? 'شهري' : 'Monthly'}
-          </span>
-          <button
-            onClick={() => setIsYearly(!isYearly)}
-            className={`relative w-12 h-6 rounded-full transition-colors ${isYearly ? 'bg-primary' : 'bg-border'}`}
-          >
-            <span
-              className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${isYearly ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-0.5 rtl:-translate-x-0.5'}`}
-            />
-          </button>
-          <span className={`text-sm ${isYearly ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
-            {isAr ? 'سنوي' : 'Yearly'}
-          </span>
+          <div className="flex items-center bg-card border border-border rounded-full p-1">
+            <button
+              onClick={() => setIsYearly(false)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-primary text-white' : 'text-muted-foreground'}`}
+            >
+              {isAr ? 'شهري' : 'Monthly'}
+            </button>
+            <button
+              onClick={() => setIsYearly(true)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${isYearly ? 'bg-primary text-white' : 'text-muted-foreground'}`}
+            >
+              {isAr ? 'سنوي' : 'Yearly'}
+            </button>
+          </div>
           {isYearly && (
             <span className="bg-[#D4A017]/20 text-[#D4A017] text-xs px-2 py-0.5 rounded-full font-medium">
               {isAr ? 'وفر 30%' : 'Save 30%'}
