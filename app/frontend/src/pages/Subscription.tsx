@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
 import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
+import PageHeader from '@/components/PageHeader';
 
 // Primary payment provider — Lemon Squeezy (only visible flow)
 const CHECKOUT_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout';
