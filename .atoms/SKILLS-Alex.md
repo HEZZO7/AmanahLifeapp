@@ -1,6 +1,6 @@
 ---
 auto_generated: true
-last_updated: 2026-05-19T05:19:44
+last_updated: 2026-05-29T12:52:33
 ---
 
 # Available Skills
@@ -17,5 +17,9 @@ load the full SKILL.md for detailed instructions when needed.
 | image-generation | Read when you need to generate or edit project image assets such as hero banners, product visuals, logos, icons, or transparent cutouts. | /workspace/.atoms/skills/image-generation/SKILL.md |
 | image-understanding | Read when you need image understanding, OCR, or visual question answering for a local image or an http(s) image URL. | /workspace/.atoms/skills/image-understanding/SKILL.md |
 | markdown-pdf-export | Read when you need to convert a local Markdown file into a print-first PDF for delivery, export, or sharing. | /workspace/.atoms/skills/markdown-pdf-export/SKILL.md |
+| music-generation | Read when you need generated background music, instrumental BGM, ambience, jingles, or song/music assets from a text prompt. | /workspace/.atoms/skills/music-generation/SKILL.md |
 | pdf-understanding | Read when you need to understand a local PDF, answer questions about it, or extract structured information from it. | /workspace/.atoms/skills/pdf-understanding/SKILL.md |
-| video-generation | Read when you need to generate short project videos such as hero backgrounds, promos, demos, or clips from a reference image. | /workspace/.atoms/skills/video-generation/SKILL.md |
+| promo-video-production | Read when you need to create a promotional, product, demo, explainer, topic, designed multi-shot, storyboarded, social/Reels/TikTok discovery, local business, restaurant/food vlog, or 20s+ edited video — either for the current project or for a user-supplied subject. | /workspace/.atoms/skills/promo-video-production/SKILL.md |
+| remotion-best-practices | Read alongside promo-video-production when writing, reviewing, validating, or exporting Remotion code in app/promo for an MGX-generated promo or designed multi-shot video, including compositions, props, deterministic animation, sequencing, assets, layout, captions, media handling, and render commands. | /workspace/.atoms/skills/remotion-best-practices/SKILL.md |
+| video-editing | Read when you need to edit an existing video with AI, such as changing style, replacing background, changing outfit/object appearance, preserving the original motion, or keeping the source audio. | /workspace/.atoms/skills/video-editing/SKILL.md |
+| video-generation | Read when you need to generate a single short source clip such as a hero background, atmosphere loop, one-shot image-to-video clip, keyframe video, or reference-to-video clip. | /workspace/.atoms/skills/video-generation/SKILL.md |
