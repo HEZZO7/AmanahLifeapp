@@ -3,8 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface AppSettings {
   currency: string;
@@ -69,6 +75,9 @@ export default function Settings() {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const [settings, setSettings] = useState<AppSettings>(getSafeSettings);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('amanah-settings', JSON.stringify(settings));
@@ -106,6 +115,54 @@ export default function Settings() {
   const isAr = language === 'ar';
 
   const getSelectedCountry = () => COUNTRIES.find(c => c.code === settings.country);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error(isAr ? 'يرجى كتابة DELETE للتأكيد' : 'Please type DELETE to confirm');
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first');
+        setDeleteLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_delete_account',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ confirm: true }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete account');
+      }
+
+      toast.success(isAr ? 'تم حذف الحساب بنجاح' : 'Account deleted successfully');
+      // Clear local storage
+      localStorage.clear();
+      await signOut();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : (isAr ? 'فشل حذف الحساب' : 'Failed to delete account')
+      );
+    }
+    setDeleteLoading(false);
+    setShowDeleteDialog(false);
+    setDeleteConfirmText('');
+  };
 
   const exportFinanceCSV = () => {
     const transactions = JSON.parse(localStorage.getItem('amanah-transactions') || '[]');
@@ -300,6 +357,22 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Delete Account */}
+        <div className="bg-card rounded-2xl p-4 border border-red-500/30">
+          <h3 className="text-sm text-red-400 mb-3">{isAr ? 'منطقة الخطر' : 'Danger Zone'}</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            {isAr
+              ? 'حذف حسابك نهائي ولا يمكن التراجع عنه. سيتم حذف جميع بياناتك.'
+              : 'Deleting your account is permanent and cannot be undone. All your data will be removed.'}
+          </p>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className="w-full bg-red-500/10 border border-red-500/30 text-red-400 py-3 rounded-xl text-sm font-medium hover:bg-red-500/20 transition-all"
+          >
+            {isAr ? '🗑️ حذف الحساب' : '🗑️ Delete Account'}
+          </button>
+        </div>
+
         {/* Sign Out */}
         <button
           onClick={signOut}
@@ -308,6 +381,59 @@ export default function Settings() {
           {t('signOut')}
         </button>
       </main>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              {isAr ? '⚠️ حذف الحساب' : '⚠️ Delete Account'}
+            </DialogTitle>
+            <DialogDescription>
+              {isAr
+                ? 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف حسابك وجميع بياناتك نهائياً.'
+                : 'This action cannot be undone. Your account and all associated data will be permanently deleted.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                {isAr ? 'اكتب DELETE للتأكيد' : 'Type DELETE to confirm'}
+              </Label>
+              <Input
+                id="delete-confirm"
+                type="text"
+                placeholder="DELETE"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="border-red-500/30 focus:border-red-500"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setDeleteConfirmText('');
+              }}
+            >
+              {isAr ? 'إلغاء' : 'Cancel'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
+            >
+              {deleteLoading
+                ? (isAr ? 'جاري الحذف...' : 'Deleting...')
+                : (isAr ? 'حذف نهائي' : 'Delete Forever')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>

@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
     const eventName = payload.meta?.event_name;
     console.log(JSON.stringify({ requestId, event: eventName }));
 
-    const handledEvents = ["subscription_created", "subscription_updated", "subscription_cancelled"];
+    const handledEvents = ["subscription_created", "subscription_updated", "subscription_cancelled", "subscription_expired"];
     if (!handledEvents.includes(eventName)) {
       return new Response(
         JSON.stringify({ received: true, message: "Event not handled" }),
@@ -104,6 +104,8 @@ Deno.serve(async (req: Request) => {
     let status = "active";
     if (eventName === "subscription_cancelled") {
       status = "canceled";
+    } else if (eventName === "subscription_expired") {
+      status = "expired";
     } else if (subscriptionData.status === "paused") {
       status = "paused";
     } else if (subscriptionData.status === "past_due") {

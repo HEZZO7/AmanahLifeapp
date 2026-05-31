@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import AppLogo from '@/components/AppLogo';
 
@@ -13,8 +16,14 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
+
+  const isAr = language === 'ar';
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +61,30 @@ export default function Login() {
       }
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      toast.error(isAr ? 'يرجى إدخال بريدك الإلكتروني' : 'Please enter your email');
+      return;
+    }
+    setResetLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: window.location.origin + '/reset-password',
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(
+        isAr
+          ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني'
+          : 'Password reset link sent to your email'
+      );
+      setShowForgotPassword(false);
+      setResetEmail('');
+    }
+    setResetLoading(false);
   };
 
   return (
@@ -100,6 +133,15 @@ export default function Login() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {isAr ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
+                    </button>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
@@ -187,6 +229,51 @@ export default function Login() {
             </Button>
           </div>
         </Card>
+
+        {/* Forgot Password Dialog */}
+        <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {isAr ? 'إعادة تعيين كلمة المرور' : 'Reset Password'}
+              </DialogTitle>
+              <DialogDescription>
+                {isAr
+                  ? 'أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور'
+                  : 'Enter your email and we\'ll send you a password reset link'}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleForgotPassword}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">{isAr ? 'البريد الإلكتروني' : 'Email'}</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  {isAr ? 'إلغاء' : 'Cancel'}
+                </Button>
+                <Button type="submit" disabled={resetLoading}>
+                  {resetLoading
+                    ? (isAr ? 'جاري الإرسال...' : 'Sending...')
+                    : (isAr ? 'إرسال الرابط' : 'Send Reset Link')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

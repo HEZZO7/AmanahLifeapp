@@ -51,6 +51,7 @@ import RefundPolicy from './pages/RefundPolicy';
 import ContactSupport from './pages/ContactSupport';
 import PricingPage from './pages/PricingPage';
 import LandingPage from './pages/LandingPage';
+import ResetPassword from './pages/ResetPassword';
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,7 @@ const AppRoutes = () => (
     <Route path="/contact" element={<ContactSupport />} />
     <Route path="/pricing" element={<PricingPage />} />
     <Route path="/landing" element={<LandingPage />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
   </Routes>
 );
