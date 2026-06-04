@@ -1,6 +1,6 @@
 ---
 auto_generated: true
-last_updated: 2026-05-29T12:52:33
+last_updated: 2026-06-04T16:56:16
 ---
 
 # Available Skills
@@ -23,3 +23,4 @@ load the full SKILL.md for detailed instructions when needed.
 | remotion-best-practices | Read alongside promo-video-production when writing, reviewing, validating, or exporting Remotion code in app/promo for an MGX-generated promo or designed multi-shot video, including compositions, props, deterministic animation, sequencing, assets, layout, captions, media handling, and render commands. | /workspace/.atoms/skills/remotion-best-practices/SKILL.md |
 | video-editing | Read when you need to edit an existing video with AI, such as changing style, replacing background, changing outfit/object appearance, preserving the original motion, or keeping the source audio. | /workspace/.atoms/skills/video-editing/SKILL.md |
 | video-generation | Read when you need to generate a single short source clip such as a hero background, atmosphere loop, one-shot image-to-video clip, keyframe video, or reference-to-video clip. | /workspace/.atoms/skills/video-generation/SKILL.md |
+| atoms-info | Read when user asks about Atoms platform itself (features, billing, Cloud & AI Wallet, share, etc). | /workspace/.atoms/skills/atoms-info/SKILL.md |
