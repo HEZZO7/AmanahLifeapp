@@ -108,6 +108,7 @@ const AppRoutes = () => (
     <Route path="/landing" element={<LandingPage />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
 
