@@ -78,6 +78,7 @@ export default function Settings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('amanah-settings', JSON.stringify(settings));
@@ -375,10 +376,14 @@ export default function Settings() {
 
         {/* Sign Out */}
         <button
-          onClick={signOut}
-          className="w-full bg-red-500/10 border border-red-500/30 text-red-400 py-3 rounded-2xl text-sm font-medium hover:bg-red-500/20 transition-all"
+          onClick={async () => {
+            setSignOutLoading(true);
+            await signOut();
+          }}
+          disabled={signOutLoading}
+          className="w-full bg-red-500/10 border border-red-500/30 text-red-400 py-3 rounded-2xl text-sm font-medium hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {t('signOut')}
+          {signOutLoading ? (isAr ? 'جارٍ تسجيل الخروج...' : 'Signing out...') : t('signOut')}
         </button>
       </main>
 
