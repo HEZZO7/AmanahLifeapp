@@ -53,6 +53,7 @@ import PricingPage from './pages/PricingPage';
 import LandingPage from './pages/LandingPage';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About';
+import DeleteAccount from './pages/DeleteAccount';
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,7 @@ const AppRoutes = () => (
     <Route path="/pricing" element={<PricingPage />} />
     <Route path="/landing" element={<LandingPage />} />
     <Route path="/about" element={<About />} />
+    <Route path="/delete-account" element={<DeleteAccount />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
     <Route path="*" element={<Navigate to="/" replace />} />
