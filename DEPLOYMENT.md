@@ -41,3 +41,5 @@ Build for production locally (same as what Docker runs):
 ```bash
 npm run build   # outputs to dist/, includes prerendering of 12 blog/landing pages
 ```
+
+Auto-deploy verified working: 2026-07-04T20:18:12Z
