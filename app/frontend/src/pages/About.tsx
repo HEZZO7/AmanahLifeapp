@@ -65,9 +65,11 @@ const About = () => {
           <h3 className="text-xl font-bold text-center">{t.founderHeading}</h3>
           <div className="grid md:grid-cols-[200px_1fr] gap-8 items-start">
             <div className="flex flex-col items-center text-center">
-              <div className="w-40 h-40 rounded-full border-2 border-dashed border-border flex items-center justify-content-center bg-muted/30 text-muted-foreground text-xs p-4 flex items-center justify-center">
-                {t.photoPlaceholder}
-              </div>
+              <img
+                src="/assets/huzaifa-founder.jpg"
+                alt="Huzaifa Al Ezzo"
+                className="w-40 h-40 rounded-full object-cover border-2 border-amber-500"
+              />
               <h4 className="mt-4 font-bold text-lg">{t.founderName}</h4>
               <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold">{t.founderTitle}</p>
 
