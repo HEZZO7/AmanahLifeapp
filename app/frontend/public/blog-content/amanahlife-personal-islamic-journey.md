@@ -9,7 +9,7 @@ og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21
 og_image_alt: "How AmanahLife Transforms Your Personal Islamic Journey"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
+twitter_creator: "@AmanahLifeApp"
 twitter_title: "How AmanahLife Transforms Your Personal Islamic Journey"
 twitter_description: "Elevate your personal Islamic journey with AmanahLife. Track prayers, set Muslim goals, manage fasting, and boost Islamic wellness with an all-in-one daily planner."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfa7aaagsq/amanahlife-personal-islamic-journey-hero.png"

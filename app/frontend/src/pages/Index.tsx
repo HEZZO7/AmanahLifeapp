@@ -10,6 +10,8 @@ import PromoBanner from '@/components/PromoBanner';
 import SmartBriefing from '@/components/SmartBriefing';
 import Streaks from '@/components/Streaks';
 import DuaOfTheDay from '@/components/DuaOfTheDay';
+import MotivationalQuote from '@/components/MotivationalQuote';
+import OfflineIndicator from '@/components/OfflineIndicator';
 
 interface HijriInfo {
   day: string;
@@ -225,6 +227,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+
       {/* Header */}
       <header className="border-b border-border/50 bg-gradient-to-r from-background via-background to-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[68px]">
@@ -320,6 +325,9 @@ export default function HomePage() {
 
         {/* Dua of the Day */}
         <DuaOfTheDay />
+
+        {/* Motivational Quote */}
+        <MotivationalQuote />
 
         {/* Streaks & Achievements */}
         <Streaks />

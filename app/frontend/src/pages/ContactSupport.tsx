@@ -84,7 +84,7 @@ export default function ContactSupport() {
               {isAr ? 'وقت الاستجابة المتوقع' : 'Expected Response Time'}
             </p>
             <p className="text-sm text-muted-foreground">
-              {isAr ? '24-48 ساعة عمل' : '24-48 business hours'}
+              {isAr ? 'في أقرب وقت ممكن' : 'As soon as possible'}
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function ContactSupport() {
                 {isAr ? 'تم إرسال رسالتك بنجاح!' : 'Your message has been sent!'}
               </p>
               <p className="text-muted-foreground mt-2">
-                {isAr ? 'سنرد عليك خلال 24-48 ساعة.' : "We'll get back to you within 24-48 hours."}
+                {isAr ? 'سنرد عليك في أقرب وقت ممكن.' : "We'll get back to you as soon as possible."}
               </p>
               <button
                 onClick={() => {

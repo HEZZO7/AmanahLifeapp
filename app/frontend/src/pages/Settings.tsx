@@ -6,6 +6,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import NotificationSettings from '@/components/NotificationSettings';
+import PrayerReminderSettings from '@/components/PrayerReminderSettings';
+import BackupRestore from '@/components/BackupRestore';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +76,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeMode, toggleTheme, setThemeMode } = useTheme();
   const [settings, setSettings] = useState<AppSettings>(getSafeSettings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -251,6 +254,22 @@ export default function Settings() {
             checked={theme === 'dark'}
             onChange={toggleTheme}
           />
+          {/* Auto theme scheduling */}
+          <div className="mt-3 pt-3 border-t border-border">
+            <ToggleRow
+              label={isAr ? 'تبديل تلقائي (شروق/غروب)' : 'Auto-switch (sunrise/sunset)'}
+              icon="🌗"
+              checked={themeMode === 'auto'}
+              onChange={() => setThemeMode(themeMode === 'auto' ? 'manual' : 'auto')}
+            />
+            {themeMode === 'auto' && (
+              <p className="text-[10px] text-muted-foreground mt-1.5 ml-6">
+                {isAr
+                  ? 'يتبدل تلقائياً حسب أوقات الصلاة (الشروق/المغرب)'
+                  : 'Switches automatically based on prayer times (sunrise/maghrib)'}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Language */}
@@ -275,6 +294,12 @@ export default function Settings() {
             </button>
           </div>
         </div>
+
+        {/* Notifications */}
+        <NotificationSettings />
+
+        {/* Smart Prayer Reminders */}
+        <PrayerReminderSettings />
 
         {/* Regional */}
         <div className="bg-card rounded-2xl p-4 border border-border">
@@ -330,6 +355,9 @@ export default function Settings() {
             onChange={() => updateSetting('easternNumerals', !settings.easternNumerals)}
           />
         </div>
+
+        {/* Backup & Restore */}
+        <BackupRestore />
 
         {/* Export Data */}
         <div className="bg-card rounded-2xl p-4 border border-border">

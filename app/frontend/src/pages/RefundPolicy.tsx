@@ -16,8 +16,8 @@ export default function RefundPolicy() {
     {
       title: isAr ? 'كيفية طلب الاسترداد' : 'How to Request a Refund',
       content: isAr
-        ? 'لطلب استرداد، يرجى التواصل مع فريق الدعم عبر البريد الإلكتروني support@smartlifecompanion.app مع ذكر: عنوان البريد الإلكتروني المرتبط بحسابك، تاريخ الاشتراك، وسبب طلب الاسترداد. سنرد خلال 24-48 ساعة.'
-        : 'To request a refund, please contact our support team at support@smartlifecompanion.app with: the email address associated with your account, subscription date, and reason for the refund request. We will respond within 24-48 hours.',
+        ? 'لطلب استرداد، يرجى التواصل مع فريق الدعم عبر البريد الإلكتروني support@amanahlife.com مع ذكر: عنوان البريد الإلكتروني المرتبط بحسابك، تاريخ الاشتراك، وسبب طلب الاسترداد. سنرد في أقرب وقت ممكن.'
+        : 'To request a refund, please contact our support team at support@amanahlife.com with: the email address associated with your account, subscription date, and reason for the refund request. We will respond as soon as possible.',
     },
     {
       title: isAr ? 'وقت المعالجة' : 'Processing Time',
@@ -46,8 +46,8 @@ export default function RefundPolicy() {
     {
       title: isAr ? 'التواصل بشأن الاسترداد' : 'Contact for Refunds',
       content: isAr
-        ? 'لجميع طلبات الاسترداد والاستفسارات المتعلقة بالفوترة، يرجى التواصل مع فريق الدعم على support@smartlifecompanion.app. نسعى للرد على جميع الطلبات خلال 24-48 ساعة عمل.'
-        : 'For all refund requests and billing inquiries, please contact our support team at support@smartlifecompanion.app. We aim to respond to all requests within 24-48 business hours.',
+        ? 'لجميع طلبات الاسترداد والاستفسارات المتعلقة بالفوترة، يرجى التواصل مع فريق الدعم على support@amanahlife.com. نسعى للرد على جميع الطلبات في أقرب وقت ممكن.'
+        : 'For all refund requests and billing inquiries, please contact our support team at support@amanahlife.com. We aim to respond to all requests as soon as possible.',
     },
   ];
 

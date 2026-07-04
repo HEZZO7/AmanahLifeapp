@@ -9,7 +9,7 @@ og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21
 og_image_alt: "Empower Your Muslim Family: AmanahLife for Collective Growth & Harmony"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
+twitter_creator: "@AmanahLifeApp"
 twitter_title: "Empower Your Muslim Family: AmanahLife for Collective Growth & Harmony"
 twitter_description: "Discover AmanahLife, the ultimate Islamic lifestyle app designed to empower your Muslim family with integrated spiritual tools, halal financial management, and collective productivity features for growth and harmony."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfdlaaagtq/amanahlife-muslim-family-growth-hero.png"

@@ -9,7 +9,7 @@ og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21
 og_image_alt: "Overcome Muslim Lifestyle Challenges: The AmanahLife Solution"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
+twitter_creator: "@AmanahLifeApp"
 twitter_title: "Overcome Muslim Lifestyle Challenges: The AmanahLife Solution"
 twitter_description: "Tired of juggling apps? Discover AmanahLife, the all-in-one Islamic lifestyle app for Muslim productivity, halal finance, and spiritual growth. Simplify your daily life with digital Islamic tools."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfemyaagta/solve-muslim-lifestyle-challenges-hero.png"

@@ -356,6 +356,9 @@ img{max-width:100%;display:block}
 .final-cta h2{font-size:1.8rem}
 .final-cta p{font-size:0.92rem}
 }
+@media(max-width:768px){
+.about-founder-grid{grid-template-columns:1fr !important;text-align:center}
+}
 @media(max-width:480px){
 .container{padding:0 16px}
 .hero{padding:calc(var(--nav-h) + 24px) 0 32px}
@@ -677,6 +680,22 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
   justify-content: center;
   flex-shrink: 0;
 }
+/* Hide platform-injected badge */
+[data-atoms-badge],
+[class*="atoms-badge"],
+[id*="atoms-badge"],
+[class*="AtomsBadge"],
+[id*="AtomsBadge"],
+a[href*="atoms.com"][style*="fixed"],
+div[style*="fixed"][style*="bottom"][style*="right"] > a[href*="atoms"],
+iframe[src*="atoms"],
+#atoms-watermark,
+.atoms-watermark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 </style>
 </head>
 <body>
@@ -695,6 +714,7 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 <li><a href="#showcase" data-i18n="nav_showcase">Showcase</a></li>
 <li><a href="#pricing" data-i18n="nav_pricing">Pricing</a></li>
 <li><a href="#testimonials" data-i18n="nav_testimonials">Testimonials</a></li>
+<li><a href="#about" data-i18n="nav_about">About</a></li>
 </ul>
 <div class="nav-actions">
 <div class="lang-toggle-container">
@@ -723,6 +743,7 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 <a href="#showcase" data-i18n="nav_showcase">Showcase</a>
 <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
 <a href="#testimonials" data-i18n="nav_testimonials">Testimonials</a>
+<a href="#about" data-i18n="nav_about">About</a>
 <a href="/login" target="_top" data-i18n="nav_login">Log In</a>
 <a href="/login" target="_top" class="btn btn-primary" data-i18n="nav_start">Get Started</a>
 </div>
@@ -762,12 +783,12 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 </section>
 <section class="trust-strip">
   <div class="trust-inner">
-    <div class="trust-item"><span>🔒</span><span>SSL Encrypted</span></div>
-    <div class="trust-item"><span>💳</span><span>Powered by Lemon Squeezy</span></div>
-    <div class="trust-item"><span>🌍</span><span>GDPR Compliant</span></div>
-    <div class="trust-item"><span>🔄</span><span>14-Day Money-Back</span></div>
-    <div class="trust-item"><span>⭐</span><span>4.9 App Rating</span></div>
-    <div class="trust-item"><span>🕌</span><span>Built for Muslims Worldwide</span></div>
+    <div class="trust-item"><span>🔒</span><span data-i18n="trust_ssl">SSL Encrypted</span></div>
+    <div class="trust-item"><span>💳</span><span data-i18n="trust_payment">Powered by Lemon Squeezy</span></div>
+    <div class="trust-item"><span>🌍</span><span data-i18n="trust_gdpr">GDPR Compliant</span></div>
+    <div class="trust-item"><span>🔄</span><span data-i18n="trust_moneyback">14-Day Money-Back</span></div>
+    <div class="trust-item"><span>⭐</span><span data-i18n="trust_rating">4.9 App Rating</span></div>
+    <div class="trust-item"><span>🕌</span><span data-i18n="trust_global">Built for Muslims Worldwide</span></div>
   </div>
 </section>
 
@@ -787,9 +808,9 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 <div class="feature-card reveal"><div class="feature-icon teal">&#x1F4C5;</div><h3 data-i18n="f6_title">Life Planner</h3><p data-i18n="f6_desc">Weekly and monthly planning with Hijri and Gregorian calendars, task management, and routine builder.</p></div>
 <div class="feature-card reveal"><div class="feature-icon teal">&#x1F3E0;</div><h3 data-i18n="f7_title">Family Budget</h3><p data-i18n="f7_desc">Comprehensive family financial planning with shared budgets, savings goals, and expense categorization.</p></div>
 <div class="feature-card reveal"><div class="feature-icon gold">&#x1F9ED;</div><h3 data-i18n="f8_title">Qibla Finder</h3><p data-i18n="f8_desc">Accurate Qibla direction using device compass with a beautiful interactive interface and calibration guide.</p></div>
-<div class="feature-card premium reveal"><span class="premium-badge">✨ Premium</span><div class="feature-icon gold">&#x1F916;</div><h3 data-i18n="f9_title">AI Life Coach</h3><p data-i18n="f9_desc">Get personalized advice on habits, goals, and productivity powered by advanced AI with Islamic wisdom integration.</p><div class="feature-preview ai-preview"><div class="preview-header"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot active"></span><span class="preview-label">Live preview</span></div><p class="preview-text" data-en="&quot;You completed 3/5 prayers this week. Your Fajr consistency needs attention. Here is your 7-day improvement plan...&quot;" data-ar="&quot;أكملت ٣ من ٥ صلوات هذا الأسبوع. انتظام الفجر يحتاج اهتماماً. إليك خطة التحسين لـ ٧ أيام...&quot;">"You completed 3/5 prayers this week. Your Fajr consistency needs attention. Here is your 7-day improvement plan..."</p></div></div>
-<div class="feature-card premium reveal"><span class="premium-badge">✨ Premium</span><div class="feature-icon gold">&#x1F9FE;</div><h3 data-i18n="f10_title">Receipt Scanner</h3><p data-i18n="f10_desc">Snap a photo of any receipt and let AI extract items, amounts, and categories automatically into your finances.</p><div class="feature-preview scanner-preview"><div class="preview-header"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot active" style="background:#1FC7C1"></span><span class="preview-label">Live preview</span></div><div class="scanner-demo"><span class="scanner-icon">📷</span><div class="scanner-result"><span class="scanner-scanning" data-en="Scanning receipt..." data-ar="جارٍ مسح الفاتورة...">Scanning receipt...</span><span class="scanner-added" data-en="✓ Added: Coffee $4.50 → Expenses" data-ar="✓ أُضيف: قهوة $٤.٥٠ ← المصروفات">✓ Added: Coffee $4.50 → Expenses</span></div></div></div></div>
-<div class="feature-card premium reveal"><span class="premium-badge">✨ Premium</span><div class="feature-icon gold">&#x1F4A1;</div><h3 data-i18n="f11_title">Smart Savings</h3><p data-i18n="f11_desc">Gamified savings challenges with daily tips, milestone rewards, and AI-powered personalized saving strategies.</p></div>
+<div class="feature-card premium reveal"><span class="premium-badge" data-i18n="badge_premium">✨ Premium</span><div class="feature-icon gold">&#x1F916;</div><h3 data-i18n="f9_title">AI Life Coach</h3><p data-i18n="f9_desc">Get personalized advice on habits, goals, and productivity powered by advanced AI with Islamic wisdom integration.</p><div class="feature-preview ai-preview"><div class="preview-header"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot active"></span><span class="preview-label" data-i18n="preview_live">LIVE PREVIEW</span></div><p class="preview-text" data-i18n="preview_ai_text">"You completed 3/5 prayers this week. Your Fajr consistency needs attention. Here is your 7-day improvement plan..."</p></div></div>
+<div class="feature-card premium reveal"><span class="premium-badge" data-i18n="badge_premium">✨ Premium</span><div class="feature-icon gold">&#x1F9FE;</div><h3 data-i18n="f10_title">Receipt Scanner</h3><p data-i18n="f10_desc">Snap a photo of any receipt and let AI extract items, amounts, and categories automatically into your finances.</p><div class="feature-preview scanner-preview"><div class="preview-header"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot active" style="background:#1FC7C1"></span><span class="preview-label" data-i18n="preview_live">LIVE PREVIEW</span></div><div class="scanner-demo"><span class="scanner-icon">📷</span><div class="scanner-result"><span class="scanner-scanning" data-i18n="preview_scanning">Scanning receipt...</span><span class="scanner-added" data-i18n="preview_added">✓ Added: Coffee $4.50 → Expenses</span></div></div></div></div>
+<div class="feature-card premium reveal"><span class="premium-badge" data-i18n="badge_premium">✨ Premium</span><div class="feature-icon gold">&#x1F4A1;</div><h3 data-i18n="f11_title">Smart Savings</h3><p data-i18n="f11_desc">Gamified savings challenges with daily tips, milestone rewards, and AI-powered personalized saving strategies.</p></div>
 <div class="feature-card reveal"><div class="feature-icon teal">&#x1F3C6;</div><h3 data-i18n="f12_title">Streaks &amp; Badges</h3><p data-i18n="f12_desc">Stay motivated with daily streaks, achievement badges, levels, and a gamification system across all activities.</p></div>
 </div>
 </div>
@@ -815,17 +836,17 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 
 <section id="app-showcase" style="padding:80px 24px;background:#112920;">
 <div style="text-align:center;margin-bottom:48px">
-<span style="display:inline-block;background:rgba(31,199,193,0.1);border:1px solid #1FC7C1;color:#1FC7C1;border-radius:100px;padding:5px 16px;font-size:0.8rem;font-weight:600;margin-bottom:16px">THE APP</span>
-<h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:700;color:#ffffff;margin:0 0 12px">See the App in Action</h2>
-<p style="color:#9DB8B0;font-size:0.95rem;margin:0">Real screens from the app. No mockups.</p>
+<span style="display:inline-block;background:rgba(31,199,193,0.1);border:1px solid #1FC7C1;color:#1FC7C1;border-radius:100px;padding:5px 16px;font-size:0.8rem;font-weight:600;margin-bottom:16px" data-i18n="app_showcase_badge">THE APP</span>
+<h2 style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:700;color:#ffffff;margin:0 0 12px" data-i18n="app_showcase_title">See the App in Action</h2>
+<p style="color:#9DB8B0;font-size:0.95rem;margin:0" data-i18n="app_showcase_desc">Real screens from the app. No mockups.</p>
 </div>
 <div class="app-showcase-grid">
-<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span style="font-weight:700;font-size:0.85rem">AmanahLife</span><div style="display:flex;gap:6px"><span class="app-tile-lang-btn active">EN</span><span class="app-tile-lang-btn">عربي</span></div></div><div style="background:#C9972A;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:0.7rem;color:rgba(255,255,255,0.8)">Prayer Streak</div><div style="font-weight:700;font-size:1rem">0 days 🔥 Keep it going!</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="app-tile-stat"><div class="app-tile-stat-label">Tasks</div><div class="app-tile-stat-val">0/0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label">Prayer</div><div class="app-tile-stat-val">0/5</div></div><div class="app-tile-stat"><div class="app-tile-stat-label">Goals</div><div class="app-tile-stat-val" style="color:#C9972A">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label">Savings</div><div class="app-tile-stat-val">+0</div></div></div></div><div class="app-tile-label">🏠 Dashboard</div></div>
-<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span>🕌 Prayer Times</span></div><div style="background:linear-gradient(135deg,#1FC7C1,#0d9e99);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px"><div style="font-size:0.7rem;color:rgba(255,255,255,0.8);margin-bottom:4px">Next Prayer</div><div style="font-size:1.4rem;font-weight:700;color:#fff">Dhuhr</div><div style="color:rgba(255,255,255,0.9);font-size:0.85rem">12:18 · in 5h 43m</div></div><div style="font-size:0.7rem;color:#9DB8B0;text-align:center;margin-bottom:8px">📍 Asia/Riyadh</div><div style="font-size:0.7rem;color:#9DB8B0;margin-bottom:4px">0/5 prayers completed</div><div style="height:4px;background:#1a3a2a;border-radius:2px"><div style="width:0%;height:100%;background:#1FC7C1;border-radius:2px"></div></div></div><div class="app-tile-label">🕌 Prayer Times</div></div>
-<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span>📖 Quran</span></div><div style="background:#0D2218;border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:0.65rem;color:#1FC7C1">Continue Reading</div><div style="font-size:0.8rem;font-weight:600">Al-Baqara</div></div><div style="background:#1FC7C1;color:#0A1A14;font-size:0.65rem;font-weight:700;padding:4px 10px;border-radius:100px">Resume</div></div><div style="display:flex;flex-direction:column;gap:6px"><div class="app-tile-surah-row"><div style="display:flex;gap:8px;align-items:center"><span class="app-tile-surah-num">1</span><div><div style="font-size:0.75rem;font-weight:600">Al-Faatiha</div><div style="font-size:0.6rem;color:#9DB8B0">7 ayahs · Meccan</div></div></div><span style="font-size:0.7rem;color:#9DB8B0;font-family:'Noto Sans Arabic',sans-serif">الْفَاتِحَة</span></div><div class="app-tile-surah-row"><div style="display:flex;gap:8px;align-items:center"><span class="app-tile-surah-num">2</span><div><div style="font-size:0.75rem;font-weight:600">Al-Baqara</div><div style="font-size:0.6rem;color:#9DB8B0">286 ayahs · Medinan</div></div></div><span style="font-size:0.7rem;color:#9DB8B0;font-family:'Noto Sans Arabic',sans-serif">الْبَقَرَة</span></div></div></div><div class="app-tile-label">📖 Quran Reader</div></div>
-<div class="app-showcase-tile"><div class="app-tile-screen" style="position:relative"><div class="app-tile-topbar"><span>🤖 AI Life Coach</span><span style="background:rgba(201,151,42,0.2);border:1px solid #C9972A;color:#C9972A;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:100px">Premium</span></div><div style="filter:blur(3px);pointer-events:none;opacity:0.4"><div style="height:16px;background:#1a3a2a;border-radius:4px;margin-bottom:8px"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;margin-bottom:8px;width:80%"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;margin-bottom:8px;width:90%"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;width:60%"></div></div><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px"><div style="font-size:1.5rem">✨</div><div style="font-size:0.75rem;font-weight:600;text-align:center">AI Life Coach</div><div style="background:#C9972A;color:#0A1A14;font-size:0.7rem;font-weight:700;padding:6px 14px;border-radius:100px">Unlock with Premium</div></div></div><div class="app-tile-label">🤖 AI Coach · Premium</div></div>
-<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span>💰 Finance</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px"><div class="app-tile-stat"><div class="app-tile-stat-label">Income</div><div class="app-tile-stat-val" style="color:#2ECC71">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label">Expenses</div><div class="app-tile-stat-val" style="color:#E05555">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label">Savings</div><div class="app-tile-stat-val" style="color:#C9972A">0%</div></div></div><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:0.65rem;color:#9DB8B0;margin-bottom:4px"><span>Savings Rate</span><span>0%</span></div><div style="height:4px;background:#1a3a2a;border-radius:2px"><div style="width:0%;height:100%;background:#1FC7C1;border-radius:2px"></div></div></div><div style="font-size:0.7rem;color:#9DB8B0;text-align:center;padding:8px;background:#0D2218;border-radius:8px">No transactions yet</div></div><div class="app-tile-label">💰 Finance Tracker</div></div>
-<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span>👨‍👩‍👧‍👦 Family</span><div style="background:#1FC7C1;color:#0A1A14;font-size:0.6rem;font-weight:700;padding:3px 10px;border-radius:100px">+ Invite</div></div><div style="background:#0D2218;border-radius:10px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:0.65rem;color:#9DB8B0">Family Accountability Score</div><div style="font-size:1.2rem;font-weight:700;color:#1FC7C1">0%</div></div><div style="width:40px;height:40px;border-radius:50%;border:3px solid #1FC7C1;display:flex;align-items:center;justify-content:center;font-size:1rem">🏆</div></div><div style="font-size:0.75rem;font-weight:600;margin-bottom:8px">Family Members (1)</div><div style="display:flex;align-items:center;gap:8px;background:#0D2218;border-radius:8px;padding:8px 10px"><div style="width:28px;height:28px;border-radius:50%;background:#1a3a2a;display:flex;align-items:center;justify-content:center;font-size:0.9rem">👤</div><div><div style="font-size:0.75rem;font-weight:600">You</div><div style="font-size:0.6rem;color:#9DB8B0">Admin</div></div><span style="margin-left:auto;background:rgba(31,199,193,0.15);border:1px solid #1FC7C1;color:#1FC7C1;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:100px">Owner</span></div></div><div class="app-tile-label">👨‍👩‍👧‍👦 Family Dashboard</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span style="font-weight:700;font-size:0.85rem">AmanahLife</span><div style="display:flex;gap:6px"><span class="app-tile-lang-btn active">EN</span><span class="app-tile-lang-btn">عربي</span></div></div><div style="background:#C9972A;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:0.7rem;color:rgba(255,255,255,0.8)" data-i18n="tile_prayer_streak">Prayer Streak</div><div style="font-weight:700;font-size:1rem" data-i18n="tile_streak_val">0 days 🔥 Keep it going!</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_tasks">Tasks</div><div class="app-tile-stat-val">0/0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_prayer">Prayer</div><div class="app-tile-stat-val">0/5</div></div><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_goals">Goals</div><div class="app-tile-stat-val" style="color:#C9972A">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_savings">Savings</div><div class="app-tile-stat-val">+0</div></div></div></div><div class="app-tile-label" data-i18n="tile_dashboard_label">🏠 Dashboard</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span data-i18n="tile_prayer_times_header">🕌 Prayer Times</span></div><div style="background:linear-gradient(135deg,#1FC7C1,#0d9e99);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px"><div style="font-size:0.7rem;color:rgba(255,255,255,0.8);margin-bottom:4px" data-i18n="tile_next_prayer">Next Prayer</div><div style="font-size:1.4rem;font-weight:700;color:#fff" data-i18n="tile_dhuhr">Dhuhr</div><div style="color:rgba(255,255,255,0.9);font-size:0.85rem">12:18</div></div><div style="font-size:0.7rem;color:#9DB8B0;text-align:center;margin-bottom:8px">📍 Asia/Riyadh</div><div style="font-size:0.7rem;color:#9DB8B0;margin-bottom:4px" data-i18n="tile_prayers_completed">0/5 prayers completed</div><div style="height:4px;background:#1a3a2a;border-radius:2px"><div style="width:0%;height:100%;background:#1FC7C1;border-radius:2px"></div></div></div><div class="app-tile-label" data-i18n="tile_prayer_times_label">🕌 Prayer Times</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span data-i18n="tile_quran_header">📖 Quran</span></div><div style="background:#0D2218;border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:0.65rem;color:#1FC7C1" data-i18n="tile_continue_reading">Continue Reading</div><div style="font-size:0.8rem;font-weight:600">Al-Baqara</div></div><div style="background:#1FC7C1;color:#0A1A14;font-size:0.65rem;font-weight:700;padding:4px 10px;border-radius:100px" data-i18n="tile_resume">Resume</div></div><div style="display:flex;flex-direction:column;gap:6px"><div class="app-tile-surah-row"><div style="display:flex;gap:8px;align-items:center"><span class="app-tile-surah-num">1</span><div><div style="font-size:0.75rem;font-weight:600">Al-Faatiha</div><div style="font-size:0.6rem;color:#9DB8B0">7 ayahs · Meccan</div></div></div><span style="font-size:0.7rem;color:#9DB8B0;font-family:'Noto Sans Arabic',sans-serif">الْفَاتِحَة</span></div><div class="app-tile-surah-row"><div style="display:flex;gap:8px;align-items:center"><span class="app-tile-surah-num">2</span><div><div style="font-size:0.75rem;font-weight:600">Al-Baqara</div><div style="font-size:0.6rem;color:#9DB8B0">286 ayahs · Medinan</div></div></div><span style="font-size:0.7rem;color:#9DB8B0;font-family:'Noto Sans Arabic',sans-serif">الْبَقَرَة</span></div></div></div><div class="app-tile-label" data-i18n="tile_quran_label">📖 Quran Reader</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen" style="position:relative"><div class="app-tile-topbar"><span data-i18n="tile_ai_coach_header">🤖 AI Life Coach</span><span style="background:rgba(201,151,42,0.2);border:1px solid #C9972A;color:#C9972A;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:100px" data-i18n="tile_premium_badge">Premium</span></div><div style="filter:blur(3px);pointer-events:none;opacity:0.4"><div style="height:16px;background:#1a3a2a;border-radius:4px;margin-bottom:8px"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;margin-bottom:8px;width:80%"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;margin-bottom:8px;width:90%"></div><div style="height:12px;background:#1a3a2a;border-radius:4px;width:60%"></div></div><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px"><div style="font-size:1.5rem">✨</div><div style="font-size:0.75rem;font-weight:600;text-align:center" data-i18n="tile_ai_coach_title">AI Life Coach</div><div style="background:#C9972A;color:#0A1A14;font-size:0.7rem;font-weight:700;padding:6px 14px;border-radius:100px" data-i18n="tile_unlock_premium">Unlock with Premium</div></div></div><div class="app-tile-label" data-i18n="tile_ai_coach_label">🤖 AI Coach · Premium</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span data-i18n="tile_finance_header">💰 Finance</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px"><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_income">Income</div><div class="app-tile-stat-val" style="color:#2ECC71">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_expenses">Expenses</div><div class="app-tile-stat-val" style="color:#E05555">0</div></div><div class="app-tile-stat"><div class="app-tile-stat-label" data-i18n="tile_savings_label">Savings</div><div class="app-tile-stat-val" style="color:#C9972A">0%</div></div></div><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:0.65rem;color:#9DB8B0;margin-bottom:4px"><span data-i18n="tile_savings_rate">Savings Rate</span><span>0%</span></div><div style="height:4px;background:#1a3a2a;border-radius:2px"><div style="width:0%;height:100%;background:#1FC7C1;border-radius:2px"></div></div></div><div style="font-size:0.7rem;color:#9DB8B0;text-align:center;padding:8px;background:#0D2218;border-radius:8px" data-i18n="tile_no_transactions">No transactions yet</div></div><div class="app-tile-label" data-i18n="tile_finance_label">💰 Finance Tracker</div></div>
+<div class="app-showcase-tile"><div class="app-tile-screen"><div class="app-tile-topbar"><span data-i18n="tile_family_header">👨‍👩‍👧‍👦 Family</span><div style="background:#1FC7C1;color:#0A1A14;font-size:0.6rem;font-weight:700;padding:3px 10px;border-radius:100px" data-i18n="tile_invite">+ Invite</div></div><div style="background:#0D2218;border-radius:10px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:0.65rem;color:#9DB8B0" data-i18n="tile_accountability">Family Accountability Score</div><div style="font-size:1.2rem;font-weight:700;color:#1FC7C1">0%</div></div><div style="width:40px;height:40px;border-radius:50%;border:3px solid #1FC7C1;display:flex;align-items:center;justify-content:center;font-size:1rem">🏆</div></div><div style="font-size:0.75rem;font-weight:600;margin-bottom:8px" data-i18n="tile_family_members">Family Members (1)</div><div style="display:flex;align-items:center;gap:8px;background:#0D2218;border-radius:8px;padding:8px 10px"><div style="width:28px;height:28px;border-radius:50%;background:#1a3a2a;display:flex;align-items:center;justify-content:center;font-size:0.9rem">👤</div><div><div style="font-size:0.75rem;font-weight:600" data-i18n="tile_you">You</div><div style="font-size:0.6rem;color:#9DB8B0" data-i18n="tile_admin">Admin</div></div><span style="margin-left:auto;background:rgba(31,199,193,0.15);border:1px solid #1FC7C1;color:#1FC7C1;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:100px" data-i18n="tile_owner">Owner</span></div></div><div class="app-tile-label" data-i18n="tile_family_label">👨‍👩‍👧‍👦 Family Dashboard</div></div>
 </div>
 </section>
 
@@ -998,15 +1019,15 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
   <div class="stats-inner">
     <div class="stat-item">
       <div class="stat-number" data-target="4.9" data-suffix="/5" data-decimal="true">0/5</div>
-      <div class="stat-label" data-en="Average Rating" data-ar="متوسط التقييم">Average Rating</div>
+      <div class="stat-label" data-i18n="stats_rating">Average Rating</div>
     </div>
     <div class="stat-item">
-      <div class="stat-number" data-target="14" data-suffix=" Days">0 Days</div>
-      <div class="stat-label" data-en="Money-Back Guarantee" data-ar="ضمان استرداد الأموال">Money-Back Guarantee</div>
+      <div class="stat-number" data-target="14" data-suffix-en=" Days" data-suffix-ar=" يوم" data-suffix=" Days">0 Days</div>
+      <div class="stat-label" data-i18n="stats_guarantee">Money-Back Guarantee</div>
     </div>
     <div class="stat-item">
-      <div class="stat-number" data-target="2" data-suffix=" Languages">0 Languages</div>
-      <div class="stat-label" data-en="Arabic & English" data-ar="عربي وإنجليزي">Arabic & English</div>
+      <div class="stat-number" data-target="2" data-suffix-en=" Languages" data-suffix-ar=" لغات" data-suffix=" Languages">0 Languages</div>
+      <div class="stat-label" data-i18n="stats_languages">Arabic & English</div>
     </div>
   </div>
 </section>
@@ -1071,42 +1092,34 @@ body.light-mode .hamburger span { background: #1a2e25 !important; }
 </div>
 </section>
 
-<!-- ===== ABOUT SECTION ===== -->
 <section class="section" id="about" style="background:var(--bg-surface)">
 <div class="container">
 <div class="section-header reveal">
-<span class="section-label" data-i18n="about_label">About Us</span>
+<div class="section-label" data-i18n="about_label">About</div>
 <h2 class="section-title" data-i18n="about_title">About AmanahLife</h2>
 <p class="section-desc" data-i18n="about_desc">AmanahLife is a personal life planning and daily log app built for users worldwide. It helps individuals and families plan goals, track habits, manage their daily routines, and grow personally — all in one place. Available globally with full multi-currency support including USD.</p>
-<p style="font-size:0.85rem;color:var(--teal);margin-top:10px;font-weight:600" data-i18n="about_company_line">Developed and operated by LinkoraNet LLC, a US-registered company.</p>
 </div>
+<p style="text-align:center;color:var(--text-muted);font-size:0.9rem;margin-top:-40px;margin-bottom:48px" data-i18n="about_operated">Developed and operated by LinkoraNet LLC, a US-registered company.</p>
 
-<!-- Founder -->
-<div class="reveal" style="background:var(--bg-card);border:1px solid var(--border-soft);border-radius:20px;padding:40px;max-width:720px;margin:0 auto 40px;display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
-<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px">
-<div style="width:100px;height:100px;border-radius:50%;border:2px dashed var(--teal);display:flex;align-items:center;justify-content:center;background:var(--teal-dim);color:var(--teal);font-size:2.5rem">👤</div>
-<span style="font-size:0.7rem;color:var(--text-muted);text-align:center;max-width:100px" data-i18n="about_photo_placeholder">[Add founder photo here]</span>
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:40px;align-items:start;max-width:900px;margin:0 auto" class="reveal about-founder-grid">
+<div style="text-align:center">
+<div style="width:160px;height:160px;border-radius:50%;border:3px dashed var(--border-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;background:var(--bg-card);color:var(--text-muted);font-size:0.75rem;padding:16px" data-i18n="about_photo_placeholder">[Add founder photo here]</div>
+<h3 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Huzaifa Al Ezzo</h3>
+<p style="font-size:0.82rem;color:var(--gold);font-weight:600" data-i18n="about_founder_title">Founder &amp; CEO, LinkoraNet LLC</p>
+
 </div>
-<div style="flex:1;min-width:220px">
-<p style="font-size:0.8rem;color:var(--teal);font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px" data-i18n="about_founder_label">Meet the Founder</p>
-<h3 style="font-size:1.3rem;font-weight:700;margin-bottom:2px">Huzaifa Al Ezzo</h3>
-<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px" data-i18n="about_founder_title">Founder &amp; CEO, LinkoraNet LLC</p>
-<p style="font-size:0.88rem;color:var(--text-muted);line-height:1.7;margin-bottom:16px" data-i18n="about_founder_bio">Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor's in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner — a tool that walks alongside people on their journey toward a more intentional and fulfilling life.</p>
-<a href="https://www.linkedin.com/in/huzaifa-ezzo-trans7" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--teal);font-weight:600;border:1px solid var(--teal);border-radius:50px;padding:6px 14px;transition:all 0.2s" onmouseover="this.style.background='rgba(31,199,193,0.1)'" onmouseout="this.style.background='transparent'">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-LinkedIn
-</a>
+<div>
+<h3 style="font-size:1.2rem;font-weight:700;margin-bottom:16px" data-i18n="about_founder_heading">Meet the Founder</h3>
+<p style="font-size:0.92rem;color:var(--text-muted);line-height:1.8" data-i18n="about_founder_bio">Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor's in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner — a tool that walks alongside people on their journey toward a more intentional and fulfilling life.</p>
 </div>
 </div>
 
-<!-- The Company -->
-<div class="reveal" style="background:var(--bg-card);border:1px solid var(--border-soft);border-radius:20px;padding:32px;max-width:720px;margin:0 auto">
-<h3 style="font-size:1.1rem;font-weight:700;margin-bottom:12px;color:var(--teal)" data-i18n="about_company_subtitle">The Company</h3>
-<p style="font-size:0.88rem;color:var(--text-muted);line-height:1.7" data-i18n="about_company_desc">AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.</p>
+<div style="max-width:700px;margin:48px auto 0;text-align:center" class="reveal">
+<h3 style="font-size:1.2rem;font-weight:700;margin-bottom:16px" data-i18n="about_company_heading">The Company</h3>
+<p style="font-size:0.92rem;color:var(--text-muted);line-height:1.8" data-i18n="about_company_text">AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.</p>
 </div>
 </div>
 </section>
-
 </main>
 
 <footer class="footer">
@@ -1128,28 +1141,28 @@ LinkedIn
 <div class="footer-col">
 <h4 data-i18n="footer_company">Company</h4>
 <ul>
-<li><a href="/about" data-i18n="footer_about">About Us</a></li>
-<li><a href="/privacy" data-i18n="footer_privacy">Privacy Policy</a></li>
-<li><a href="/terms" data-i18n="footer_terms">Terms of Service</a></li>
-<li><a href="/refund" data-i18n="footer_refund">Refund Policy</a></li>
-<li><a href="/contact" data-i18n="footer_contact">Contact Us</a></li>
+<li><a href="/about" target="_top" data-i18n="footer_about">About Us</a></li>
+<li><a href="/privacy" target="_top" data-i18n="footer_privacy">Privacy Policy</a></li>
+<li><a href="/terms" target="_top" data-i18n="footer_terms">Terms of Service</a></li>
+<li><a href="/refund" target="_top" data-i18n="footer_refund">Refund Policy</a></li>
+<li><a href="/contact" target="_top" data-i18n="footer_contact">Contact Us</a></li>
 </ul>
 </div>
 <div class="footer-col">
 <h4 data-i18n="footer_support">Support</h4>
 <ul>
 <li><a href="mailto:support@amanahlife.com">support@amanahlife.com</a></li>
-<li><a href="/contact" data-i18n="footer_help">Help Center</a></li>
-<li><a href="/blog" data-i18n="footer_blog">Blog</a></li>
+<li><a href="/contact" target="_top" data-i18n="footer_help">Help Center</a></li>
+<li><a href="/blog" target="_top" data-i18n="footer_blog">Blog</a></li>
 </ul>
 </div>
 </div>
 <div class="footer-bottom">
-<span id="footer-copyright">&#169; 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.</span>
+<span class="footer-copyright" data-i18n="footer_copyright">&copy; 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.</span>
 <div class="footer-social">
 <a href="#" aria-label="Twitter">&#x1D54F;</a>
 <a href="#" aria-label="Instagram">&#x1F4F7;</a>
-<a href="#" aria-label="LinkedIn">in</a>
+<a href="https://www.linkedin.com/in/huzaifa-ezzo-trans7" target="_blank" aria-label="LinkedIn">in</a>
 </div>
 </div>
 </div>
@@ -1247,18 +1260,83 @@ var translations = {
     stat_2:'Features',stat_3:'Currencies Supported',stat_4:'Uptime %',
     cta_title:'Ready to Transform Your Life?',cta_desc:'Join thousands who are already managing their lives with clarity, purpose, and peace of mind.',cta_button:'Start Your Free Journey',
     footer_desc:'Your complete smart life companion. Manage finances, track habits, plan goals, and grow spiritually \u2014 all in one app.',
-    footer_product:'Product',footer_company:'Company',footer_support:'Support',footer_privacy:'Privacy Policy',footer_terms:'Terms of Service',footer_refund:'Refund Policy',footer_contact:'Contact Us',footer_help:'Help Center',footer_blog:'Blog',
+    footer_product:'Product',footer_company:'Company',footer_support:'Support',footer_about:'About Us',footer_privacy:'Privacy Policy',footer_terms:'Terms of Service',footer_refund:'Refund Policy',footer_contact:'Contact Us',footer_help:'Help Center',footer_blog:'Blog',
     sticky_text:'Start Free Today',sticky_price:'Premium from $4.89/mo',sticky_cta:'View Plans',
     toast_checkout_error:'Checkout not configured yet. Please try again later.',toast_checkout_fallback:'Opening checkout in new tab...',
-    footer_about:'About Us',
-    about_label:'About Us',about_title:'About AmanahLife',
-    about_desc:'AmanahLife is a personal life planning and daily log app built for users worldwide. It helps individuals and families plan goals, track habits, manage their daily routines, and grow personally — all in one place. Available globally with full multi-currency support including USD.',
-    about_company_line:'Developed and operated by LinkoraNet LLC, a US-registered company.',
+    nav_about:'About',
+    footer_copyright:'\u00A9 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.',
+    about_label:'About',about_title:'About AmanahLife',
+    about_desc:'AmanahLife is a personal life planning and daily log app built for users worldwide. It helps individuals and families plan goals, track habits, manage their daily routines, and grow personally \u2014 all in one place. Available globally with full multi-currency support including USD.',
+    about_operated:'Developed and operated by LinkoraNet LLC, a US-registered company.',
     about_photo_placeholder:'[Add founder photo here]',
-    about_founder_label:'Meet the Founder',about_founder_title:'Founder & CEO, LinkoraNet LLC',
-    about_founder_bio:'Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor’s in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner — a tool that walks alongside people on their journey toward a more intentional and fulfilling life.',
-    about_company_subtitle:'The Company',
-    about_company_desc:'AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.'
+    about_founder_title:'Founder & CEO, LinkoraNet LLC',
+    about_founder_heading:'Meet the Founder',
+    about_founder_bio:'Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor\u2019s in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner \u2014 a tool that walks alongside people on their journey toward a more intentional and fulfilling life.',
+    about_company_heading:'The Company',
+    about_company_text:'AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.',
+    // Trust strip
+    trust_ssl:'SSL Encrypted',
+    trust_payment:'Powered by Lemon Squeezy',
+    trust_gdpr:'GDPR Compliant',
+    trust_moneyback:'14-Day Money-Back',
+    trust_rating:'4.9 App Rating',
+    trust_global:'Built for Muslims Worldwide',
+    // App showcase section
+    app_showcase_badge:'THE APP',
+    app_showcase_title:'See the App in Action',
+    app_showcase_desc:'Real screens from the app. No mockups.',
+    // Dashboard tile
+    tile_prayer_streak:'Prayer Streak',
+    tile_streak_val:'0 days 🔥 Keep it going!',
+    tile_tasks:'Tasks',
+    tile_prayer:'Prayer',
+    tile_goals:'Goals',
+    tile_savings:'Savings',
+    tile_dashboard_label:'🏠 Dashboard',
+    // Prayer times tile
+    tile_prayer_times_header:'🕌 Prayer Times',
+    tile_next_prayer:'Next Prayer',
+    tile_dhuhr:'Dhuhr',
+    tile_prayers_completed:'0/5 prayers completed',
+    tile_prayer_times_label:'🕌 Prayer Times',
+    // Quran tile
+    tile_quran_header:'📖 Quran',
+    tile_continue_reading:'Continue Reading',
+    tile_resume:'Resume',
+    tile_quran_label:'📖 Quran Reader',
+    // AI Coach tile
+    tile_ai_coach_header:'🤖 AI Life Coach',
+    tile_premium_badge:'Premium',
+    tile_ai_coach_title:'AI Life Coach',
+    tile_unlock_premium:'Unlock with Premium',
+    tile_ai_coach_label:'🤖 AI Coach · Premium',
+    // Finance tile
+    tile_finance_header:'💰 Finance',
+    tile_income:'Income',
+    tile_expenses:'Expenses',
+    tile_savings_label:'Savings',
+    tile_savings_rate:'Savings Rate',
+    tile_no_transactions:'No transactions yet',
+    tile_finance_label:'💰 Finance Tracker',
+    // Family tile
+    tile_family_header:'👨‍👩‍👧‍👦 Family',
+    tile_invite:'+ Invite',
+    tile_accountability:'Family Accountability Score',
+    tile_family_members:'Family Members (1)',
+    tile_you:'You',
+    tile_admin:'Admin',
+    tile_owner:'Owner',
+    tile_family_label:'👨‍👩‍👧‍👦 Family Dashboard',
+    // Feature previews
+    badge_premium:'✨ Premium',
+    preview_live:'LIVE PREVIEW',
+    preview_ai_text:'"You completed 3/5 prayers this week. Your Fajr consistency needs attention. Here is your 7-day improvement plan..."',
+    preview_scanning:'Scanning receipt...',
+    preview_added:'✓ Added: Coffee $4.50 → Expenses',
+    // Stats counter
+    stats_rating:'Average Rating',
+    stats_guarantee:'Money-Back Guarantee',
+    stats_languages:'Arabic & English'
   },
   ar: {
     nav_features:'\u0627\u0644\u0645\u0645\u064A\u0632\u0627\u062A',nav_showcase:'\u0627\u0644\u0639\u0631\u0636',nav_pricing:'\u0627\u0644\u0623\u0633\u0639\u0627\u0631',nav_testimonials:'\u0622\u0631\u0627\u0621 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646',nav_login:'\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644',nav_start:'\u0627\u0628\u062F\u0623 \u0627\u0644\u0622\u0646',
@@ -1325,18 +1403,83 @@ var translations = {
     test_6_quote:'\u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629 \u063A\u064A\u0631\u062A \u062A\u0648\u0627\u0635\u0644\u0646\u0627 \u062D\u0648\u0644 \u0627\u0644\u0645\u0627\u0644.',test_6_name:'\u0646\u0648\u0631\u0629 \u062D.',test_6_role:'\u0631\u0628\u0629 \u0645\u0646\u0632\u0644\u060C \u062C\u062F\u0629',
     stat_2:'\u0645\u064A\u0632\u0629',stat_3:'\u0639\u0645\u0644\u0629 \u0645\u062F\u0639\u0648\u0645\u0629',stat_4:'% \u0648\u0642\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644',
     cta_title:'\u0645\u0633\u062A\u0639\u062F \u0644\u062A\u063A\u064A\u064A\u0631 \u062D\u064A\u0627\u062A\u0643\u061F',cta_desc:'\u0627\u0646\u0636\u0645 \u0644\u0644\u0622\u0644\u0627\u0641 \u0627\u0644\u0630\u064A\u0646 \u064A\u062F\u064A\u0631\u0648\u0646 \u062D\u064A\u0627\u062A\u0647\u0645 \u0628\u0648\u0636\u0648\u062D.',cta_button:'\u0627\u0628\u062F\u0623 \u0631\u062D\u0644\u062A\u0643 \u0627\u0644\u0645\u062C\u0627\u0646\u064A\u0629',
-    footer_desc:'\u0631\u0641\u064A\u0642\u0643 \u0627\u0644\u0630\u0643\u064A \u0627\u0644\u0634\u0627\u0645\u0644.',footer_product:'\u0627\u0644\u0645\u0646\u062A\u062C',footer_company:'\u0627\u0644\u0634\u0631\u0643\u0629',footer_support:'\u0627\u0644\u062F\u0639\u0645',footer_privacy:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629',footer_terms:'\u0634\u0631\u0648\u0637 \u0627\u0644\u062E\u062F\u0645\u0629',footer_refund:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u0627\u0633\u062A\u0631\u062F\u0627\u062F',footer_contact:'\u0627\u062A\u0635\u0644 \u0628\u0646\u0627',footer_help:'\u0645\u0631\u0643\u0632 \u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629',footer_blog:'\u0627\u0644\u0645\u062F\u0648\u0646\u0629',
+    footer_desc:'\u0631\u0641\u064A\u0642\u0643 \u0627\u0644\u0630\u0643\u064A \u0627\u0644\u0634\u0627\u0645\u0644.',footer_product:'\u0627\u0644\u0645\u0646\u062A\u062C',footer_company:'\u0627\u0644\u0634\u0631\u0643\u0629',footer_support:'\u0627\u0644\u062F\u0639\u0645',footer_about:'\u0639\u0646\u0651\u0627',footer_privacy:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629',footer_terms:'\u0634\u0631\u0648\u0637 \u0627\u0644\u062E\u062F\u0645\u0629',footer_refund:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u0627\u0633\u062A\u0631\u062F\u0627\u062F',footer_contact:'\u0627\u062A\u0635\u0644 \u0628\u0646\u0627',footer_help:'\u0645\u0631\u0643\u0632 \u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629',footer_blog:'\u0627\u0644\u0645\u062F\u0648\u0646\u0629',
     sticky_text:'\u0627\u0628\u062F\u0623 \u0645\u062C\u0627\u0646\u0627\u064B \u0627\u0644\u064A\u0648\u0645',sticky_price:'\u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u0645\u0646 $4.89/\u0634\u0647\u0631',sticky_cta:'\u0639\u0631\u0636 \u0627\u0644\u062E\u0637\u0637',
     toast_checkout_error:'\u0644\u0645 \u064A\u062A\u0645 \u062A\u0643\u0648\u064A\u0646 \u0627\u0644\u062F\u0641\u0639 \u0628\u0639\u062F.',toast_checkout_fallback:'\u062C\u0627\u0631\u064D \u0641\u062A\u062D \u0635\u0641\u062D\u0629 \u0627\u0644\u062F\u0641\u0639...',
-    footer_about:'\u0639\u0646 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641',
+    nav_about:'\u0639\u0646\u0651\u0627',
+    footer_copyright:'\u00A9 2026 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641\u060C \u0645\u0646\u062A\u062C \u062A\u0627\u0628\u0639 \u0644\u0634\u0631\u0643\u0629 LinkoraNet LLC. \u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0642 \u0645\u062D\u0641\u0648\u0638\u0629.',
     about_label:'\u0639\u0646\u0651\u0627',about_title:'\u0639\u0646 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641',
-    about_desc:'\u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u062A\u0637\u0628\u064A\u0642 \u0644\u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u062D\u064A\u0627\u0629 \u0648\u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u064A\u0648\u0645\u064A \u0645\u0635\u0645\u0651\u0645 \u0644\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646 \u062D\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645. \u064A\u0633\u0627\u0639\u062F \u0627\u0644\u0623\u0641\u0631\u0627\u062F \u0648\u0627\u0644\u0639\u0627\u0626\u0644\u0627\u062A \u0639\u0644\u0649 \u062A\u062D\u062F\u064A\u062F \u0627\u0644\u0623\u0647\u062F\u0627\u0641 \u0648\u062A\u062A\u0628\u0639 \u0627\u0644\u0639\u0627\u062F\u0627\u062A \u0648\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0631\u0648\u062A\u064A\u0646 \u0627\u0644\u064A\u0648\u0645\u064A \u0648\u0627\u0644\u0646\u0645\u0648 \u0627\u0644\u0634\u062E\u0635\u064A \u2014 \u0643\u0644 \u0630\u0644\u0643 \u0641\u064A \u0645\u0643\u0627\u0646 \u0648\u0627\u062D\u062F. \u0645\u062A\u0627\u062D \u0639\u0627\u0644\u0645\u064A\u0627\u064B \u0645\u0639 \u062F\u0639\u0645 \u0643\u0627\u0645\u0644 \u0644\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u062F\u062F\u0629 \u0628\u0645\u0627 \u0641\u064A\u0647\u0627 \u0627\u0644\u062F\u0648\u0644\u0627\u0631 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A.',
-    about_company_line:'\u0637\u0648\u0651\u0631\u062A\u0647 \u0648\u062A\u0634\u063A\u0651\u0644\u0647 \u0634\u0631\u0643\u0629 LinkoraNet LLC\u060C \u0648\u0647\u064A \u0634\u0631\u0643\u0629 \u0645\u0633\u062C\u0651\u0644\u0629 \u0641\u064A \u0627\u0644\u0648\u0644\u0627\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u062D\u062F\u0629.',
+    about_desc:'\u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u062A\u0637\u0628\u064A\u0642 \u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u062D\u064A\u0627\u0629 \u0627\u0644\u0634\u062E\u0635\u064A\u0629 \u0648\u0627\u0644\u0633\u062C\u0644 \u0627\u0644\u064A\u0648\u0645\u064A \u0645\u0635\u0645\u0645 \u0644\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646 \u062D\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645. \u064A\u0633\u0627\u0639\u062F \u0627\u0644\u0623\u0641\u0631\u0627\u062F \u0648\u0627\u0644\u0639\u0627\u0626\u0644\u0627\u062A \u0639\u0644\u0649 \u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u0623\u0647\u062F\u0627\u0641 \u0648\u062A\u062A\u0628\u0639 \u0627\u0644\u0639\u0627\u062F\u0627\u062A \u0648\u0625\u062F\u0627\u0631\u0629 \u0631\u0648\u062A\u064A\u0646\u0647\u0645 \u0627\u0644\u064A\u0648\u0645\u064A \u0648\u0627\u0644\u0646\u0645\u0648 \u0634\u062E\u0635\u064A\u0627\u064B \u2014 \u0643\u0644 \u0630\u0644\u0643 \u0641\u064A \u0645\u0643\u0627\u0646 \u0648\u0627\u062D\u062F. \u0645\u062A\u0627\u062D \u0639\u0627\u0644\u0645\u064A\u0627\u064B \u0645\u0639 \u062F\u0639\u0645 \u0643\u0627\u0645\u0644 \u0644\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u062F\u062F\u0629 \u0628\u0645\u0627 \u0641\u064A \u0630\u0644\u0643 \u0627\u0644\u062F\u0648\u0644\u0627\u0631 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A.',
+    about_operated:'\u062A\u0645 \u062A\u0637\u0648\u064A\u0631\u0647 \u0648\u062A\u0634\u063A\u064A\u0644\u0647 \u0628\u0648\u0627\u0633\u0637\u0629 \u0634\u0631\u0643\u0629 LinkoraNet LLC\u060C \u0634\u0631\u0643\u0629 \u0645\u0633\u062C\u0644\u0629 \u0641\u064A \u0627\u0644\u0648\u0644\u0627\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u062D\u062F\u0629.',
     about_photo_placeholder:'[\u0623\u0636\u0641 \u0635\u0648\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633 \u0647\u0646\u0627]',
-    about_founder_label:'\u062A\u0639\u0631\u0651\u0641 \u0639\u0644\u0649 \u0627\u0644\u0645\u0624\u0633\u0633',about_founder_title:'\u0627\u0644\u0645\u0624\u0633\u0633 \u0648\u0627\u0644\u0631\u0626\u064A\u0633 \u0627\u0644\u062A\u0646\u0641\u064A\u0630\u064A\u060C LinkoraNet LLC',
-    about_founder_bio:'\u062D\u0630\u064A\u0641\u0629 \u0627\u0644\u0639\u0632\u0648 \u0645\u062A\u062E\u0635\u0635 \u062B\u0646\u0627\u0626\u064A \u0627\u0644\u0644\u063A\u0629 \u064A\u0645\u062A\u0644\u0643 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0639\u0634\u0631 \u0633\u0646\u0648\u0627\u062A \u0645\u0646 \u0627\u0644\u062E\u0628\u0631\u0629 \u0641\u064A \u0627\u0644\u0625\u062F\u0627\u0631\u0629 \u0648\u0627\u0644\u0645\u0648\u0627\u0631\u062F \u0627\u0644\u0628\u0634\u0631\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0644\u064A\u0645 \u0648\u0627\u0644\u0628\u062D\u062B. \u064A\u062D\u0645\u0644 \u0645\u0627\u062C\u0633\u062A\u064A\u0631\u0627\u064B \u0641\u064A \u0627\u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0648\u0628\u0643\u0627\u0644\u0648\u0631\u064A\u0648\u0633 \u0641\u064A \u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0625\u0646\u062C\u0644\u064A\u0632\u064A\u0629 \u0648\u0627\u0644\u062A\u0631\u062C\u0645\u0629\u060C \u0648\u0628\u0646\u0649 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0645\u0646 \u0631\u063A\u0628\u0629 \u062D\u0642\u064A\u0642\u064A\u0629 \u0641\u064A \u0645\u0633\u0627\u0639\u062F\u0629 \u0627\u0644\u0646\u0627\u0633 \u0639\u0644\u0649 \u062A\u0646\u0638\u064A\u0645 \u062D\u064A\u0627\u062A\u0647\u0645 \u0648\u062A\u062A\u0628\u0639 \u062A\u0642\u062F\u0645\u0647\u0645 \u0648\u0627\u0644\u0646\u0645\u0648 \u0628\u0647\u062F\u0641. \u062A\u062A\u0645\u062B\u0644 \u0631\u0624\u064A\u062A\u0647 \u0641\u064A \u062C\u0639\u0644 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0631\u0641\u064A\u0642\u0627\u064B \u0645\u0648\u062B\u0648\u0642\u0627\u064B \u0644\u0644\u062D\u064A\u0627\u0629 \u2014 \u0623\u062F\u0627\u0629 \u062A\u0631\u0627\u0641\u0642 \u0627\u0644\u0646\u0627\u0633 \u0641\u064A \u0631\u062D\u0644\u062A\u0647\u0645 \u0646\u062D\u0648 \u062D\u064A\u0627\u0629 \u0623\u0643\u062B\u0631 \u062A\u0639\u0645\u062F\u0627\u064B \u0648\u0625\u0634\u0628\u0627\u0639\u0627\u064B.',
-    about_company_subtitle:'\u0627\u0644\u0634\u0631\u0643\u0629',
-    about_company_desc:'\u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0645\u0646\u062A\u062C \u062A\u0627\u0628\u0639 \u0644\u0634\u0631\u0643\u0629 LinkoraNet LLC\u060C \u0648\u0647\u064A \u0634\u0631\u0643\u0629 \u0630\u0627\u062A \u0645\u0633\u0624\u0648\u0644\u064A\u0629 \u0645\u062D\u062F\u0648\u062F\u0629 \u0645\u0633\u062C\u0651\u0644\u0629 \u0641\u064A \u0648\u0644\u0627\u064A\u0629 \u0648\u0627\u064A\u0648\u0645\u0646\u063A\u060C \u0627\u0644\u0648\u0644\u0627\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u062D\u062F\u0629 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A\u0629. \u062A\u0637\u0648\u0651\u0631 LinkoraNet LLC \u0645\u0646\u062A\u062C\u0627\u062A \u0631\u0642\u0645\u064A\u0629 \u0648\u062A\u0637\u0628\u064A\u0642\u0627\u062A SaaS \u062A\u062E\u062F\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646 \u062D\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645.'
+    about_founder_title:'\u0627\u0644\u0645\u0624\u0633\u0633 \u0648\u0627\u0644\u0631\u0626\u064A\u0633 \u0627\u0644\u062A\u0646\u0641\u064A\u0630\u064A\u060C LinkoraNet LLC',
+    about_founder_heading:'\u062A\u0639\u0631\u0641 \u0639\u0644\u0649 \u0627\u0644\u0645\u0624\u0633\u0633',
+    about_founder_bio:'\u062D\u0630\u064A\u0641\u0629 \u0627\u0644\u0639\u0632\u0648 \u0645\u062A\u062E\u0635\u0635 \u062B\u0646\u0627\u0626\u064A \u0627\u0644\u0644\u063A\u0629 \u064A\u0645\u062A\u0644\u0643 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0639\u0634\u0631 \u0633\u0646\u0648\u0627\u062A \u0645\u0646 \u0627\u0644\u062E\u0628\u0631\u0629 \u0641\u064A \u0627\u0644\u0625\u062F\u0627\u0631\u0629 \u0648\u0627\u0644\u0645\u0648\u0627\u0631\u062F \u0627\u0644\u0628\u0634\u0631\u064A\u0629 \u0648\u0627\u0644\u062A\u0639\u0644\u064A\u0645 \u0648\u0627\u0644\u0628\u062D\u062B \u0627\u0644\u0639\u0644\u0645\u064A. \u064A\u062D\u0645\u0644 \u0645\u0627\u062C\u0633\u062A\u064A\u0631 \u0641\u064A \u0627\u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0648\u0628\u0643\u0627\u0644\u0648\u0631\u064A\u0648\u0633 \u0641\u064A \u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0625\u0646\u062C\u0644\u064A\u0632\u064A\u0629 \u0648\u0627\u0644\u062A\u0631\u062C\u0645\u0629\u060C \u0648\u0642\u062F \u0623\u0633\u0633 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0627\u0646\u0637\u0644\u0627\u0642\u0627\u064B \u0645\u0646 \u0631\u063A\u0628\u0629 \u062D\u0642\u064A\u0642\u064A\u0629 \u0641\u064A \u0645\u0633\u0627\u0639\u062F\u0629 \u0627\u0644\u0646\u0627\u0633 \u0639\u0644\u0649 \u062A\u0646\u0638\u064A\u0645 \u062D\u064A\u0627\u062A\u0647\u0645 \u0648\u062A\u062A\u0628\u0639 \u062A\u0642\u062F\u0645\u0647\u0645 \u0648\u0627\u0644\u0646\u0645\u0648 \u0628\u0647\u062F\u0641. \u0631\u0624\u064A\u062A\u0647 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0634\u0631\u064A\u0643\u0627\u064B \u062D\u0642\u064A\u0642\u064A\u0627\u064B \u0641\u064A \u0627\u0644\u062D\u064A\u0627\u0629 \u2014 \u0623\u062F\u0627\u0629 \u062A\u0631\u0627\u0641\u0642 \u0627\u0644\u0625\u0646\u0633\u0627\u0646 \u0641\u064A \u0631\u062D\u0644\u062A\u0647 \u0646\u062D\u0648 \u062D\u064A\u0627\u0629 \u0623\u0643\u062B\u0631 \u0648\u0639\u064A\u0627\u064B \u0648\u062A\u062D\u0642\u064A\u0642\u0627\u064B.',
+    about_company_heading:'\u0639\u0646 \u0627\u0644\u0634\u0631\u0643\u0629',
+    about_company_text:'\u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0645\u0646\u062A\u062C \u062A\u0627\u0628\u0639 \u0644\u0634\u0631\u0643\u0629 LinkoraNet LLC\u060C \u0634\u0631\u0643\u0629 \u0630\u0627\u062A \u0645\u0633\u0624\u0648\u0644\u064A\u0629 \u0645\u062D\u062F\u0648\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0641\u064A \u0648\u0644\u0627\u064A\u0629 \u0648\u0627\u064A\u0648\u0645\u0646\u063A\u060C \u0627\u0644\u0648\u0644\u0627\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u062D\u062F\u0629 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A\u0629. \u062A\u0637\u0648\u0631 LinkoraNet LLC \u0645\u0646\u062A\u062C\u0627\u062A \u0631\u0642\u0645\u064A\u0629 \u0648\u062A\u0637\u0628\u064A\u0642\u0627\u062A SaaS \u062A\u062E\u062F\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646 \u062D\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645.',
+    // Trust strip
+    trust_ssl:'\u062A\u0634\u0641\u064A\u0631 SSL',
+    trust_payment:'\u0645\u062F\u0639\u0648\u0645 \u0628\u0640 Lemon Squeezy',
+    trust_gdpr:'\u0645\u062A\u0648\u0627\u0641\u0642 \u0645\u0639 GDPR',
+    trust_moneyback:'\u0636\u0645\u0627\u0646 \u0627\u0633\u062A\u0631\u062F\u0627\u062F 14 \u064A\u0648\u0645',
+    trust_rating:'\u062A\u0642\u064A\u064A\u0645 4.9',
+    trust_global:'\u0645\u0635\u0645\u0645 \u0644\u0644\u0645\u0633\u0644\u0645\u064A\u0646 \u062D\u0648\u0644 \u0627\u0644\u0639\u0627\u0644\u0645',
+    // App showcase section
+    app_showcase_badge:'\u0627\u0644\u062A\u0637\u0628\u064A\u0642',
+    app_showcase_title:'\u0634\u0627\u0647\u062F \u0627\u0644\u062A\u0637\u0628\u064A\u0642 \u0623\u062B\u0646\u0627\u0621 \u0627\u0644\u0639\u0645\u0644',
+    app_showcase_desc:'\u0634\u0627\u0634\u0627\u062A \u062D\u0642\u064A\u0642\u064A\u0629 \u0645\u0646 \u0627\u0644\u062A\u0637\u0628\u064A\u0642. \u0628\u062F\u0648\u0646 \u0646\u0645\u0627\u0630\u062C.',
+    // Dashboard tile
+    tile_prayer_streak:'\u0633\u0644\u0633\u0644\u0629 \u0627\u0644\u0635\u0644\u0627\u0629',
+    tile_streak_val:'0 \u064A\u0648\u0645 \uD83D\uDD25 \u0627\u0633\u062A\u0645\u0631!',
+    tile_tasks:'\u0627\u0644\u0645\u0647\u0627\u0645',
+    tile_prayer:'\u0627\u0644\u0635\u0644\u0627\u0629',
+    tile_goals:'\u0627\u0644\u0623\u0647\u062F\u0627\u0641',
+    tile_savings:'\u0627\u0644\u0627\u062F\u062E\u0627\u0631',
+    tile_dashboard_label:'\uD83C\uDFE0 \u0644\u0648\u062D\u0629 \u0627\u0644\u062A\u062D\u0643\u0645',
+    // Prayer times tile
+    tile_prayer_times_header:'\uD83D\uDD4C \u0645\u0648\u0627\u0642\u064A\u062A \u0627\u0644\u0635\u0644\u0627\u0629',
+    tile_next_prayer:'\u0627\u0644\u0635\u0644\u0627\u0629 \u0627\u0644\u062A\u0627\u0644\u064A\u0629',
+    tile_dhuhr:'\u0627\u0644\u0638\u0647\u0631',
+    tile_prayers_completed:'0/5 \u0635\u0644\u0648\u0627\u062A \u0645\u0643\u062A\u0645\u0644\u0629',
+    tile_prayer_times_label:'\uD83D\uDD4C \u0645\u0648\u0627\u0642\u064A\u062A \u0627\u0644\u0635\u0644\u0627\u0629',
+    // Quran tile
+    tile_quran_header:'\uD83D\uDCD6 \u0627\u0644\u0642\u0631\u0622\u0646',
+    tile_continue_reading:'\u0627\u0633\u062A\u0645\u0631 \u0641\u064A \u0627\u0644\u0642\u0631\u0627\u0621\u0629',
+    tile_resume:'\u0627\u0633\u062A\u0623\u0646\u0641',
+    tile_quran_label:'\uD83D\uDCD6 \u0642\u0627\u0631\u0626 \u0627\u0644\u0642\u0631\u0622\u0646',
+    // AI Coach tile
+    tile_ai_coach_header:'\uD83E\uDD16 \u0627\u0644\u0645\u062F\u0631\u0628 \u0627\u0644\u0630\u0643\u064A',
+    tile_premium_badge:'\u0645\u0645\u064A\u0632',
+    tile_ai_coach_title:'\u0627\u0644\u0645\u062F\u0631\u0628 \u0627\u0644\u0630\u0643\u064A',
+    tile_unlock_premium:'\u0627\u0641\u062A\u062D \u0628\u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643',
+    tile_ai_coach_label:'\uD83E\uDD16 \u0627\u0644\u0645\u062F\u0631\u0628 \u0627\u0644\u0630\u0643\u064A \u00B7 \u0645\u0645\u064A\u0632',
+    // Finance tile
+    tile_finance_header:'\uD83D\uDCB0 \u0627\u0644\u0645\u0627\u0644\u064A\u0629',
+    tile_income:'\u0627\u0644\u062F\u062E\u0644',
+    tile_expenses:'\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A',
+    tile_savings_label:'\u0627\u0644\u0627\u062F\u062E\u0627\u0631',
+    tile_savings_rate:'\u0645\u0639\u062F\u0644 \u0627\u0644\u0627\u062F\u062E\u0627\u0631',
+    tile_no_transactions:'\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0628\u0639\u062F',
+    tile_finance_label:'\uD83D\uDCB0 \u0645\u062A\u062A\u0628\u0639 \u0627\u0644\u0645\u0627\u0644\u064A\u0629',
+    // Family tile
+    tile_family_header:'\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66 \u0627\u0644\u0639\u0627\u0626\u0644\u0629',
+    tile_invite:'+ \u062F\u0639\u0648\u0629',
+    tile_accountability:'\u0646\u0642\u0627\u0637 \u0645\u0633\u0627\u0621\u0644\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629',
+    tile_family_members:'\u0623\u0641\u0631\u0627\u062F \u0627\u0644\u0639\u0627\u0626\u0644\u0629 (1)',
+    tile_you:'\u0623\u0646\u062A',
+    tile_admin:'\u0645\u0634\u0631\u0641',
+    tile_owner:'\u0627\u0644\u0645\u0627\u0644\u0643',
+    tile_family_label:'\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66 \u0644\u0648\u062D\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629',
+    // Feature previews
+    badge_premium:'\u2728 \u0645\u0645\u064A\u0632',
+    preview_live:'\u0645\u0639\u0627\u064A\u0646\u0629 \u0645\u0628\u0627\u0634\u0631\u0629',
+    preview_ai_text:'"\u0623\u0643\u0645\u0644\u062A \u0663 \u0645\u0646 \u0665 \u0635\u0644\u0648\u0627\u062A \u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639. \u0627\u0646\u062A\u0638\u0627\u0645 \u0627\u0644\u0641\u062C\u0631 \u064A\u062D\u062A\u0627\u062C \u0627\u0647\u062A\u0645\u0627\u0645\u0627\u064B. \u0625\u0644\u064A\u0643 \u062E\u0637\u0629 \u0627\u0644\u062A\u062D\u0633\u064A\u0646 \u0644\u0640 \u0667 \u0623\u064A\u0627\u0645..."',
+    preview_scanning:'\u062C\u0627\u0631\u064D \u0645\u0633\u062D \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629...',
+    preview_added:'\u2713 \u0623\u064F\u0636\u064A\u0641: \u0642\u0647\u0648\u0629 $\u0664.\u0665\u0660 \u2190 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A',
+    // Stats counter
+    stats_rating:'\u0645\u062A\u0648\u0633\u0637 \u0627\u0644\u062A\u0642\u064A\u064A\u0645',
+    stats_guarantee:'\u0636\u0645\u0627\u0646 \u0627\u0633\u062A\u0631\u062F\u0627\u062F \u0627\u0644\u0623\u0645\u0648\u0627\u0644',
+    stats_languages:'\u0639\u0631\u0628\u064A \u0648\u0625\u0646\u062C\u0644\u064A\u0632\u064A'
   }
 };
 
@@ -1462,6 +1605,10 @@ function setLanguage(lang) {
     if (translations[lang] && translations[lang][key]) {
       el.textContent = translations[lang][key];
     }
+  });
+  // Update stat-number suffixes for language
+  document.querySelectorAll('.stat-number[data-suffix-' + lang + ']').forEach(function(el) {
+    el.dataset.suffix = el.getAttribute('data-suffix-' + lang);
   });
   // Update all internal links with ?lang= parameter
   updateInternalLinks(lang);

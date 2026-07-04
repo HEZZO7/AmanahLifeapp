@@ -157,3 +157,20 @@
 [dir="rtl"] .rtl\:text-left {
   text-align: left;
 }
+
+/* Hide platform-injected badge */
+[data-atoms-badge],
+[class*="atoms-badge"],
+[id*="atoms-badge"],
+[class*="AtomsBadge"],
+[id*="AtomsBadge"],
+a[href*="atoms.com"][style*="fixed"],
+div[style*="fixed"][style*="bottom"][style*="right"] > a[href*="atoms"],
+iframe[src*="atoms"],
+#atoms-watermark,
+.atoms-watermark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

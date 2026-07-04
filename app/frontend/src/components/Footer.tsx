@@ -8,7 +8,6 @@ export default function Footer() {
   const navigate = useNavigate();
 
   const links = [
-    { label: isAr ? 'عن أمانة لايف' : 'About', path: '/about' },
     { label: isAr ? 'سياسة الخصوصية' : 'Privacy Policy', path: '/privacy' },
     { label: isAr ? 'شروط الخدمة' : 'Terms of Service', path: '/terms' },
     { label: isAr ? 'سياسة الاسترداد' : 'Refund Policy', path: '/refund' },
@@ -81,9 +80,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="mt-6 pt-6 border-t border-border text-center">
           <p className="text-xs text-muted-foreground">
-            {isAr
-              ? '© 2026 أمانة لايف، منتج تابع لشركة LinkoraNet LLC. جميع الحقوق محفوظة.'
-              : '© 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.'}
+            © 2026 AmanahLife. {isAr ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
           </p>
         </div>
       </div>

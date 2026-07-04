@@ -9,7 +9,7 @@ og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21
 og_image_alt: "Master Your Muslim Life: Productivity & Halal Finance with AmanahLife"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
+twitter_creator: "@AmanahLifeApp"
 twitter_title: "Master Your Muslim Life: Productivity & Halal Finance with AmanahLife"
 twitter_description: "Revolutionize your Muslim life with AmanahLife, the ultimate app for Muslim productivity and halal finance. Organize your spiritual journey, manage finances, and plan with ease."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"

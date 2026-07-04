@@ -9,7 +9,7 @@ og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21
 og_image_alt: "AmanahLife: Your All-in-One Islamic Spiritual Companion App"
 twitter_card: "summary_large_image"
 twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
+twitter_creator: "@AmanahLifeApp"
 twitter_title: "AmanahLife: Your All-in-One Islamic Spiritual Companion App"
 twitter_description: "Discover AmanahLife, the ultimate Islamic spiritual companion app. Track prayers, read Quran, count dhikr, find Qibla, and manage your Muslim lifestyle effortlessly."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfeuqaagra/amanahlife-islamic-spiritual-companion-hero.png"
