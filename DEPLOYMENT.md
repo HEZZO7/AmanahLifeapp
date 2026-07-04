@@ -14,15 +14,14 @@ The web app is hosted on **Hostinger VPS (`72.60.186.183`) via Coolify** — the
 
 ## How to deploy an update
 
-Auto-deploy on push is **not yet configured** (see Pending below) — for now, trigger a manual redeploy:
+**Auto-deploy is configured and verified working** (2026-07-04): a GitHub webhook (push events only, `application/json`) on `HEZZO7/AmanahLifeapp` triggers Coolify to build and redeploy automatically on every push to `main`. No manual steps needed — just push.
 
-1. Push changes to `main` on `HEZZO7/AmanahLifeapp`
-2. Go to `http://72.60.186.183:8000` → AmanahLife project → `amanahlife-web` → click **Redeploy**
+If you ever need to redeploy manually (e.g. re-trigger without a new commit): go to `http://72.60.186.183:8000` → AmanahLife project → `amanahlife-web` → click **Redeploy**.
 
 ## Pending / follow-up items
 
-- **Auto-deploy on push** — Coolify supports GitHub webhooks for this; needs a webhook configured on the GitHub repo pointing at Coolify's webhook URL (found under the resource's **Webhooks** tab in Coolify). Not yet set up.
 - **`VITE_SITE_URL` environment variable** — optional, would make blog canonical URLs resolve to `https://app.amanahlife.com` explicitly instead of relying on runtime detection. Not required for correct operation.
+- **Lemon Squeezy checkout is broken** (pre-existing, unrelated to this migration) — `app_11941c8fec_lemonsqueezy_checkout` edge function returns 400 "Variant not configured" because Supabase secrets like `APP_11941c8fec_LEMONSQUEEZY_BALANCED_MONTHLY_VARIANT_ID` are missing. Needs Lemon Squeezy store ID, API key, and variant IDs for each tier/billing combo set as Supabase edge function secrets. Not a Google Play policy concern — this is the web checkout, a separate distribution channel from the Play Store.
 - Repo visibility: made **public** to unblock Coolify's git access (previously private). If this needs to be private again in the future, switch to the Deploy Key approach instead (SSH key generated in Coolify, added as a read-only Deploy Key in GitHub repo settings) rather than making it public again.
 
 ## DNS
@@ -41,5 +40,3 @@ Build for production locally (same as what Docker runs):
 ```bash
 npm run build   # outputs to dist/, includes prerendering of 12 blog/landing pages
 ```
-
-Auto-deploy verified working: 2026-07-04T20:18:12Z
