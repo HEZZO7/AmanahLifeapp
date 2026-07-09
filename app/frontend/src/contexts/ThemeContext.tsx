@@ -15,6 +15,17 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
+    // Priority: URL param > localStorage > default 'dark'. The URL param lets
+    // the native app pass its current theme when opening these pages in an
+    // external browser tab, which has no access to the app's localStorage.
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTheme = urlParams.get('theme');
+      if (urlTheme === 'light' || urlTheme === 'dark') {
+        localStorage.setItem('amanah-theme', urlTheme);
+        return urlTheme;
+      }
+    }
     const stored = localStorage.getItem('amanah-theme');
     return (stored as Theme) || 'dark';
   });

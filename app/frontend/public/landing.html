@@ -1827,8 +1827,11 @@ function toggleTheme() {
 
 // ===== INIT =====
 (function init() {
-  // Load saved theme
-  var savedTheme = localStorage.getItem('al_theme');
+  // Load theme: URL param takes priority (native app passes its current theme
+  // when opening this page in an external browser tab, which has no access
+  // to the app's localStorage), then fall back to localStorage.
+  var urlTheme = new URLSearchParams(window.location.search).get('theme');
+  var savedTheme = (urlTheme === 'light' || urlTheme === 'dark') ? urlTheme : localStorage.getItem('al_theme');
   if (savedTheme === 'light') {
     isDarkTheme = true;
     toggleTheme();
