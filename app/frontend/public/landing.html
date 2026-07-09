@@ -1822,16 +1822,23 @@ function toggleTheme() {
     if (logo) logo.src = 'logo-light.png';
   }
 
-  localStorage.setItem('al_theme', isDarkTheme ? 'dark' : 'light');
+  // Written under both keys — the React app's ThemeContext reads
+  // 'amanah-theme', not 'al_theme'. Without this, toggling theme here never
+  // reached pages like /privacy, /terms, /contact, /about, which stayed
+  // stuck on the React side's 'dark' default.
+  var themeValue = isDarkTheme ? 'dark' : 'light';
+  localStorage.setItem('al_theme', themeValue);
+  localStorage.setItem('amanah-theme', themeValue);
 }
 
 // ===== INIT =====
 (function init() {
-  // Load theme: URL param takes priority (native app passes its current theme
-  // when opening this page in an external browser tab, which has no access
-  // to the app's localStorage), then fall back to localStorage.
+  // Load theme: URL param > al_theme > amanah-theme (in case the React app
+  // side set it first), then fall back to dark.
   var urlTheme = new URLSearchParams(window.location.search).get('theme');
-  var savedTheme = (urlTheme === 'light' || urlTheme === 'dark') ? urlTheme : localStorage.getItem('al_theme');
+  var savedTheme = (urlTheme === 'light' || urlTheme === 'dark')
+    ? urlTheme
+    : (localStorage.getItem('al_theme') || localStorage.getItem('amanah-theme'));
   if (savedTheme === 'light') {
     isDarkTheme = true;
     toggleTheme();

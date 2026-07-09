@@ -26,7 +26,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return urlTheme;
       }
     }
-    const stored = localStorage.getItem('amanah-theme');
+    // Fall back to 'al_theme' — the key landing.html's own theme toggle
+    // used to write exclusively before it was fixed to also write
+    // 'amanah-theme', so users who set their preference there before this
+    // fix shipped still get it honored instead of resetting to dark.
+    const stored = localStorage.getItem('amanah-theme') || localStorage.getItem('al_theme');
     return (stored as Theme) || 'dark';
   });
 
@@ -38,6 +42,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('amanah-theme', newTheme);
+    localStorage.setItem('al_theme', newTheme);
   };
 
   const toggleTheme = () => {
