@@ -110,13 +110,13 @@ export default function QiblaFinder() {
               <span className="absolute top-2 left-1/2 -translate-x-1/2 text-sm font-bold text-red-500">
                 {isAr ? 'ش' : 'N'}
               </span>
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-bold text-gray-400">
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-sm font-bold text-gray-400 dark:text-muted-foreground">
                 {isAr ? 'ج' : 'S'}
               </span>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 dark:text-muted-foreground">
                 {isAr ? 'شر' : 'E'}
               </span>
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 dark:text-muted-foreground">
                 {isAr ? 'غ' : 'W'}
               </span>
 
@@ -127,7 +127,7 @@ export default function QiblaFinder() {
                   className="absolute top-0 left-1/2 h-full w-px origin-bottom"
                   style={{ transform: `rotate(${i * 10}deg) translateX(-50%)` }}
                 >
-                  <div className={`w-px ${i % 9 === 0 ? 'h-4 bg-gray-400' : 'h-2 bg-gray-200'}`} />
+                  <div className={`w-px ${i % 9 === 0 ? 'h-4 bg-gray-400 dark:bg-muted-foreground/40' : 'h-2 bg-gray-200 dark:bg-muted-foreground/20'}`} />
                 </div>
               ))}
             </div>

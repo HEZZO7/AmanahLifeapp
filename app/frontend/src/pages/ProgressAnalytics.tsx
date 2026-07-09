@@ -340,15 +340,15 @@ export default function ProgressAnalytics() {
             </div>
 
             <div className="bg-card rounded-2xl border border-border p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center mx-auto mb-2">
-                <span className="text-gray-500 text-lg">⏸</span>
+              <div className="w-10 h-10 rounded-full bg-muted-foreground/20 flex items-center justify-center mx-auto mb-2">
+                <span className="text-muted-foreground text-lg">⏸</span>
               </div>
               <p className="text-2xl font-bold text-foreground">{goalStatus.paused}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {language === 'ar' ? 'متوقف' : 'Paused'}
               </p>
               {goalStatus.total > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {Math.round((goalStatus.paused / goalStatus.total) * 100)}%
                 </p>
               )}
