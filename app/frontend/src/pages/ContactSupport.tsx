@@ -90,18 +90,33 @@ export default function ContactSupport() {
         </div>
 
         {/* Contact Info */}
-        <div className="mb-8 bg-card border border-border rounded-xl p-5">
+        <div className="mb-8 bg-card border border-border rounded-xl p-5 space-y-3">
           <h2 className="text-lg font-bold text-foreground mb-3">
             {isAr ? 'تواصل معنا مباشرة' : 'Contact Us Directly'}
           </h2>
           <div className="flex items-center gap-3">
             <span className="text-xl">📧</span>
-            <a
-              href="mailto:support@amanahlife.com"
-              className="text-primary hover:underline"
-            >
-              support@amanahlife.com
-            </a>
+            <div>
+              <p className="text-xs text-muted-foreground">{isAr ? 'الدعم الفني' : 'Support'}</p>
+              <a
+                href="mailto:support@amanahlife.com"
+                className="text-primary hover:underline"
+              >
+                support@amanahlife.com
+              </a>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xl">👤</span>
+            <div>
+              <p className="text-xs text-muted-foreground">{isAr ? 'الرئيس التنفيذي' : 'CEO'}</p>
+              <a
+                href="mailto:CEO@amanahlife.com"
+                className="text-primary hover:underline"
+              >
+                CEO@amanahlife.com
+              </a>
+            </div>
           </div>
         </div>
 
