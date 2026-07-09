@@ -1610,9 +1610,19 @@ function setLanguage(lang) {
       el.textContent = translations[lang][key];
     }
   });
-  // Update stat-number suffixes for language
+  // Update stat-number suffixes for language. If the counter has already
+  // finished its scroll-triggered animation (dataset.animated is set below
+  // by animateCounter), fix the displayed text directly since the
+  // IntersectionObserver only fires once and won't replay the animation.
   document.querySelectorAll('.stat-number[data-suffix-' + lang + ']').forEach(function(el) {
-    el.dataset.suffix = el.getAttribute('data-suffix-' + lang);
+    var newSuffix = el.getAttribute('data-suffix-' + lang);
+    el.dataset.suffix = newSuffix;
+    if (el.dataset.animated === 'true') {
+      var target = parseFloat(el.dataset.target);
+      var isDecimal = el.dataset.decimal === 'true';
+      var value = isDecimal ? target.toFixed(1) : Math.floor(target).toLocaleString();
+      el.textContent = value + newSuffix;
+    }
   });
   // Update all internal links with ?lang= parameter
   updateInternalLinks(lang);
@@ -1839,7 +1849,12 @@ function easeOut(t) {
 
 function animateCounter(el) {
   var target = parseFloat(el.dataset.target);
-  var suffix = el.dataset.suffix || '';
+  // Read the language-specific suffix directly at animation time instead of
+  // relying on setLanguage() having already swapped data-suffix beforehand —
+  // that ordering isn't guaranteed relative to when this element scrolls
+  // into view and the IntersectionObserver fires.
+  var langSuffix = el.getAttribute('data-suffix-' + currentLang);
+  var suffix = langSuffix != null ? langSuffix : (el.dataset.suffix || '');
   var isDecimal = el.dataset.decimal === 'true';
   var duration = 2000;
   var startTime = null;
@@ -1853,7 +1868,11 @@ function animateCounter(el) {
       ? (eased * target).toFixed(1)
       : Math.floor(eased * target).toLocaleString();
     el.textContent = current + suffix;
-    if (progress < 1) requestAnimationFrame(step);
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      el.dataset.animated = 'true';
+    }
   }
   requestAnimationFrame(step);
 }
