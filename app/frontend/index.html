@@ -22,18 +22,7 @@
   </head>
 
   <body>
-    <script>
-      // Apply theme immediately to prevent flash of wrong theme
-      (function() {
-        var theme = localStorage.getItem('amanah-theme');
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else if (!theme) {
-          // Default to dark
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
