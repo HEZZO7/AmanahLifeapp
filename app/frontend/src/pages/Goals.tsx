@@ -251,6 +251,14 @@ export default function Goals() {
         </div>
       </main>
 
+      {/* FAB — mirrors the Tasks screen's persistent bottom Add button */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-primary text-white text-2xl shadow-lg flex items-center justify-center hover:bg-[#178F8A] active:scale-90 transition-all z-40"
+      >
+        +
+      </button>
+
       <BottomNav />
     </div>
   );
