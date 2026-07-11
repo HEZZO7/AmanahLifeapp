@@ -173,7 +173,7 @@ export default function Streaks() {
             className={`text-xs px-2 py-1 rounded-full ${
               badge.earned
                 ? 'bg-[#D4A017]/20 text-[#D4A017]'
-                : 'bg-secondary/50 text-muted-foreground opacity-50'
+                : 'bg-secondary/50 text-muted-foreground'
             }`}
             title={badge.name}
           >
