@@ -180,7 +180,7 @@ export default function HomePage() {
     { icon: '💰', title: t('finance'), description: language === 'ar' ? 'تتبع المالية' : 'Track finances', path: '/finance' },
     { icon: '🧭', title: t('qibla'), description: language === 'ar' ? 'تحديد الاتجاه' : 'Find direction', path: '/qibla' },
     { icon: '💎', title: language === 'ar' ? 'الزكاة والعطاء' : 'Zakat & Giving', description: language === 'ar' ? 'تتبع العطاء' : 'Track giving', path: '/giving-tracker' },
-    { icon: '📅', title: t('calendar'), description: language === 'ar' ? 'التواريخ الهجرية' : 'Hijri dates', path: '/calendar' },
+    { icon: '🗓️', title: t('calendar'), description: language === 'ar' ? 'التواريخ الهجرية' : 'Hijri dates', path: '/calendar' },
     { icon: '🎯', title: t('goals'), description: language === 'ar' ? 'تتبع الأهداف' : 'Track goals', path: '/goals' },
     { icon: '💚', title: t('wellness'), description: language === 'ar' ? 'تتبع الصحة' : 'Health tracking', path: '/wellness' },
     { icon: '📋', title: t('planner'), description: language === 'ar' ? 'خطط يومك' : 'Plan your day', path: '/planner' },

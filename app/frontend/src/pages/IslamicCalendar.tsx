@@ -223,7 +223,7 @@ export default function IslamicCalendar() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      <PageHeader icon="📅" title={isAr ? 'التقويم الإسلامي' : 'Islamic Calendar'} />
+      <PageHeader icon="🗓️" title={isAr ? 'التقويم الإسلامي' : 'Islamic Calendar'} />
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Current Hijri Month Banner */}
@@ -241,7 +241,7 @@ export default function IslamicCalendar() {
               {isAr ? `${hijriYear} هـ` : `${hijriYear} AH`}
             </p>
             <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-              <span className="text-lg">📅</span>
+              <span className="text-lg">🗓️</span>
               <span className="text-sm text-emerald-100">
                 {isAr
                   ? `اليوم: ${hijriDay} ${HIJRI_MONTHS_AR[hijriMonth - 1]}`

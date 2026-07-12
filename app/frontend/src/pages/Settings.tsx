@@ -332,7 +332,7 @@ export default function Settings() {
         <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
           <ToggleRow
             label={isAr ? 'التقويم الهجري' : 'Hijri Calendar'}
-            icon="📅"
+            icon="🗓️"
             checked={settings.showHijri}
             onChange={() => updateSetting('showHijri', !settings.showHijri)}
           />
