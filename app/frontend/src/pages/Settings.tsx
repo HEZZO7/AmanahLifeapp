@@ -52,8 +52,8 @@ const COUNTRIES = [
 ];
 
 const DEFAULT_SETTINGS: AppSettings = {
-  currency: 'QAR',
-  country: 'QA',
+  currency: 'USD',
+  country: 'US',
   showHijri: true,
   showIslamicEvents: true,
   ramadanMode: false,
