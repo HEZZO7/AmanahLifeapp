@@ -1,10 +1,18 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
 export default function RefundPolicy() {
   const { language, isRTL } = useLanguage();
   const isAr = language === 'ar';
+
+  useSEO({
+    title: isAr ? 'سياسة الاسترداد — أمانة لايف' : 'Refund Policy — AmanahLife',
+    description: isAr
+      ? 'سياسة استرداد الأموال لاشتراكات أمانة لايف.'
+      : 'The refund policy for AmanahLife subscriptions.',
+  });
 
   const sections = [
     {

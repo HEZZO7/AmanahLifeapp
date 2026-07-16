@@ -1,10 +1,18 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
 export default function TermsOfService() {
   const { language, isRTL } = useLanguage();
   const isAr = language === 'ar';
+
+  useSEO({
+    title: isAr ? 'شروط الخدمة — أمانة لايف' : 'Terms of Service — AmanahLife',
+    description: isAr
+      ? 'الشروط والأحكام الخاصة باستخدام تطبيق أمانة لايف.'
+      : 'The terms and conditions governing use of the AmanahLife app.',
+  });
 
   const sections = [
     {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
@@ -62,6 +63,22 @@ export default function ContactSupport() {
         : 'Most features work offline using local storage. Some features like prayer times require an internet connection.',
     },
   ];
+
+  useSEO({
+    title: isAr ? 'الدعم والتواصل — أمانة لايف' : 'Contact & Support — AmanahLife',
+    description: isAr
+      ? 'تواصل مع فريق أمانة لايف أو تصفح الأسئلة الشائعة حول الحساب والاشتراك والخصوصية.'
+      : 'Contact the AmanahLife team or browse frequently asked questions about your account, subscription, and privacy.',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: { '@type': 'Answer', text: faq.a },
+      })),
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

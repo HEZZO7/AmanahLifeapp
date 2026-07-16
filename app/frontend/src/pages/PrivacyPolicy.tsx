@@ -1,10 +1,18 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
 export default function PrivacyPolicy() {
   const { language, isRTL } = useLanguage();
   const isAr = language === 'ar';
+
+  useSEO({
+    title: isAr ? 'سياسة الخصوصية — أمانة لايف' : 'Privacy Policy — AmanahLife',
+    description: isAr
+      ? 'تعرف على كيفية جمع أمانة لايف واستخدامها وحمايتها لبياناتك الشخصية.'
+      : 'Learn how AmanahLife collects, uses, and protects your personal data.',
+  });
 
   const sections = [
     {

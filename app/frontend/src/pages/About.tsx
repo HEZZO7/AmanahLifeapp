@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,6 +7,30 @@ const About = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const isRTL = language === 'ar';
+
+  useSEO({
+    title: isRTL ? 'عن أمانة لايف — تعرف على المؤسس والشركة' : 'About AmanahLife — Meet the Founder & Company',
+    description: isRTL
+      ? 'أمانة لايف تطبيق لتخطيط الحياة اليومي، طورته شركة LinkoraNet LLC. تعرف على مؤسسها حذيفة العزو ورؤية الشركة.'
+      : 'AmanahLife is a personal life planning app by LinkoraNet LLC. Learn about founder Huzaifa Al Ezzo and the company behind the app.',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'LinkoraNet LLC',
+        url: 'https://app.amanahlife.com/about',
+        description: 'LinkoraNet LLC develops digital products and SaaS applications serving users worldwide, including AmanahLife.',
+        founder: { '@type': 'Person', name: 'Huzaifa Al Ezzo', jobTitle: 'Founder & CEO' },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: 'Huzaifa Al Ezzo',
+        jobTitle: 'Founder & CEO, LinkoraNet LLC',
+        worksFor: { '@type': 'Organization', name: 'LinkoraNet LLC' },
+      },
+    ],
+  });
 
   const content = {
     en: {

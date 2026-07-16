@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSEO } from '@/hooks/useSEO';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
@@ -9,6 +10,13 @@ export default function PricingPage() {
   const isAr = language === 'ar';
   const navigate = useNavigate();
   const [isYearly, setIsYearly] = useState(false);
+
+  useSEO({
+    title: isAr ? 'الأسعار — أمانة لايف' : 'Pricing — AmanahLife',
+    description: isAr
+      ? 'اختر الخطة المناسبة لك: مجانية، الحياة المتوازنة، أو خطة العائلة. أسعار شفافة بالدولار الأمريكي.'
+      : 'Choose the plan that fits you: Free, Balanced Life, or Family Plan. Transparent USD pricing.',
+  });
 
   const plans = [
     {
