@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import LockedFeatureModal from '@/components/LockedFeatureModal';
 
 interface FamilyMember {
   id: string;
@@ -61,6 +64,10 @@ const STORAGE_KEY = 'amanah_family_budget';
 
 export default function FamilyBudget() {
   const { language } = useLanguage();
+  const navigate = useNavigate();
+  const { tier, isTrialActive, loading: subLoading } = useSubscription();
+  const hasAccess = tier === 'family' || isTrialActive;
+  const [lockedModalOpen, setLockedModalOpen] = useState(true);
   const [data, setData] = useState<FamilyBudgetData>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
@@ -142,6 +149,36 @@ export default function FamilyBudget() {
     { key: 'income' as const, label: language === 'ar' ? 'الدخل' : 'Income', icon: '💵' },
     { key: 'expenses' as const, label: language === 'ar' ? 'المصروفات' : 'Expenses', icon: '🧾' },
   ];
+
+  if (subLoading) return null;
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <PageHeader icon="👨‍👩‍👧‍👦" title={language === 'ar' ? 'ميزانية العائلة' : 'Family Budget'} />
+        <LockedFeatureModal
+          open={lockedModalOpen}
+          onOpenChange={(open) => {
+            setLockedModalOpen(open);
+            if (!open) navigate('/subscription');
+          }}
+          requiredPlan="family"
+        />
+        <main className="max-w-lg mx-auto px-4 py-12 flex flex-col items-center text-center">
+          <span className="text-5xl mb-4">🔒</span>
+          <p className="text-foreground font-semibold mb-2">
+            {language === 'ar' ? 'ميزة مدفوعة' : 'Premium Feature'}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {language === 'ar'
+              ? 'ميزانية العائلة متاحة في خطة أمانة العائلة.'
+              : 'Family Budget is available in the Family Plan.'}
+          </p>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

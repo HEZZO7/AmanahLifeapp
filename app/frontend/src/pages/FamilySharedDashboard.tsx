@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import LockedFeatureModal from '@/components/LockedFeatureModal';
 import { useNavigate } from 'react-router-dom';
 
 interface FamilyMember {
@@ -29,6 +31,9 @@ const SHARED_GOALS_KEY = 'amanah-family-shared-goals';
 export default function FamilySharedDashboard() {
   const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
+  const { tier, isTrialActive, loading: subLoading } = useSubscription();
+  const hasAccess = tier === 'family' || isTrialActive;
+  const [lockedModalOpen, setLockedModalOpen] = useState(true);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [sharedGoals, setSharedGoals] = useState<SharedGoal[]>([]);
   const [showInvite, setShowInvite] = useState(false);
@@ -120,6 +125,36 @@ export default function FamilySharedDashboard() {
       : 0;
     return Math.min(100, Math.round((avgStreak * 2) + (goalsProgress * 50) + (members.length * 5)));
   }, [members, sharedGoals]);
+
+  if (subLoading) return null;
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
+        <PageHeader icon="👨‍👩‍👧" title={language === 'ar' ? 'لوحة العائلة' : 'Family Dashboard'} />
+        <LockedFeatureModal
+          open={lockedModalOpen}
+          onOpenChange={(open) => {
+            setLockedModalOpen(open);
+            if (!open) navigate('/subscription');
+          }}
+          requiredPlan="family"
+        />
+        <main className="max-w-4xl mx-auto px-4 py-12 flex flex-col items-center text-center">
+          <span className="text-5xl mb-4">🔒</span>
+          <p className="text-foreground font-semibold mb-2">
+            {language === 'ar' ? 'ميزة مدفوعة' : 'Premium Feature'}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {language === 'ar'
+              ? 'لوحة العائلة متاحة في خطة أمانة العائلة.'
+              : 'Family Dashboard is available in the Family Plan.'}
+          </p>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
