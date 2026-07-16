@@ -14,7 +14,7 @@ interface WellnessEntry {
 const MOOD_EMOJIS = ['😢', '😟', '😐', '🙂', '😊'];
 
 export default function Wellness() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [entries, setEntries] = useState<WellnessEntry[]>(() => {
     const stored = localStorage.getItem('amanah-wellness');
     return stored ? JSON.parse(stored) : [];
@@ -26,15 +26,26 @@ export default function Wellness() {
   const [showForm, setShowForm] = useState(false);
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const [editingDate, setEditingDate] = useState(todayStr);
   const todayEntry = entries.find(e => e.date === todayStr);
 
   useEffect(() => {
     localStorage.setItem('amanah-wellness', JSON.stringify(entries));
   }, [entries]);
 
+  const openFormFor = (date: string) => {
+    const existing = entries.find(e => e.date === date);
+    setMood(existing?.mood || 3);
+    setSleepHours(existing?.sleep ?? 7);
+    setHydration(existing?.hydration ?? 6);
+    setStress(existing?.stress || 2);
+    setEditingDate(date);
+    setShowForm(true);
+  };
+
   const logToday = () => {
-    const entry: WellnessEntry = { date: todayStr, mood, sleep: sleepHours, hydration, stress };
-    const updated = entries.filter(e => e.date !== todayStr);
+    const entry: WellnessEntry = { date: editingDate, mood, sleep: sleepHours, hydration, stress };
+    const updated = entries.filter(e => e.date !== editingDate);
     setEntries([entry, ...updated]);
     setShowForm(false);
   };
@@ -67,14 +78,12 @@ export default function Wellness() {
         icon="💚"
         title={t('wellness')}
         rightAction={
-          !todayEntry ? (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              + {t('logToday')}
-            </button>
-          ) : undefined
+          <button
+            onClick={() => (showForm ? setShowForm(false) : openFormFor(todayStr))}
+            className="bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+          >
+            + {t('logToday')}
+          </button>
         }
       />
 
@@ -82,6 +91,11 @@ export default function Wellness() {
         {/* Log Form */}
         {showForm && (
           <div className="bg-card rounded-2xl p-4 mb-4 border border-border">
+            {editingDate !== todayStr && (
+              <p className="text-xs text-[#D4A017] mb-3 font-medium">
+                {language === 'ar' ? 'تعديل إدخال يوم' : 'Editing entry for'}: {new Date(editingDate).toLocaleDateString()}
+              </p>
+            )}
             {/* Mood */}
             <div className="mb-4">
               <label className="text-sm text-muted-foreground mb-2 block">{t('mood')}</label>
@@ -169,14 +183,18 @@ export default function Wellness() {
               const height = score > 0 ? Math.max(10, score) : 5;
               const dayLabel = new Date(entry.date).toLocaleDateString('en', { weekday: 'short' }).slice(0, 2);
               return (
-                <div key={i} className="flex flex-col items-center flex-1">
+                <button
+                  key={i}
+                  onClick={() => openFormFor(entry.date)}
+                  className="flex flex-col items-center flex-1"
+                >
                   <span className="text-[10px] text-muted-foreground mb-1">{score > 0 ? score : ''}</span>
                   <div
                     className={`w-full rounded-t-lg transition-all ${score > 0 ? 'bg-gradient-to-t from-[#1FC7C1] to-[#D4A017]' : 'bg-secondary'}`}
                     style={{ height: `${height}%` }}
                   />
                   <span className="text-[10px] text-muted-foreground mt-1">{dayLabel}</span>
-                </div>
+                </button>
               );
             })}
           </div>
