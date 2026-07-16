@@ -73,7 +73,7 @@ export default function DhikrCounter() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
-      <PageHeader icon="🔢" title={language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'} />
+      <PageHeader icon="📿" title={language === 'ar' ? 'عداد الذكر' : 'Dhikr Counter'} />
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Daily Stats */}

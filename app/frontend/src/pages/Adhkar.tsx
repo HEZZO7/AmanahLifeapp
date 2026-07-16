@@ -109,7 +109,7 @@ export default function Adhkar() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader icon="📿" title={t('adhkar')} />
+      <PageHeader icon="🍃" title={t('adhkar')} />
       <div className="px-4 pt-2">
         <p className="text-muted-foreground text-sm">{totalDone}/{totalRequired} {t('completed')}</p>
       </div>
