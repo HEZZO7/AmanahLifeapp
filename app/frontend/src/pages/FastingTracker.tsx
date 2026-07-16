@@ -15,7 +15,6 @@ export default function FastingTracker() {
   const [suhoor, setSuhoor] = useState(false);
   const [fasting, setFasting] = useState(false);
   const [iftar, setIftar] = useState(false);
-  const [quranPages, setQuranPages] = useState(0);
   const [monthDays, setMonthDays] = useState<DayStatus[]>([]);
 
   useEffect(() => {
@@ -26,9 +25,6 @@ export default function FastingTracker() {
       setFasting(data.fasting || false);
       setIftar(data.iftar || false);
     }
-
-    const storedPages = localStorage.getItem(`quran_pages_${today}`);
-    if (storedPages) setQuranPages(parseInt(storedPages, 10));
 
     // Load 30-day grid
     const days: DayStatus[] = [];
@@ -67,13 +63,8 @@ export default function FastingTracker() {
     saveToday(suhoor, fasting, v);
   };
 
-  const addPages = (n: number) => {
-    const newVal = Math.max(0, quranPages + n);
-    setQuranPages(newVal);
-    localStorage.setItem(`quran_pages_${today}`, String(newVal));
-  };
-
   const fastedDays = monthDays.filter((d) => d.fasted).length;
+  const missedDays = monthDays.length - fastedDays;
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -117,6 +108,18 @@ export default function FastingTracker() {
           </div>
         </div>
 
+        {/* Missed vs Made-Up Summary */}
+        <div className="bg-card rounded-2xl p-4 border border-border grid grid-cols-2 gap-3">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-primary">{fastedDays}</p>
+            <p className="text-xs text-muted-foreground">{language === 'ar' ? 'أيام مكتملة' : 'Completed'}</p>
+          </div>
+          <div className="text-center border-l border-border">
+            <p className="text-2xl font-bold text-[#E05D4E]">{missedDays}</p>
+            <p className="text-xs text-muted-foreground">{language === 'ar' ? 'أيام فائتة (بحاجة للقضاء)' : 'Missed (need makeup)'}</p>
+          </div>
+        </div>
+
         {/* 30-Day Grid */}
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h2 className="text-foreground font-semibold mb-3">{language === 'ar' ? 'تقدم ٣٠ يوم' : '30-Day Progress'}</h2>
@@ -133,43 +136,6 @@ export default function FastingTracker() {
           </div>
         </div>
 
-        {/* Quran Pages */}
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <h2 className="text-foreground font-semibold mb-3">{t('quranPages')}</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-[#D4A017]">{quranPages}</p>
-              <p className="text-xs text-muted-foreground">{t('goal')}: 20 {t('pages')}</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => addPages(-1)}
-                className="w-10 h-10 rounded-full bg-secondary text-foreground flex items-center justify-center hover:bg-primary/20"
-              >
-                -
-              </button>
-              <button
-                onClick={() => addPages(1)}
-                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[#178F8A]"
-              >
-                +
-              </button>
-              <button
-                onClick={() => addPages(5)}
-                className="w-10 h-10 rounded-full bg-[#D4A017] text-white flex items-center justify-center hover:bg-[#C4890A]"
-              >
-                +5
-              </button>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-3 w-full h-2 bg-secondary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#D4A017] rounded-full transition-all"
-              style={{ width: `${Math.min(100, (quranPages / 20) * 100)}%` }}
-            />
-          </div>
-        </div>
       </div>
 
       <BottomNav />

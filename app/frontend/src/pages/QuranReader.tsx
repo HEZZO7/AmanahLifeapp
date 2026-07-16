@@ -35,6 +35,17 @@ export default function QuranReader() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const todayKey = new Date().toDateString();
+  const [quranPages, setQuranPages] = useState<number>(() => {
+    const stored = localStorage.getItem(`quran_pages_${todayKey}`);
+    return stored ? parseInt(stored, 10) : 0;
+  });
+
+  const addPages = (n: number) => {
+    const newVal = Math.max(0, quranPages + n);
+    setQuranPages(newVal);
+    localStorage.setItem(`quran_pages_${todayKey}`, String(newVal));
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -138,6 +149,38 @@ export default function QuranReader() {
       <main className="max-w-3xl mx-auto px-4 py-6">
         {!selectedSurah ? (
           <>
+            {/* Pages Read Today */}
+            <Card className="mb-4 border-border">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-[#D4A017]">{quranPages}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ar' ? 'صفحات اليوم • الهدف: 20 صفحة' : "Today's pages • Goal: 20 pages"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => addPages(-1)}
+                    className="w-10 h-10 rounded-full bg-secondary text-foreground flex items-center justify-center hover:bg-primary/20"
+                  >
+                    -
+                  </button>
+                  <button
+                    onClick={() => addPages(1)}
+                    className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-[#178F8A]"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => addPages(5)}
+                    className="w-10 h-10 rounded-full bg-[#D4A017] text-white flex items-center justify-center hover:bg-[#C4890A]"
+                  >
+                    +5
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Search */}
             <div className="mb-4">
               <Input
