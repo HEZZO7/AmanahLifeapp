@@ -1,0 +1,26 @@
+# AmanahLife
+
+> AmanahLife is a personal life planning and daily log app for Muslims worldwide. It helps individuals and families track prayer times, Quran reading, dhikr, fasting, wellness, tasks, goals, and personal finances — all in one place, with full Arabic/English bilingual support and multi-currency pricing (USD default).
+
+AmanahLife is developed and operated by LinkoraNet LLC, a Wyoming-registered (Wyoming, United States) company. The founder is Huzaifa Al Ezzo.
+
+Available on the web and as a native Android app (package `com.linkoranet.amanahlife`).
+
+## Key facts
+
+- Free tier available; paid tiers are Balanced Life ($6.99/mo) and Family Plan ($12.99/mo), billed in USD.
+- Core features: prayer times, Qibla direction, Quran reader with bookmarks, dhikr counter, adhkar (morning/evening remembrance), Islamic (Hijri) calendar, fasting tracker, wellness tracking (mood/sleep/hydration/stress), task and goal management, personal and family budgeting, Zakat calculator.
+- Location data is used only for prayer time and Qibla calculations — never shared with third parties or used for advertising.
+- No ads. Account deletion is available in-app and at a public page (see below).
+
+## Pages
+
+- [Home / Landing](https://app.amanahlife.com/landing): Product overview, features, pricing.
+- [About](https://app.amanahlife.com/about): Company and founder information.
+- [Pricing](https://app.amanahlife.com/pricing): Plan details and USD pricing.
+- [Contact & Support](https://app.amanahlife.com/contact): Contact form and FAQ.
+- [Privacy Policy](https://app.amanahlife.com/privacy)
+- [Terms of Service](https://app.amanahlife.com/terms)
+- [Refund Policy](https://app.amanahlife.com/refund)
+- [Delete Account](https://app.amanahlife.com/delete-account): How to delete your account, no login required.
+- [Blog](https://app.amanahlife.com/blog/): Articles on Islamic lifestyle, productivity, and finance.
