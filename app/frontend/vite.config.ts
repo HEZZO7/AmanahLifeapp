@@ -39,6 +39,18 @@ export default defineConfig(({ command }) => {
         lastmod: getSitemapLastmod(),
         readable: true,
         generateRobotsTxt: true,
+        // These public pages have no prerendered HTML (only blog posts do),
+        // so the plugin can't auto-discover them by scanning dist/ output —
+        // list them explicitly so they're at least in the sitemap.
+        dynamicRoutes: [
+          '/about',
+          '/pricing',
+          '/privacy',
+          '/terms',
+          '/refund',
+          '/contact',
+          '/delete-account',
+        ],
       }),
       ...(blogPrerenderRoutes.length > 0
         ? vitePrerenderPlugin({
