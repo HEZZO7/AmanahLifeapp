@@ -5,32 +5,48 @@ import PageHeader from '@/components/PageHeader';
 
 type TransactionType = 'income' | 'expense';
 type IncomeCategory = 'salary' | 'freelance' | 'investment' | 'gift' | 'other';
+type ExpenseCategory = 'housing' | 'food' | 'transport' | 'education' | 'healthcare' | 'charity' | 'entertainment' | 'utilities' | 'other';
+type Category = IncomeCategory | ExpenseCategory;
 
 interface Transaction {
   id: string;
   type: TransactionType;
-  category: IncomeCategory;
+  category: Category;
   amount: number;
   description: string;
   date: string;
 }
 
-const CATEGORY_ICONS: Record<IncomeCategory, string> = {
+const INCOME_CATEGORIES: IncomeCategory[] = ['salary', 'freelance', 'investment', 'gift', 'other'];
+const EXPENSE_CATEGORIES: ExpenseCategory[] = ['housing', 'food', 'transport', 'education', 'healthcare', 'charity', 'entertainment', 'utilities', 'other'];
+
+const CATEGORY_ICONS: Record<Category, string> = {
   salary: '💰',
   freelance: '💻',
   investment: '📈',
   gift: '🎁',
   other: '📦',
+  housing: '🏠',
+  food: '🍽️',
+  transport: '🚗',
+  education: '📚',
+  healthcare: '🏥',
+  charity: '🤲',
+  entertainment: '🎮',
+  utilities: '💡',
 };
 
 export default function Finance() {
   const { t, language, isRTL } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<TransactionType>('income');
-  const [category, setCategory] = useState<IncomeCategory>('salary');
+  const [category, setCategory] = useState<Category>('salary');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+
+  const categoryOptions = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   useEffect(() => {
     const stored = localStorage.getItem('amanah_finance');
@@ -42,20 +58,46 @@ export default function Finance() {
     localStorage.setItem('amanah_finance', JSON.stringify(updated));
   };
 
-  const addTransaction = () => {
-    if (!amount || parseFloat(amount) <= 0) return;
-    const newTx: Transaction = {
-      id: Date.now().toString(),
-      type,
-      category,
-      amount: parseFloat(amount),
-      description: description.trim() || t(category),
-      date: new Date().toISOString(),
-    };
-    saveTransactions([newTx, ...transactions]);
+  const resetForm = () => {
+    setEditingId(null);
+    setType('income');
+    setCategory('salary');
     setAmount('');
     setDescription('');
     setShowForm(false);
+  };
+
+  const submitTransaction = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    if (editingId) {
+      saveTransactions(
+        transactions.map((tx) =>
+          tx.id === editingId
+            ? { ...tx, type, category, amount: parseFloat(amount), description: description.trim() || t(category) }
+            : tx
+        )
+      );
+    } else {
+      const newTx: Transaction = {
+        id: Date.now().toString(),
+        type,
+        category,
+        amount: parseFloat(amount),
+        description: description.trim() || t(category),
+        date: new Date().toISOString(),
+      };
+      saveTransactions([newTx, ...transactions]);
+    }
+    resetForm();
+  };
+
+  const openEditForm = (tx: Transaction) => {
+    setEditingId(tx.id);
+    setType(tx.type);
+    setCategory(tx.category);
+    setAmount(String(tx.amount));
+    setDescription(tx.description);
+    setShowForm(true);
   };
 
   const deleteTransaction = (id: string) => {
@@ -125,7 +167,10 @@ export default function Finance() {
           <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-hide">
             {transactions.slice(0, 20).map((tx) => (
               <div key={tx.id} className="flex items-center justify-between p-2 rounded-xl bg-background">
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openEditForm(tx)}
+                  className="flex items-center gap-2 flex-1 text-left rtl:text-right"
+                >
                   <span className="text-lg">{CATEGORY_ICONS[tx.category]}</span>
                   <div>
                     <p className="text-foreground text-sm">{tx.description}</p>
@@ -133,7 +178,7 @@ export default function Finance() {
                       {new Date(tx.date).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-primary' : 'text-red-400'}`}>
                     {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -146,17 +191,17 @@ export default function Finance() {
         </div>
       </div>
 
-      {/* Add Transaction Form */}
+      {/* Add/Edit Transaction Form */}
       {showForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowForm(false)} />
+          <div className="fixed inset-0 bg-black/50" onClick={resetForm} />
           <div className="relative bg-card rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 shadow-xl space-y-4">
-            <h3 className="text-foreground font-semibold text-lg">{t('addTransaction')}</h3>
+            <h3 className="text-foreground font-semibold text-lg">{editingId ? t('editTransaction') : t('addTransaction')}</h3>
 
             {/* Type Toggle */}
             <div className="flex gap-2">
               <button
-                onClick={() => setType('income')}
+                onClick={() => { setType('income'); setCategory('salary'); }}
                 className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
                   type === 'income' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
                 }`}
@@ -164,7 +209,7 @@ export default function Finance() {
                 {t('income')}
               </button>
               <button
-                onClick={() => setType('expense')}
+                onClick={() => { setType('expense'); setCategory('housing'); }}
                 className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
                   type === 'expense' ? 'bg-red-500 text-white' : 'bg-secondary text-muted-foreground'
                 }`}
@@ -192,7 +237,7 @@ export default function Finance() {
             <div>
               <p className="text-muted-foreground text-sm mb-2">{t('category')}</p>
               <div className="flex flex-wrap gap-2">
-                {(['salary', 'freelance', 'investment', 'gift', 'other'] as IncomeCategory[]).map((c) => (
+                {categoryOptions.map((c) => (
                   <button
                     key={c}
                     onClick={() => setCategory(c)}
@@ -210,16 +255,16 @@ export default function Finance() {
 
             <div className="flex gap-3 pb-2">
               <button
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="flex-1 p-3 rounded-xl bg-secondary text-muted-foreground"
               >
                 {t('cancel')}
               </button>
               <button
-                onClick={addTransaction}
+                onClick={submitTransaction}
                 className="flex-1 p-3 rounded-xl bg-primary text-white font-semibold"
               >
-                {t('addTransaction')}
+                {editingId ? t('saveChanges') : t('addTransaction')}
               </button>
             </div>
           </div>
