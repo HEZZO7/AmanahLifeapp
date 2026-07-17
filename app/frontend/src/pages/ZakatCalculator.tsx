@@ -343,7 +343,7 @@ export default function ZakatCalculator() {
               <span className="text-xl w-8">📋</span>
               <div className="flex-1">
                 <label className="text-xs text-muted-foreground block mb-1">
-                  {isAr ? 'الديون والالتزامات المستحقة' : 'Outstanding Debts & Liabilities'}
+                  {isAr ? 'أقساط الديون المستحقة خلال السنة القادمة' : 'Debt payments due in the next 12 months'}
                 </label>
                 <Input
                   type="number"
@@ -352,6 +352,11 @@ export default function ZakatCalculator() {
                   onChange={(e) => { setLiabilities(e.target.value); setCalculated(false); }}
                   className="bg-secondary"
                 />
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  {isAr
+                    ? 'أدخل فقط الأقساط أو الدفعات المستحقة خلال الاثني عشر شهراً القادمة (مثل القسط القادم لقرض عقاري) — وليس كامل رصيد الدين طويل الأجل.'
+                    : "Enter only the installments/payments due within the next 12 months (e.g. next year's mortgage payments) — not the full balance of a long-term loan."}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -422,6 +427,7 @@ export default function ZakatCalculator() {
           <ul className="text-xs text-muted-foreground space-y-1">
             <li>• {isAr ? 'يُحسب العطاء بنسبة ٢.٥٪ من الثروة المحتفظ بها لسنة فوق النصاب' : 'Giving is calculated as 2.5% of wealth held for one year above Nisab'}</li>
             <li>• {isAr ? 'النصاب هو الحد الأدنى الذي يوجب العطاء' : 'Nisab is the minimum threshold that triggers a giving obligation'}</li>
+            <li>• {isAr ? 'تُخصم فقط أقساط الديون المستحقة خلال الاثني عشر شهراً القادمة، وليس كامل رصيد الدين طويل الأجل (وفق معيار هيئة المحاسبة والمراجعة للمؤسسات المالية الإسلامية رقم ٣٥)' : 'Only debt payments due within the next 12 months are deducted, not a long-term loan’s full balance (per AAOIFI Sharia Standard No. 35)'}</li>
             <li>• {isAr ? 'أسعار الذهب تقريبية — راجع أسعار السوق الحالية' : 'Gold prices are approximate — consult current market rates'}</li>
             <li>• {isAr ? 'أسعار الصرف مباشرة وقد تختلف قليلاً' : 'Exchange rates are fetched live and may vary slightly'}</li>
             <li>• {isAr ? 'استشر عالماً للأحكام الخاصة بحالتك' : 'Consult a scholar for specific rulings on your situation'}</li>
