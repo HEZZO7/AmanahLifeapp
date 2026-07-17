@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
 import PageHeader from '@/components/PageHeader';
@@ -46,6 +47,7 @@ const TIPS_EN = [
 
 export default function AIPlanning() {
   const { language } = useLanguage();
+  const { formatTime } = useTimeFormat();
   const isAr = language === 'ar';
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -93,7 +95,7 @@ export default function AIPlanning() {
                 <div className="space-y-2">
                   {schedule.map((item, i) => (
                     <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 transition-all">
-                      <span className="text-xs text-muted-foreground font-mono w-12">{item.time}</span>
+                      <span className="text-xs text-muted-foreground font-mono w-14">{formatTime(item.time)}</span>
                       <div className={`w-2 h-2 rounded-full shrink-0 ${
                         item.priority === 'high' ? 'bg-emerald-400' : 'bg-[#c9a96e]'
                       }`} />

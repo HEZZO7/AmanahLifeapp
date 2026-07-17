@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
@@ -77,6 +78,7 @@ export default function Settings() {
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const { theme, themeMode, toggleTheme, setThemeMode } = useTheme();
+  const { timeFormat, setTimeFormat } = useTimeFormat();
   const [settings, setSettings] = useState<AppSettings>(getSafeSettings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -354,6 +356,29 @@ export default function Settings() {
             checked={settings.easternNumerals}
             onChange={() => updateSetting('easternNumerals', !settings.easternNumerals)}
           />
+        </div>
+
+        {/* Time Format */}
+        <div className="bg-card rounded-2xl p-4 border border-border">
+          <h3 className="text-sm text-muted-foreground mb-3">{isAr ? 'صيغة الوقت' : 'Time Format'}</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTimeFormat('12h')}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+                timeFormat === '12h' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
+              }`}
+            >
+              {isAr ? '١٢ ساعة (ص/م)' : '12-hour (AM/PM)'}
+            </button>
+            <button
+              onClick={() => setTimeFormat('24h')}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+                timeFormat === '24h' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
+              }`}
+            >
+              {isAr ? '٢٤ ساعة' : '24-hour'}
+            </button>
+          </div>
         </div>
 
         {/* Backup & Restore */}

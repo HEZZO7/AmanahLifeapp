@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
@@ -24,6 +25,7 @@ type ViewMode = 'agenda' | 'weekly' | 'monthly';
 
 export default function Planner() {
   const { t, language, isRTL } = useLanguage();
+  const { formatTime } = useTimeFormat();
   const [view, setView] = useState<ViewMode>('agenda');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
@@ -182,7 +184,7 @@ export default function Planner() {
                     <div className="flex-1">
                       <p className="text-sm text-foreground">{item.title}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {item.time && `${item.time} • `}{item.description || (language === 'ar' ? 'موعد' : 'Event')}
+                        {item.time && `${formatTime(item.time)} • `}{item.description || (language === 'ar' ? 'موعد' : 'Event')}
                       </p>
                     </div>
                     <button onClick={() => removeAgendaItem(item.id)} className="text-muted-foreground hover:text-red-400 text-xs">✕</button>

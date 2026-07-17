@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ const PRAYER_NAMES_AR: Record<string, string> = {
 export default function PrayerTimes() {
   const { user, loading: authLoading } = useAuth();
   const { language, isRTL } = useLanguage();
+  const { formatTime } = useTimeFormat();
   const navigate = useNavigate();
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +186,7 @@ export default function PrayerTimes() {
                   ? PRAYER_NAMES_AR[nextPrayer.name]
                   : nextPrayer.name}
               </h2>
-              <p className="text-xl mt-1">{nextPrayer.time}</p>
+              <p className="text-xl mt-1">{formatTime(nextPrayer.time)}</p>
               {nextPrayer.countdown && (
                 <p className="text-teal-100 mt-2 text-sm">
                   {language === 'ar' ? 'بعد' : 'in'} {nextPrayer.countdown}
@@ -228,7 +230,7 @@ export default function PrayerTimes() {
                     <p className={`font-semibold ${completed.has(prayer.name) ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}>
                       {getPrayerDisplayName(prayer.name)}
                     </p>
-                    <p className="text-sm text-muted-foreground">{prayer.time}</p>
+                    <p className="text-sm text-muted-foreground">{formatTime(prayer.time)}</p>
                   </div>
                 </div>
                 {prayer.name !== 'Sunrise' && (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
 import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
@@ -84,6 +85,7 @@ const TESTIMONIALS = [
 
 export default function Subscription() {
   const { language } = useLanguage();
+  const { timeFormat } = useTimeFormat();
   const isAr = language === 'ar';
   const { tier: currentTier, billingCycle, loading: subLoading, isTrialActive, trialDaysRemaining, startTrial, refetch } = useSubscription();
 
@@ -279,7 +281,7 @@ export default function Subscription() {
     }
     if (ratesMeta.updated_at) {
       const date = new Date(ratesMeta.updated_at);
-      const timeStr = date.toLocaleTimeString(isAr ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = date.toLocaleTimeString(isAr ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' });
       return isAr ? `آخر تحديث: ${timeStr}` : `Updated: ${timeStr}`;
     }
     return isAr ? 'أسعار حية' : 'Live rates';

@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { LanguageProvider, hasLanguagePreference } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { TimeFormatProvider } from '@/contexts/TimeFormatContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Onboarding from '@/components/Onboarding';
 import Index from './pages/Index';
@@ -124,12 +125,14 @@ const App = () => (
         <BrowserRouter>
           <ThemeProvider>
             <LanguageProvider>
-              <AuthProvider>
-                <SubscriptionProvider>
-                  <Onboarding />
-                  <AppRoutes />
-                </SubscriptionProvider>
-              </AuthProvider>
+              <TimeFormatProvider>
+                <AuthProvider>
+                  <SubscriptionProvider>
+                    <Onboarding />
+                    <AppRoutes />
+                  </SubscriptionProvider>
+                </AuthProvider>
+              </TimeFormatProvider>
             </LanguageProvider>
           </ThemeProvider>
         </BrowserRouter>
