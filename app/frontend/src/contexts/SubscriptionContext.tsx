@@ -3,9 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 type SubscriptionTier = 'free' | 'balanced' | 'family';
-type SubscriptionStatus = 'active' | 'canceled' | 'past_due';
+type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'expired' | 'paused';
 type BillingCycle = 'monthly' | 'yearly';
 type PaymentProvider = 'stripe' | 'lemonsqueezy' | 'paddle';
+
+// Statuses that still grant access to a paid tier. 'past_due' is included
+// deliberately — a payment retry is in flight, and cutting off a paying
+// customer mid-retry is hostile. 'canceled', 'expired', and 'paused' are not
+// entitling: without this, a canceled/expired row whose `tier` column still
+// says 'family' would keep granting family access forever, since nothing
+// else in this file ever reads `status`.
+const ENTITLING_STATUSES: ReadonlySet<SubscriptionStatus> = new Set(['active', 'past_due']);
 
 const TRIAL_KEY = 'amanah-trial-start';
 const TRIAL_DURATION_DAYS = 7;
@@ -123,8 +131,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchSubscription]);
 
-  // Effective tier: if trial is active and DB tier is free, treat as balanced
-  const effectiveTier: SubscriptionTier = (tier === 'free' && trialState.isTrialActive) ? 'balanced' : tier;
+  // Effective tier: if trial is active and DB tier is free, treat as balanced.
+  // Otherwise, only grant the DB tier when status is actually entitling —
+  // a canceled/expired/paused subscription falls back to free regardless of
+  // what `tier` still says, until the row is updated by a payment webhook.
+  const isEntitled = ENTITLING_STATUSES.has(status);
+  const effectiveTier: SubscriptionTier =
+    tier === 'free' && trialState.isTrialActive ? 'balanced' : isEntitled ? tier : 'free';
 
   return (
     <SubscriptionContext.Provider value={{

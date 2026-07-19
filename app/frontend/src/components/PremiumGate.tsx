@@ -37,9 +37,14 @@ export default function PremiumGate({ requiredTier, featureName, children }: Pre
 
   return (
     <div className="relative min-h-[60vh] overflow-hidden rounded-2xl">
-      {/* Blurred content preview */}
-      <div className="pointer-events-none select-none blur-[6px] opacity-50 scale-[0.98]">
-        {children}
+      {/* Content-free skeleton preview — the gated feature's real children are
+          never mounted here, so removing the overlay/blur via DevTools, View
+          Source, Reader Mode, or a screen reader can't reveal anything real. */}
+      <div aria-hidden="true" className="pointer-events-none select-none opacity-40 scale-[0.98] p-4 space-y-3">
+        <div className="h-6 w-2/3 rounded bg-secondary" />
+        <div className="h-24 w-full rounded-2xl bg-secondary" />
+        <div className="h-24 w-full rounded-2xl bg-secondary" />
+        <div className="h-24 w-full rounded-2xl bg-secondary" />
       </div>
 
       {/* Overlay */}
