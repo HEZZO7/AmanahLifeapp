@@ -72,8 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Clear local state immediately for instant UI feedback
-    localStorage.clear();
+    // Only clear per-account caches that would otherwise leak into the next
+    // signed-in session on this device. Do NOT blanket-clear localStorage —
+    // nearly all user content (goals, tasks, finance, wellness, fasting,
+    // dhikr, quran progress, family budget, etc.) lives only here with no
+    // server copy, so a full clear() here permanently destroys it.
+    localStorage.removeItem('amanahlife_subscription');
+    localStorage.removeItem('amanah-email-digest-status');
     try {
       await supabase.auth.signOut();
     } catch {
