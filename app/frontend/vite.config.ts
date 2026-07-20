@@ -127,5 +127,10 @@ export default defineConfig(({ command }) => {
       },
       chunkSizeWarningLimit: 1000,
     },
+    // Strip console.log/debug/info/warn + debugger statements from
+    // production builds (32+ calls, several with raw "🔧 DEBUG:" prefixes,
+    // were shipping to every visitor's console). console.error is kept —
+    // it's the one signal worth having in production.
+    esbuild: command === 'build' ? { pure: ['console.log', 'console.debug', 'console.info', 'console.warn'], drop: ['debugger'] } : undefined,
   };
 });
