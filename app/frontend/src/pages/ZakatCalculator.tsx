@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import { useMetalPrices } from '@/hooks/useMetalPrices';
 
 interface ZakatItem {
   label: string;
@@ -91,9 +92,6 @@ const CURRENCY_GROUPS: CurrencyGroup[] = [
   },
 ];
 
-// Current approximate Nisab values in USD
-const GOLD_PRICE_PER_GRAM_USD = 75;
-const SILVER_PRICE_PER_GRAM_USD = 0.95;
 const NISAB_GOLD_GRAMS = 87.48;
 const NISAB_SILVER_GRAMS = 612.36;
 const ZAKAT_RATE = 0.025;
@@ -126,6 +124,7 @@ export default function ZakatCalculator() {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>(FALLBACK_RATES);
   const [ratesLoading, setRatesLoading] = useState(true);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const { goldPricePerGram, silverPricePerGram, isLive: pricesLive, asOf: pricesAsOf } = useMetalPrices();
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -172,9 +171,9 @@ export default function ZakatCalculator() {
     assets.forEach((asset) => {
       const val = parseFloat(asset.value) || 0;
       if (asset.key === 'gold') {
-        totalUSD += val * GOLD_PRICE_PER_GRAM_USD;
+        totalUSD += val * goldPricePerGram;
       } else if (asset.key === 'silver') {
-        totalUSD += val * SILVER_PRICE_PER_GRAM_USD;
+        totalUSD += val * silverPricePerGram;
       } else {
         totalUSD += convertToUSD(val, currency);
       }
@@ -185,8 +184,8 @@ export default function ZakatCalculator() {
   const totalAssetsUSD = calculateTotalInUSD();
   const totalLiabilitiesUSD = convertToUSD(parseFloat(liabilities) || 0, currency);
   const netWorthUSD = totalAssetsUSD - totalLiabilitiesUSD;
-  const nisabGoldUSD = NISAB_GOLD_GRAMS * GOLD_PRICE_PER_GRAM_USD;
-  const nisabSilverUSD = NISAB_SILVER_GRAMS * SILVER_PRICE_PER_GRAM_USD;
+  const nisabGoldUSD = NISAB_GOLD_GRAMS * goldPricePerGram;
+  const nisabSilverUSD = NISAB_SILVER_GRAMS * silverPricePerGram;
   const nisabUSD = Math.min(nisabGoldUSD, nisabSilverUSD);
   const isEligible = netWorthUSD >= nisabUSD;
   const zakatAmountUSD = isEligible ? netWorthUSD * ZAKAT_RATE : 0;
@@ -295,6 +294,24 @@ export default function ZakatCalculator() {
                   {isAr ? 'فضة' : 'Silver'}: {NISAB_SILVER_GRAMS}{isAr ? 'غ' : 'g'}
                 </p>
               </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                {isAr
+                  ? `الذهب ${formatAmount(goldPricePerGram)} / فضة ${formatAmount(silverPricePerGram)} لكل غرام (USD)`
+                  : `Gold ${formatAmount(goldPricePerGram)} / Silver ${formatAmount(silverPricePerGram)} per gram (USD)`}
+              </p>
+              {pricesLive ? (
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                  ✓ {isAr ? 'أسعار مباشرة' : 'Live prices'}
+                </span>
+              ) : (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                  ⚠ {pricesAsOf
+                    ? (isAr ? `تقديرية (آخر تحديث ${pricesAsOf.toLocaleDateString()})` : `Estimated (last updated ${pricesAsOf.toLocaleDateString()})`)
+                    : (isAr ? 'تقديرية — تعذر الوصول لأسعار مباشرة' : 'Estimated — live prices unavailable')}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -428,7 +445,7 @@ export default function ZakatCalculator() {
             <li>• {isAr ? 'يُحسب العطاء بنسبة ٢.٥٪ من الثروة المحتفظ بها لسنة فوق النصاب' : 'Giving is calculated as 2.5% of wealth held for one year above Nisab'}</li>
             <li>• {isAr ? 'النصاب هو الحد الأدنى الذي يوجب العطاء' : 'Nisab is the minimum threshold that triggers a giving obligation'}</li>
             <li>• {isAr ? 'تُخصم فقط أقساط الديون المستحقة خلال الاثني عشر شهراً القادمة، وليس كامل رصيد الدين طويل الأجل (وفق معيار هيئة المحاسبة والمراجعة للمؤسسات المالية الإسلامية رقم ٣٥)' : 'Only debt payments due within the next 12 months are deducted, not a long-term loan’s full balance (per AAOIFI Sharia Standard No. 35)'}</li>
-            <li>• {isAr ? 'أسعار الذهب تقريبية — راجع أسعار السوق الحالية' : 'Gold prices are approximate — consult current market rates'}</li>
+            <li>• {isAr ? 'أسعار الذهب والفضة مباشرة عند توفرها؛ إذا تعذر الوصول إليها تُستخدم آخر قيمة معروفة أو تقدير تقريبي — راجع دائماً أسعار السوق الحالية' : 'Gold and silver prices are live when reachable; if not, the last known value or a rough estimate is used instead — always confirm against current market rates'}</li>
             <li>• {isAr ? 'أسعار الصرف مباشرة وقد تختلف قليلاً' : 'Exchange rates are fetched live and may vary slightly'}</li>
             <li>• {isAr ? 'استشر عالماً للأحكام الخاصة بحالتك' : 'Consult a scholar for specific rulings on your situation'}</li>
           </ul>
