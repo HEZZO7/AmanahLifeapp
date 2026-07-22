@@ -32,6 +32,27 @@ interface Boundary {
 
 const TOTAL_PAGES = 604;
 
+// api.alquran.cloud prepends the Basmalah to the text of ayah 1 for every
+// surah except Al-Fatihah (1) and At-Tawbah (9, which has no Basmalah at all).
+// The Basmalah is not part of the ayah itself (Al-Fatihah is the sole
+// exception per the Madinah Mushaf/Hafs convention), and the app already
+// renders it as a separate header above the surah, so it must be stripped
+// here to avoid it being duplicated/glued onto ayah 1's text.
+const BASMALAH_VARIANTS = [
+  'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
+];
+
+function stripBasmalahPrefix(text: string, surahNumber: number, numberInSurah: number): string {
+  if (surahNumber === 1 || numberInSurah !== 1) return text;
+  for (const b of BASMALAH_VARIANTS) {
+    if (text.startsWith(b)) {
+      return text.slice(b.length).trim();
+    }
+  }
+  return text;
+}
+
 function findPageForBoundary(pages: Boundary[], target: Boundary): number {
   let page = 1;
   for (let i = 0; i < pages.length; i++) {
@@ -136,6 +157,7 @@ export default function QuranReader() {
       const translationData = await translationRes.json();
       const combined: PageAyah[] = arabicData.data.ayahs.map((ayah: PageAyah, i: number) => ({
         ...ayah,
+        text: stripBasmalahPrefix(ayah.text, ayah.surah.number, ayah.numberInSurah),
         translation: translationData.data.ayahs[i]?.text || '',
       }));
       setPageAyahs(combined);
