@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
@@ -23,52 +26,11 @@ const CATEGORIES = {
   ar: ['النمو الروحي', 'الصحة واللياقة', 'الحكمة المالية', 'العلاقات'],
 };
 
-const COACHING_RESPONSES = {
-  en: {
-    'Spiritual Growth': [
-      'Based on your prayer streak, try adding 10 minutes of Quran reflection after Fajr. Small consistent acts are more beloved to Allah than large sporadic ones.',
-      'Consider setting a weekly goal to memorize 3 new ayahs. Your consistency in dhikr shows you have the discipline for it.',
-      'Your spiritual growth is on track! Try incorporating dua during your commute to maximize blessed moments.',
-    ],
-    'Health & Fitness': [
-      'I notice you haven\'t logged wellness data recently. Start with just 5 minutes of stretching after Fajr prayer.',
-      'Hydration is key! Try drinking water at each prayer time - that\'s 5 glasses minimum throughout the day.',
-      'Consider fasting Mondays and Thursdays - it combines spiritual reward with proven health benefits.',
-    ],
-    'Financial Wisdom': [
-      'Your savings rate could improve. Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings & charity.',
-      'Review your subscriptions this week. Even small recurring expenses add up over a year.',
-      'Consider setting up automatic transfers to your savings on payday - pay yourself first!',
-    ],
-    'Relationships': [
-      'Schedule a weekly family activity. Quality time strengthens bonds more than expensive gifts.',
-      'Reach out to a friend you haven\'t spoken to in a while. The Prophet ﷺ emphasized maintaining ties.',
-      'Practice active listening today. Put your phone away during conversations with loved ones.',
-    ],
-  },
-  ar: {
-    'النمو الروحي': [
-      'بناءً على سلسلة صلواتك، حاول إضافة 10 دقائق من تدبر القرآن بعد الفجر. الأعمال الصغيرة المستمرة أحب إلى الله من الكبيرة المنقطعة.',
-      'فكر في تحديد هدف أسبوعي لحفظ 3 آيات جديدة. التزامك بالذكر يدل على أن لديك الانضباط لذلك.',
-      'نموك الروحي على المسار الصحيح! حاول دمج الدعاء أثناء تنقلك لتعظيم اللحظات المباركة.',
-    ],
-    'الصحة واللياقة': [
-      'ألاحظ أنك لم تسجل بيانات صحية مؤخراً. ابدأ بـ 5 دقائق فقط من التمدد بعد صلاة الفجر.',
-      'الترطيب مهم! حاول شرب الماء عند كل صلاة - هذا 5 أكواب كحد أدنى خلال اليوم.',
-      'فكر في صيام الاثنين والخميس - يجمع بين الأجر الروحي والفوائد الصحية المثبتة.',
-    ],
-    'الحكمة المالية': [
-      'معدل ادخارك يمكن أن يتحسن. جرب قاعدة 50/30/20: 50% احتياجات، 30% رغبات، 20% ادخار وصدقة.',
-      'راجع اشتراكاتك هذا الأسبوع. حتى المصاريف المتكررة الصغيرة تتراكم على مدار العام.',
-      'فكر في إعداد تحويلات تلقائية لمدخراتك يوم الراتب - ادفع لنفسك أولاً!',
-    ],
-    'العلاقات': [
-      'خصص نشاطاً عائلياً أسبوعياً. الوقت الجيد يقوي الروابط أكثر من الهدايا الغالية.',
-      'تواصل مع صديق لم تتحدث معه منذ فترة. النبي ﷺ أكد على صلة الرحم.',
-      'مارس الاستماع الفعال اليوم. ضع هاتفك جانباً أثناء المحادثات مع أحبائك.',
-    ],
-  },
-};
+// Calls the real ai_life_coach Edge Function (Anthropic-backed) - this used
+// to pick a random string out of a fixed, hardcoded array per category, with
+// no AI involved at all despite the screen's name. Same endpoint the RN app
+// uses (see amanahlife-rn's Phase 4 audit notes).
+const AI_COACH_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_ai_life_coach';
 
 const WISDOM_QUOTES = {
   en: [
@@ -106,11 +68,14 @@ const HABIT_SUGGESTIONS = {
 
 export default function AILifeCoach() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const isAr = language === 'ar';
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showWisdom, setShowWisdom] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [coachLoading, setCoachLoading] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('amanah-goals');
@@ -125,28 +90,51 @@ export default function AILifeCoach() {
   const wisdom = isAr ? WISDOM_QUOTES.ar : WISDOM_QUOTES.en;
   const habits = isAr ? HABIT_SUGGESTIONS.ar : HABIT_SUGGESTIONS.en;
 
-  const askCoach = (category: string) => {
+  const askCoach = async (text: string) => {
+    if (!text.trim() || coachLoading) return;
+    if (!user) { toast.error(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first'); return; }
+
+    const userMsg: CoachMessage = { id: Date.now().toString(), type: 'user', text, timestamp: Date.now() };
+    const historyForRequest = [...messages, userMsg].slice(-6);
+    setMessages(prev => [...prev, userMsg]);
+    setCoachLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first'); return; }
+
+      const response = await fetch(AI_COACH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          message: text,
+          language: isAr ? 'ar' : 'en',
+          goals: goals.slice(0, 5),
+          history: historyForRequest,
+        }),
+      });
+      const data = await response.json();
+      if (data.reply) {
+        setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), type: 'coach', text: data.reply, timestamp: Date.now() + 100 }]);
+      } else {
+        toast.error(isAr ? 'المدرب الذكي غير متاح حالياً' : 'AI coach is currently unavailable');
+      }
+    } catch {
+      toast.error(isAr ? 'حدث خطأ في الاتصال' : 'Connection error occurred');
+    } finally {
+      setCoachLoading(false);
+    }
+  };
+
+  const askCategoryCoach = (category: string) => {
     setSelectedCategory(category);
-    const lang = isAr ? 'ar' : 'en';
-    const catKey = category as keyof typeof COACHING_RESPONSES.en;
-    const responses = COACHING_RESPONSES[lang][catKey] || [];
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    askCoach(isAr ? `أحتاج نصيحة حول: ${category}` : `I need advice on: ${category}`);
+  };
 
-    const userMsg: CoachMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      text: isAr ? `أحتاج نصيحة حول: ${category}` : `I need advice on: ${category}`,
-      timestamp: Date.now(),
-    };
-
-    const coachMsg: CoachMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'coach',
-      text: randomResponse || (isAr ? 'استمر في العمل الجيد!' : 'Keep up the great work!'),
-      timestamp: Date.now() + 100,
-    };
-
-    setMessages(prev => [...prev, userMsg, coachMsg]);
+  const sendQuestion = () => {
+    const text = question.trim();
+    if (!text) return;
+    setQuestion('');
+    askCoach(text);
   };
 
   const randomQuote = wisdom[Math.floor(Math.random() * wisdom.length)];
@@ -183,8 +171,9 @@ export default function AILifeCoach() {
                 {categories.map((cat, i) => (
                   <button
                     key={i}
-                    onClick={() => askCoach(cat)}
-                    className={`p-3 rounded-xl text-sm font-medium transition-all border ${
+                    onClick={() => askCategoryCoach(cat)}
+                    disabled={coachLoading}
+                    className={`p-3 rounded-xl text-sm font-medium transition-all border disabled:opacity-50 ${
                       selectedCategory === cat
                         ? 'bg-[#c9a96e]/20 border-[#c9a96e] text-[#c9a96e]'
                         : 'bg-background/50 border-border text-foreground hover:border-primary'
@@ -196,14 +185,14 @@ export default function AILifeCoach() {
               </div>
             </div>
 
-            {/* Chat Messages */}
-            {messages.length > 0 && (
-              <div className="bg-card rounded-2xl p-4 border border-border">
-                <h3 className="text-foreground font-bold mb-3 flex items-center gap-2">
-                  <span>💬</span>
-                  {isAr ? 'محادثة المدرب' : 'Coach Chat'}
-                </h3>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
+            {/* Chat Messages + free-text question */}
+            <div className="bg-card rounded-2xl p-4 border border-border">
+              <h3 className="text-foreground font-bold mb-3 flex items-center gap-2">
+                <span>💬</span>
+                {isAr ? 'محادثة المدرب' : 'Coach Chat'}
+              </h3>
+              {messages.length > 0 && (
+                <div className="space-y-3 max-h-64 overflow-y-auto mb-3">
                   {messages.slice(-6).map(msg => (
                     <div
                       key={msg.id}
@@ -221,9 +210,33 @@ export default function AILifeCoach() {
                       {msg.text}
                     </div>
                   ))}
+                  {coachLoading && (
+                    <div className="p-3 rounded-xl text-sm bg-[#c9a96e]/10 border border-[#c9a96e]/20 text-muted-foreground me-4 flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 border-2 border-[#c9a96e] border-t-transparent rounded-full animate-spin" />
+                      {isAr ? 'المدرب يكتب...' : 'Coach is thinking...'}
+                    </div>
+                  )}
                 </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') sendQuestion(); }}
+                  placeholder={isAr ? 'اسأل مدربك الذكي...' : 'Ask your AI coach...'}
+                  disabled={coachLoading}
+                  className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground disabled:opacity-50"
+                />
+                <button
+                  onClick={sendQuestion}
+                  disabled={coachLoading || !question.trim()}
+                  className="bg-[#c9a96e] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  ➤
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Goals-Based Advice */}
             {goals.length > 0 && (

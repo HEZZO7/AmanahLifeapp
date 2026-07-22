@@ -44,45 +44,6 @@ const PLANS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    nameAr: 'أحمد الراشدي',
-    nameEn: 'Ahmed Al-Rashidi',
-    locationAr: 'الرياض، السعودية',
-    locationEn: 'Riyadh, Saudi Arabia',
-    quoteAr: 'أمانة غيّرت طريقة تنظيم حياتي. أصبحت أحافظ على صلواتي وأذكاري بانتظام مع تتبع ميزانية العائلة.',
-    quoteEn: 'AmanahLife changed how I organize my life. I now maintain my prayers and adhkar regularly while tracking our family budget.',
-    rating: 5,
-  },
-  {
-    nameAr: 'فاطمة المنصوري',
-    nameEn: 'Fatima Al-Mansouri',
-    locationAr: 'دبي، الإمارات',
-    locationEn: 'Dubai, UAE',
-    quoteAr: 'التخطيط الذكي بالذكاء الاصطناعي ساعدني على تحقيق أهدافي الروحية والمالية. تطبيق رائع للعائلة المسلمة!',
-    quoteEn: 'The AI planning helped me achieve my personal and lifestyle goals. Amazing productivity app!',
-    rating: 5,
-  },
-  {
-    nameAr: 'عمر حسين',
-    nameEn: 'Omar Hussein',
-    locationAr: 'عمّان، الأردن',
-    locationEn: 'Amman, Jordan',
-    quoteAr: 'أفضل تطبيق استخدمته لتنظيم حياتي. متتبع الصيام وأدوات التخطيط دقيقان جداً. أنصح به بشدة.',
-    quoteEn: 'Best lifestyle app I have used. The fasting tracker and planning tools are very accurate. Highly recommend.',
-    rating: 5,
-  },
-  {
-    nameAr: 'نورة الحربي',
-    nameEn: 'Noura Al-Harbi',
-    locationAr: 'جدة، السعودية',
-    locationEn: 'Jeddah, Saudi Arabia',
-    quoteAr: 'ميزة تتبع الأهداف والعادات ممتازة. أصبحت أقرأ القرآن يومياً وأتابع تقدمي بسهولة.',
-    quoteEn: 'The goals and habits tracker is excellent. I now read Quran daily and easily track my progress.',
-    rating: 4,
-  },
-];
-
 export default function Subscription() {
   const { language } = useLanguage();
   const { timeFormat } = useTimeFormat();
@@ -539,47 +500,6 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Testimonials Section */}
-        <div className="bg-card rounded-2xl p-4 border border-border">
-          <h3 className="text-sm text-muted-foreground mb-1">
-            {isAr ? 'ماذا يقول مستخدمونا' : 'What Our Users Say'}
-          </h3>
-          <p className="text-xs text-muted-foreground mb-4">
-            {isAr ? 'آراء المستخدمين حول العالم' : 'Reviews from users worldwide'}
-          </p>
-          <div className="space-y-3">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="rounded-xl p-4 bg-background/50 border border-border/50">
-                <div className="flex items-center gap-1 mb-2">
-                  {Array.from({ length: 5 }).map((_, si) => (
-                    <svg
-                      key={si}
-                      className={`w-3.5 h-3.5 ${si < t.rating ? 'text-[#c9a96e]' : 'text-muted-foreground/30'}`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-sm text-foreground mb-2 leading-relaxed">
-                  &ldquo;{isAr ? t.quoteAr : t.quoteEn}&rdquo;
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#1a4a3a] flex items-center justify-center">
-                    <span className="text-xs text-[#c9a96e] font-bold">
-                      {(isAr ? t.nameAr : t.nameEn).charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">{isAr ? t.nameAr : t.nameEn}</p>
-                    <p className="text-[10px] text-muted-foreground">{isAr ? t.locationAr : t.locationEn}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </main>
 
       <BottomNav />
