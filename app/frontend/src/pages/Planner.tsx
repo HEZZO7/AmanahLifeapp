@@ -285,8 +285,8 @@ export default function Planner() {
 
       {/* Add Agenda Item Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowAddForm(false)} />
+        <div className="fixed inset-x-0 top-0 z-[60] flex items-center justify-center p-4" style={{ bottom: '4rem' }}>
+          <div className="fixed inset-x-0 top-0 bg-black/50" style={{ bottom: '4rem' }} onClick={() => setShowAddForm(false)} />
           <div className="relative bg-card rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
             <h3 className="text-foreground font-semibold text-lg">
               {language === 'ar' ? 'إضافة موعد جديد' : 'Add New Event'}

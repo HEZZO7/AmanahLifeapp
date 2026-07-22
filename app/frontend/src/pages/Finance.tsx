@@ -193,8 +193,8 @@ export default function Finance() {
 
       {/* Add/Edit Transaction Form */}
       {showForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={resetForm} />
+        <div className="fixed inset-x-0 top-0 z-[60] flex items-center justify-center p-4" style={{ bottom: '4rem' }}>
+          <div className="fixed inset-x-0 top-0 bg-black/50" style={{ bottom: '4rem' }} onClick={resetForm} />
           <div className="relative bg-card rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 shadow-xl space-y-4">
             <h3 className="text-foreground font-semibold text-lg">{editingId ? t('editTransaction') : t('addTransaction')}</h3>
 

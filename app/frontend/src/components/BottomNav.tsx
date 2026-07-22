@@ -104,10 +104,11 @@ export default function BottomNav() {
         </div>
       </nav>
 
-      {/* Search Mode Modal */}
+      {/* Search Mode Modal — stops above the nav bar (h-16 = 4rem) instead of
+          covering it, so the nav stays visible and tappable while open. */}
       {showSearchModal && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowSearchModal(false)} />
+        <div className="fixed inset-x-0 top-0 z-[70] flex items-end justify-center" style={{ bottom: '4rem' }}>
+          <div className="fixed inset-x-0 top-0 bg-black/50" style={{ bottom: '4rem' }} onClick={() => setShowSearchModal(false)} />
           <div className="relative bg-card rounded-t-3xl w-full max-w-lg p-6 pb-8 shadow-xl animate-in slide-in-from-bottom duration-300">
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-5" />
             <h3 className="text-foreground font-semibold text-lg mb-4 text-center">
