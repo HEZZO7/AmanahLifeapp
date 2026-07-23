@@ -135,7 +135,9 @@ export default function HomePage() {
 
   // Daily summary data
   const dailySummary = useMemo(() => {
-    const tasks = JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+    // Was 'amanah-tasks' (dash) - key-name mismatch with TaskManager.tsx's
+    // real key, fixed 2026-07-23.
+    const tasks = JSON.parse(localStorage.getItem('amanah_tasks') || '[]');
     const todayStr = new Date().toISOString().split('T')[0];
     const todayTasks = tasks.filter((t: { date?: string }) => !t.date || t.date === todayStr);
     const doneTasks = todayTasks.filter((t: { completed?: boolean }) => t.completed);

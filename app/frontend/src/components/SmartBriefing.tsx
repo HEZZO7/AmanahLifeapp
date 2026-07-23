@@ -73,7 +73,9 @@ export default function SmartBriefing() {
     }
 
     // Tasks count
-    const tasks = JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+    // Was 'amanah-tasks' (dash) - key-name mismatch with TaskManager.tsx's
+    // real key, fixed 2026-07-23.
+    const tasks = JSON.parse(localStorage.getItem('amanah_tasks') || '[]');
     const todayTasks = tasks.filter((t: { date?: string; completed?: boolean }) =>
       (!t.date || t.date === todayStr) && !t.completed
     );

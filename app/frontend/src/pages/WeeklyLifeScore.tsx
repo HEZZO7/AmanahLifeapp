@@ -73,7 +73,9 @@ function calculateScores(): DimensionScore[] {
     : 40;
 
   // Personal Growth: based on tasks completed
-  const tasks = JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+  // Was 'amanah-tasks' (dash) - key-name mismatch with TaskManager.tsx's
+  // real key, fixed 2026-07-23.
+  const tasks = JSON.parse(localStorage.getItem('amanah_tasks') || '[]');
   const completedTasks = tasks.filter((t: { completed?: boolean }) => t.completed);
   const growthScore = tasks.length > 0
     ? Math.min(100, (completedTasks.length / Math.max(tasks.length, 1)) * 100)

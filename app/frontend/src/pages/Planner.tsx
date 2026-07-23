@@ -34,7 +34,9 @@ export default function Planner() {
   const [newItem, setNewItem] = useState({ title: '', date: '', time: '', description: '' });
 
   useEffect(() => {
-    const stored = localStorage.getItem('amanah-tasks');
+    // Was 'amanah-tasks' (dash) - key-name mismatch with TaskManager.tsx's
+    // real key, fixed 2026-07-23.
+    const stored = localStorage.getItem('amanah_tasks');
     if (stored) setTasks(JSON.parse(stored));
     const storedAgenda = localStorage.getItem('amanah-agenda');
     if (storedAgenda) setAgendaItems(JSON.parse(storedAgenda));

@@ -77,7 +77,10 @@ export default function Goals() {
 
   const getLinkedTasksCount = (goalTitle: string): number => {
     try {
-      const tasks = JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+      // 'amanah_tasks' (underscore) is TaskManager.tsx's real key - this used
+      // to read 'amanah-tasks' (dash), a mismatch that made linked-task
+      // counts always 0. Fixed 2026-07-23.
+      const tasks = JSON.parse(localStorage.getItem('amanah_tasks') || '[]');
       return tasks.filter((t: { title?: string; category?: string }) =>
         t.title?.toLowerCase().includes(goalTitle.toLowerCase()) ||
         t.category?.toLowerCase().includes(goalTitle.toLowerCase())

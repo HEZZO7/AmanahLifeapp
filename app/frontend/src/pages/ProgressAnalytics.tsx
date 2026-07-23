@@ -50,7 +50,9 @@ export default function ProgressAnalytics() {
 
   const tasks: Task[] = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem('amanah-tasks') || '[]');
+      // Was 'amanah-tasks' (dash) - key-name mismatch with TaskManager.tsx's
+      // real key, fixed 2026-07-23.
+      return JSON.parse(localStorage.getItem('amanah_tasks') || '[]');
     } catch {
       return [];
     }
