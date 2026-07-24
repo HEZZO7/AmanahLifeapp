@@ -134,21 +134,21 @@ Deno.serve(async (req: Request) => {
 
     if (!anthropicRes.ok) {
       const errText = await anthropicRes.text();
-      console.error(`[${requestId2}] Anthropic error (status ${anthropicRes.status}):`, errText);
+      console.error(`[${requestId}] Anthropic error (status ${anthropicRes.status}):`, errText);
       return fallbackTip();
     }
 
     const data = await anthropicRes.json();
     const tip = data.content?.[0]?.text?.trim();
     if (!tip) {
-      console.error(`[${requestId2}] Empty response from Anthropic, using fallback`);
+      console.error(`[${requestId}] Empty response from Anthropic, using fallback`);
       return fallbackTip();
     }
 
-    console.log(`[${requestId2}] AI tip generated successfully`);
+    console.log(`[${requestId}] AI tip generated successfully`);
     return json({ tip, generatedAt: new Date().toISOString() }, 200, corsHeaders);
   } catch (e) {
-    console.error(`[${requestId2}] AI generation failed, using fallback:`, e);
+    console.error(`[${requestId}] AI generation failed, using fallback:`, e);
     return fallbackTip();
   }
 });

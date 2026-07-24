@@ -1,14 +1,43 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// This endpoint is called directly from the browser (unlike the webhook),
+// so it does need real CORS handling — but scoped to our own first-party
+// origins, not a wildcard, and only the headers this function actually uses.
+const ALLOWED_ORIGINS = new Set([
+  "https://app.amanahlife.com",
+  "https://amanahlife.com",
+]);
+
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.amanahlife.com",
+    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+// Same allowlist governs where a post-checkout redirect is allowed to send
+// the user — client-supplied successUrl was previously passed straight
+// through to Lemon Squeezy unvalidated, which is an open redirect a phishing
+// page could exploit (Lemon Squeezy would happily bounce a paying user to
+// any attacker-controlled URL after checkout completes).
+function isAllowedRedirect(url: unknown): url is string {
+  if (typeof url !== "string" || !url) return false;
+  try {
+    return ALLOWED_ORIGINS.has(new URL(url).origin);
+  } catch {
+    return false;
+  }
+}
+
+const VALID_TIERS = new Set(["balanced", "family"]);
+const VALID_BILLING = new Set(["monthly", "yearly"]);
 
 Deno.serve(async (req: Request) => {
   const requestId = crypto.randomUUID();
   console.log(JSON.stringify({ requestId, method: req.method, url: req.url }));
+  const corsHeaders = corsHeadersFor(req);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -114,15 +143,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // For checkout action, require tier and billing
-    if (!body.tier || !body.billing) {
+    // For checkout action, require tier and billing to be real, known
+    // string values before they're interpolated into an env var lookup key
+    // below — the previous `!body.tier || !body.billing` check let any
+    // truthy value through (including non-strings), so a malformed body
+    // threw inside .toUpperCase() and surfaced as an opaque 500 instead of
+    // a 400.
+    const { tier, billing, successUrl } = body;
+    if (!VALID_TIERS.has(tier) || !VALID_BILLING.has(billing)) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: tier, billing" }),
+        JSON.stringify({ error: "Invalid tier or billing cycle" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const { tier, billing, successUrl, cancelUrl } = body;
 
     console.log(JSON.stringify({ requestId, userId: user.id, tier, billing }));
 
@@ -162,7 +195,7 @@ Deno.serve(async (req: Request) => {
             },
           },
           product_options: {
-            redirect_url: successUrl || undefined,
+            redirect_url: isAllowedRedirect(successUrl) ? successUrl : undefined,
           },
           checkout_options: {
             embed: false,

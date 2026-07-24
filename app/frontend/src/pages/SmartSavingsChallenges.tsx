@@ -299,9 +299,13 @@ export default function SmartSavingsChallenges() {
                   </div>
                 ) : dailyTip ? (
                   <p className="text-sm text-muted-foreground leading-relaxed">{dailyTip}</p>
+                ) : tipChallenges.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">
+                    {isAr ? 'انضم إلى تحدٍ لتلقي نصيحة ادخار يومية.' : 'Join a challenge to get a daily savings tip.'}
+                  </p>
                 ) : (
                   <p className="text-sm text-muted-foreground italic">
-                    {isAr ? 'جارٍ تحميل النصيحة...' : 'Loading tip...'}
+                    {isAr ? 'تعذر تحميل النصيحة. اضغط للتحديث.' : "Couldn't load a tip. Tap refresh to try again."}
                   </p>
                 )}
               </div>
