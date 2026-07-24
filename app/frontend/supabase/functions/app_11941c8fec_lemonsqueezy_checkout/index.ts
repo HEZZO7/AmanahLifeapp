@@ -12,7 +12,7 @@ function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") || "";
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.amanahlife.com",
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
