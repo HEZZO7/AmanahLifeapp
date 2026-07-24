@@ -48,11 +48,12 @@ export default function Subscription() {
   const { language } = useLanguage();
   const { timeFormat } = useTimeFormat();
   const isAr = language === 'ar';
-  const { tier: currentTier, billingCycle, loading: subLoading, isTrialActive, trialDaysRemaining, startTrial, refetch } = useSubscription();
+  const { tier: currentTier, billingCycle, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [trialLoading, setTrialLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
   const [userCurrency, setUserCurrency] = useState<string>(() => getUserCurrency());
 
@@ -224,6 +225,26 @@ export default function Subscription() {
     }
   }, [isAr, currentTier]);
 
+  const handleStartTrial = async () => {
+    setTrialLoading(true);
+    try {
+      const { error } = await startTrial();
+      if (error === 'trial_already_used') {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'لقد استخدمت التجربة المجانية بالفعل لهذا الحساب.' : 'You already used your free trial on this account.',
+        });
+      } else if (error) {
+        setMessage({
+          type: 'canceled',
+          text: isAr ? 'حدث خطأ ما. حاول مرة أخرى.' : 'Something went wrong. Please try again.',
+        });
+      }
+    } finally {
+      setTrialLoading(false);
+    }
+  };
+
   const currentPlanName = PLANS.find(p => p.id === currentTier);
 
   // Determine if user is on free tier (not trial, not paid)
@@ -297,8 +318,8 @@ export default function Subscription() {
           </div>
         )}
 
-        {/* Start Free Trial CTA */}
-        {isFreeTier && (
+        {/* Start Free Trial CTA — hidden once the account has already used its trial */}
+        {isFreeTier && !trialUsed && (
           <div className="rounded-2xl p-5 border-2 border-dashed border-[#c9a96e]/50 bg-gradient-to-br from-[#c9a96e]/5 to-transparent text-center">
             <span className="text-3xl mb-2 block">🎁</span>
             <h3 className="text-lg font-bold text-foreground mb-1">
@@ -310,8 +331,9 @@ export default function Subscription() {
                 : 'Get all premium features for 7 days, no payment required'}
             </p>
             <button
-              onClick={startTrial}
-              className="bg-gradient-to-r from-[#c9a96e] to-[#a67c3d] hover:from-[#b8944f] hover:to-[#956b2e] text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#c9a96e]/20"
+              onClick={handleStartTrial}
+              disabled={trialLoading}
+              className="bg-gradient-to-r from-[#c9a96e] to-[#a67c3d] hover:from-[#b8944f] hover:to-[#956b2e] text-white font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-[#c9a96e]/20 disabled:opacity-50"
             >
               {isAr ? '🚀 ابدأ تجربة 7 أيام مجانية' : '🚀 Start 7-Day Free Trial'}
             </button>
