@@ -90,7 +90,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         .from('app_11941c8fec_subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         // No subscription record found - default to free

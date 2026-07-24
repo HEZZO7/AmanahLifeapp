@@ -51,7 +51,7 @@ export default function Planner() {
       try {
         const today = new Date();
         const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-        const res = await fetch(`https://api.aladhan.com/v1/gpiToH/${dateStr}`);
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
         const data = await res.json();
         const h = data.data.hijri;
         if (language === 'ar') {

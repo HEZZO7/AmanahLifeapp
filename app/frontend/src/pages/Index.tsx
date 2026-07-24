@@ -42,7 +42,7 @@ export default function HomePage() {
       try {
         const today = new Date();
         const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-        const res = await fetch(`https://api.aladhan.com/v1/gpiToH/${dateStr}`);
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
         const data = await res.json();
         setHijriDate({
           day: data.data.hijri.day,
