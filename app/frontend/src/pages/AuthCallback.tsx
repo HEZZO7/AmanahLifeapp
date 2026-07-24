@@ -2,6 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
+// A client-side navigate('/') here leaves the SPA's existing document/layout
+// state in place. On mobile browsers, the redirect chain through Google's
+// OAuth pages and back can leave the browser's computed viewport width
+// stale relative to Tailwind's `md:` breakpoints - Dashboard briefly renders
+// with the desktop grid until something forces a real layout recalculation
+// (a manual refresh does this, which is why that "fixes" it). A genuine
+// full-page navigation guarantees the browser reflows fresh against the
+// actual device viewport, so do that instead of a client-side route change
+// for this one post-auth transition.
+function goToDashboard() {
+  window.location.replace('/');
+}
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +42,7 @@ export default function AuthCallback() {
             setError(exchangeError.message);
             return;
           }
-          navigate('/', { replace: true });
+          goToDashboard();
           return;
         }
 
@@ -41,13 +54,13 @@ export default function AuthCallback() {
         }
 
         if (session) {
-          navigate('/', { replace: true });
+          goToDashboard();
         } else {
           // No session and no code - wait briefly for hash-based auth to complete
           setTimeout(async () => {
             const { data: { session: retrySession } } = await supabase.auth.getSession();
             if (retrySession) {
-              navigate('/', { replace: true });
+              goToDashboard();
             } else {
               setError('Authentication session could not be established. Please try again.');
             }
