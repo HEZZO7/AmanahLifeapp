@@ -115,8 +115,8 @@ Deno.serve(async (req: Request) => {
     ).join("\n");
 
     const prompt = isAr
-      ? `تحديات الادخار النشطة للمستخدم:\n${challengesSummary}\n\nقدم نصيحة ادخار يومية مخصصة بناءً على تقدمهم. اجعل النصيحة قصيرة (2-3 جمل) وعملية ومحفزة. أجب بالعربية فقط.`
-      : `User's active savings challenges:\n${challengesSummary}\n\nProvide a personalized daily savings tip based on their progress. Keep it short (2-3 sentences), actionable, and motivating. Reply in English only.`;
+      ? `تحديات الادخار النشطة للمستخدم:\n${challengesSummary}\n\nقدم نصيحة ادخار يومية مخصصة بناءً على تقدمهم. اجعل النصيحة قصيرة (2-3 جمل) وعملية ومحفزة. أجب بالعربية فقط. أجب بنص عادي فقط بدون أي تنسيق Markdown (بدون #، بدون **، بدون قوائم)، وبدون عنوان أو تكرار عبارة "نصيحة الادخار اليومية" - ابدأ مباشرة بالنصيحة نفسها.`
+      : `User's active savings challenges:\n${challengesSummary}\n\nProvide a personalized daily savings tip based on their progress. Keep it short (2-3 sentences), actionable, and motivating. Reply in English only. Reply in plain text only - no Markdown formatting (no #, no **, no lists), and no title or repeated "Daily Savings Tip" heading - start directly with the tip itself.`;
 
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
