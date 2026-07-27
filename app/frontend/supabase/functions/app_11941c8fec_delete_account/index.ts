@@ -68,6 +68,8 @@ Deno.serve(async (req: Request) => {
       "app_11941c8fec_subscriptions",
       "app_11941c8fec_search_history",
       "app_11941c8fec_email_digest",
+      "app_11941c8fec_notification_preferences",
+      "app_11941c8fec_push_subscriptions",
     ];
 
     const deleteErrors: string[] = [];
