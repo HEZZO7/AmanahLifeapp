@@ -8,13 +8,18 @@ import PageHeader from '@/components/PageHeader';
 import LockedFeatureModal from '@/components/LockedFeatureModal';
 import { useNavigate } from 'react-router-dom';
 
+// NOTE: no per-member worship stats here on purpose. This interface used to
+// carry prayerStreak/quranPages, which were generated with Math.random() at
+// invite time and then rendered as if they were that person's real prayer
+// and Quran activity. Family members' actual worship data does not exist
+// server-side yet, so it is simply unknown - and unknown is shown as unknown,
+// never guessed at. Re-add these only when they can be read from real
+// per-user server data.
 interface FamilyMember {
   id: string;
   name: string;
   email: string;
   joinedAt: string;
-  prayerStreak: number;
-  quranPages: number;
 }
 
 interface SharedGoal {
@@ -68,8 +73,6 @@ export default function FamilySharedDashboard() {
       name: inviteName.trim(),
       email: inviteEmail.trim(),
       joinedAt: new Date().toISOString(),
-      prayerStreak: Math.floor(Math.random() * 30) + 1,
-      quranPages: Math.floor(Math.random() * 50) + 5,
     };
     saveMembers([...members, newMember]);
     setInviteName('');
@@ -96,7 +99,11 @@ export default function FamilySharedDashboard() {
     saveMembers(members.filter(m => m.id !== id));
   };
 
-  // Combined financial summary from existing transactions
+  // Financial summary from THIS DEVICE's own transactions only. This was
+  // previously labelled "Combined Financial Summary", implying it aggregated
+  // the whole family's finances - it never did. Transactions live in
+  // localStorage per device, so there is nothing family-wide to combine until
+  // transactions exist server-side. Labelled honestly in the UI below.
   const financialSummary = useMemo(() => {
     const transactions = JSON.parse(localStorage.getItem('amanah-transactions') || '[]');
     const totalIncome = transactions
@@ -114,17 +121,22 @@ export default function FamilySharedDashboard() {
     return goals.slice(0, 5);
   }, []);
 
-  // Accountability score
+  // Accountability score, computed ONLY from data we genuinely have: this
+  // user's own prayer streak and real progress on real shared goals.
+  // Previously this averaged in every member's prayerStreak - i.e. the
+  // Math.random() values above - and added a flat bonus per member, so
+  // adding names to a local list inflated a number presented as a family
+  // accountability measure. Other members' real activity is unknown until
+  // per-user worship data exists server-side, so it is excluded rather than
+  // estimated. Labelled in the UI as covering your own activity, not the
+  // family's.
   const accountabilityScore = useMemo(() => {
     const myStreak = Number(localStorage.getItem('amanah-prayer-streak') || '0');
-    const avgStreak = members.length > 0
-      ? members.reduce((sum, m) => sum + m.prayerStreak, myStreak) / (members.length + 1)
-      : myStreak;
     const goalsProgress = sharedGoals.length > 0
       ? sharedGoals.reduce((sum, g) => sum + (g.target > 0 ? g.current / g.target : 0), 0) / sharedGoals.length
       : 0;
-    return Math.min(100, Math.round((avgStreak * 2) + (goalsProgress * 50) + (members.length * 5)));
-  }, [members, sharedGoals]);
+    return Math.min(100, Math.round((myStreak * 2) + (goalsProgress * 50)));
+  }, [sharedGoals]);
 
   if (subLoading) return null;
 
@@ -163,7 +175,7 @@ export default function FamilySharedDashboard() {
       {/* Action Button */}
       <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
         <Button size="sm" onClick={() => setShowInvite(true)}>
-          {language === 'ar' ? '+ دعوة' : '+ Invite'}
+          {language === 'ar' ? '+ إضافة' : '+ Add'}
         </Button>
       </div>
 
@@ -171,9 +183,17 @@ export default function FamilySharedDashboard() {
         {/* Invite Modal */}
         {showInvite && (
           <Card className="p-4 border-primary/30 bg-card">
-            <h3 className="font-semibold text-foreground mb-3">
-              {language === 'ar' ? 'دعوة فرد من العائلة' : 'Invite Family Member'}
+            <h3 className="font-semibold text-foreground mb-1">
+              {language === 'ar' ? 'إضافة فرد من العائلة' : 'Add Family Member'}
             </h3>
+            {/* No invite is actually sent - this only adds a name to this
+                device's local list. Said plainly rather than labelling the
+                button "Send Invite", which promised an email that never went. */}
+            <p className="text-xs text-muted-foreground mb-3">
+              {language === 'ar'
+                ? 'يُضاف الاسم إلى قائمتك على هذا الجهاز. لا يتم إرسال دعوة بالبريد الإلكتروني بعد.'
+                : "Adds the name to your list on this device. No email invite is sent yet."}
+            </p>
             <div className="space-y-3">
               <input
                 type="text"
@@ -191,7 +211,7 @@ export default function FamilySharedDashboard() {
               />
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleInvite}>
-                  {language === 'ar' ? 'إرسال دعوة' : 'Send Invite'}
+                  {language === 'ar' ? 'إضافة' : 'Add'}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowInvite(false)}>
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
@@ -201,14 +221,28 @@ export default function FamilySharedDashboard() {
           </Card>
         )}
 
-        {/* Accountability Score */}
+        {/* Device-local notice: this screen does not sync between family members yet. */}
+        <Card className="p-3 border-amber-500/30 bg-amber-500/5">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {language === 'ar'
+              ? 'ℹ️ تُحفظ بيانات لوحة العائلة على هذا الجهاز فقط في الوقت الحالي. لم تتم مشاركتها مع أفراد عائلتك بعد، ولا يمكن عرض نشاطهم الحقيقي هنا حتى الآن.'
+              : "ℹ️ Family Dashboard data is currently stored on this device only. It isn't shared with your family members yet, and their real activity can't be shown here until it is."}
+          </p>
+        </Card>
+
+        {/* Accountability Score - your own activity only, see comment on the useMemo above */}
         <Card className="p-5 bg-gradient-to-r from-primary/20 to-[#1FC7C1]/20 border-primary/30">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">
-                {language === 'ar' ? 'نقاط المسؤولية العائلية' : 'Family Accountability Score'}
+                {language === 'ar' ? 'نقاط مسؤوليتك' : 'Your Accountability Score'}
               </p>
               <p className="text-3xl font-bold text-primary mt-1">{accountabilityScore}%</p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {language === 'ar'
+                  ? 'استناداً إلى سلسلتك والأهداف المشتركة'
+                  : 'Based on your own streak and shared goals'}
+              </p>
             </div>
             <div className="w-16 h-16 rounded-full border-4 border-primary flex items-center justify-center">
               <span className="text-2xl">🏆</span>
@@ -256,47 +290,40 @@ export default function FamilySharedDashboard() {
           </div>
         </div>
 
-        {/* Prayer Streak Comparison */}
+        {/* Prayer Streak Comparison - intentionally NOT rendering per-member
+            streaks. These were Math.random() values shown as real worship
+            data. Restore a real comparison only once per-user prayer data is
+            readable from the server for every member. */}
         {members.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-3">
               {language === 'ar' ? '🕌 مقارنة سلسلة الصلاة' : '🕌 Prayer Streak Comparison'}
             </h2>
-            <Card className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-foreground">{language === 'ar' ? 'أنا' : 'You'}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-background rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: '60%' }} />
-                    </div>
-                    <span className="text-xs text-muted-foreground">🔥</span>
-                  </div>
-                </div>
-                {members.map(member => (
-                  <div key={member.id} className="flex items-center justify-between">
-                    <span className="text-sm text-foreground">{member.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-background rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#D4A017] rounded-full"
-                          style={{ width: `${Math.min(100, member.prayerStreak * 3.3)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{member.prayerStreak}d</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <Card className="p-4 border-dashed">
+              <p className="text-sm text-muted-foreground text-center">
+                {language === 'ar' ? 'غير متاح بعد' : 'Not yet available'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-2 leading-relaxed">
+                {language === 'ar'
+                  ? 'لا تتم مزامنة بيانات الصلاة بين أفراد العائلة بعد، لذا لا يمكن عرض سلاسلهم هنا.'
+                  : "Prayer data isn't synced between family members yet, so their streaks can't be shown here."}
+              </p>
             </Card>
           </div>
         )}
 
-        {/* Combined Financial Summary */}
+        {/* Financial summary - your own numbers only, NOT family-wide. See the
+            comment on financialSummary above; there is nothing to combine
+            until transactions exist server-side. */}
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">
-            {language === 'ar' ? '💰 الملخص المالي المشترك' : '💰 Combined Financial Summary'}
+          <h2 className="text-lg font-semibold text-foreground mb-1">
+            {language === 'ar' ? '💰 ملخصي المالي' : '💰 My Financial Summary'}
           </h2>
+          <p className="text-xs text-muted-foreground mb-3">
+            {language === 'ar'
+              ? 'بياناتك على هذا الجهاز فقط — لا تشمل أفراد العائلة الآخرين بعد.'
+              : "Your own data on this device only - doesn't include other family members yet."}
+          </p>
           <div className="grid grid-cols-3 gap-3">
             <Card className="p-3 text-center">
               <p className="text-xs text-muted-foreground">{language === 'ar' ? 'الدخل' : 'Income'}</p>
