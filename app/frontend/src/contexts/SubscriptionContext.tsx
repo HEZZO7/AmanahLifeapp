@@ -181,13 +181,32 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Effective tier: if trial is active and DB tier is free, treat as balanced.
-  // Otherwise, only grant the DB tier when status is actually entitling —
-  // a canceled/expired/paused subscription falls back to free regardless of
-  // what `tier` still says, until the row is updated by a payment webhook.
+  // What the user has actually paid for, or 'free' if nothing currently
+  // entitles them. A canceled/expired/paused subscription falls back to free
+  // regardless of what `tier` still says, until a payment webhook updates the
+  // row — otherwise a lapsed row whose tier column still reads 'family' would
+  // grant family access forever.
   const isEntitled = ENTITLING_STATUSES.has(status);
-  const effectiveTier: SubscriptionTier =
-    tier === 'free' && isTrialActive ? 'balanced' : isEntitled ? tier : 'free';
+  const purchasedTier: SubscriptionTier = isEntitled ? tier : 'free';
+
+  // The 7-day free trial grants FULL family access — both Balanced Life and
+  // Family Plan features — not merely 'balanced'.
+  //
+  // This is deliberately keyed on isTrialActive alone, NOT on
+  // `tier === 'free' && isTrialActive` as it was previously. With the old
+  // condition, buying Balanced Life *during* a trial immediately revoked the
+  // family-level access the trial had granted: the moment the webhook wrote
+  // tier='balanced', the trial branch stopped matching and the user was
+  // downgraded mid-trial for the crime of purchasing early. That was mostly
+  // invisible while the trial only granted 'balanced' (buying balanced was a
+  // no-op), but becomes a visible downgrade now that the trial grants family.
+  //
+  // Treat trial access as a floor instead: while the trial runs the user gets
+  // family regardless of what they have bought, and when it expires they drop
+  // to whatever they are genuinely entitled to — 'free' for a pure trial user,
+  // 'balanced' for someone who bought Balanced Life, 'family' for a real
+  // family subscriber.
+  const effectiveTier: SubscriptionTier = isTrialActive ? 'family' : purchasedTier;
 
   return (
     <SubscriptionContext.Provider value={{
