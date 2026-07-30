@@ -150,7 +150,25 @@ Deno.serve(async (req: Request) => {
       status = "expired";
     }
 
-    // Upsert subscription record
+    // current_period_end already exists on this table (populated for Stripe
+    // by app_11941c8fec_stripe_webhook) but was never populated for Lemon
+    // Squeezy, so the client's planned "renewal date" display would have
+    // silently shown nothing for LS subscribers. Lemon Squeezy's subscription
+    // object gives `ends_at` (set only once cancelled/expired - the date
+    // access actually ends) and `renews_at` (the next charge date while
+    // active/past_due; also present, misleadingly, on a cancelled sub as the
+    // date it WOULD have renewed, which is why ends_at is checked first).
+    // Verified against Lemon Squeezy's own example webhook payload before
+    // writing this, not assumed from memory.
+    const currentPeriodEnd = subscriptionData.ends_at || subscriptionData.renews_at || null;
+
+    // current_period_start is deliberately left unset here. Lemon Squeezy's
+    // subscription object has no equivalent field (only created_at, which is
+    // when the subscription itself started, not the current billing period) -
+    // writing something invented into a real column would be exactly the
+    // fabricated-data problem fixed elsewhere in this app. Stripe subscribers
+    // keep it populated via the Stripe webhook; LS subscribers simply have it
+    // null, same as trial_started_at is null for a non-trialing account.
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -164,6 +182,7 @@ Deno.serve(async (req: Request) => {
           tier: plan.tier,
           billing_cycle: plan.billing,
           status,
+          current_period_end: currentPeriodEnd,
           lemonsqueezy_customer_id: lsCustomerId,
           lemonsqueezy_subscription_id: lsSubscriptionId,
           updated_at: new Date().toISOString(),
