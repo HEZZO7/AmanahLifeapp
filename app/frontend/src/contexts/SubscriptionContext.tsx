@@ -39,6 +39,12 @@ interface SubscriptionContextType {
   status: SubscriptionStatus;
   billingCycle: BillingCycle;
   paymentProvider: PaymentProvider;
+  // ISO date string, or null. Populated by the Stripe webhook for Stripe
+  // subscribers; populated by the Lemon Squeezy webhook from the real
+  // ends_at/renews_at fields on its subscription object (never fabricated -
+  // see that function's comments). Null for free/trial users and, for now,
+  // for Paddle, whose webhook doesn't populate this column yet.
+  currentPeriodEnd: string | null;
   loading: boolean;
   isTrialActive: boolean;
   trialDaysRemaining: number;
@@ -55,6 +61,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SubscriptionStatus>('active');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('stripe');
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isTrialActive, setIsTrialActive] = useState(false);
   const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
@@ -76,6 +83,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setStatus('active');
       setBillingCycle('monthly');
       setPaymentProvider('stripe');
+      setCurrentPeriodEnd(null);
       setIsTrialActive(false);
       setTrialDaysRemaining(0);
       setTrialUsed(false);
@@ -102,6 +110,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setStatus('active');
         setBillingCycle('monthly');
         setPaymentProvider('stripe');
+        setCurrentPeriodEnd(null);
         setIsTrialActive(false);
         setTrialDaysRemaining(0);
         setTrialUsed(false);
@@ -115,6 +124,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setStatus(fetchedStatus);
         setBillingCycle(fetchedBilling);
         setPaymentProvider(fetchedProvider);
+        setCurrentPeriodEnd(data.current_period_end ?? null);
         setTrialUsed(!!data.trial_used);
         const computed = computeTrialState(data.trial_started_at ?? null);
         setIsTrialActive(computed.isTrialActive);
@@ -214,6 +224,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       status,
       billingCycle,
       paymentProvider,
+      currentPeriodEnd,
       loading,
       isTrialActive,
       trialDaysRemaining,
@@ -231,6 +242,7 @@ const defaultSubscription: SubscriptionContextType = {
   status: 'active',
   billingCycle: 'monthly',
   paymentProvider: 'stripe',
+  currentPeriodEnd: null,
   loading: false,
   isTrialActive: false,
   trialDaysRemaining: 0,

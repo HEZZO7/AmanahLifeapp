@@ -48,7 +48,7 @@ export default function Subscription() {
   const { language } = useLanguage();
   const { timeFormat } = useTimeFormat();
   const isAr = language === 'ar';
-  const { tier: currentTier, billingCycle, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
+  const { tier: currentTier, status: currentStatus, billingCycle, currentPeriodEnd, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -361,6 +361,18 @@ export default function Subscription() {
               <p className="text-xs text-muted-foreground">
                 {billingCycle === 'yearly' ? (isAr ? 'اشتراك سنوي' : 'Yearly Plan') : (isAr ? 'اشتراك شهري' : 'Monthly Plan')}
               </p>
+              {/* Renewal/expiry date. null for free/trial users and for any
+                  provider whose webhook doesn't populate current_period_end
+                  yet (currently Paddle) - shown only when we genuinely have
+                  it, never a guessed date. */}
+              {!isTrialActive && currentPeriodEnd && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {currentStatus === 'canceled'
+                    ? (isAr ? 'ينتهي الوصول في ' : 'Access ends ')
+                    : (isAr ? 'يتجدد في ' : 'Renews ')}
+                  {new Date(currentPeriodEnd).toLocaleDateString(isAr ? 'ar' : 'en', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              )}
             </div>
           </div>
         </div>
