@@ -159,6 +159,27 @@ Deno.serve(async (req: Request) => {
 
     console.log(JSON.stringify({ requestId, userId: user.id, tier, billing }));
 
+    // Whether Lemon Squeezy's own native trial should be suppressed on this
+    // checkout. This function is only reached (per the client) for a user
+    // whose app-level trial is already used - Lemon Squeezy's hosted
+    // buy-links have no way to suppress their own trial offer (skip_trial is
+    // only settable via this API, confirmed against Lemon Squeezy's own
+    // docs), which is the whole reason this API-based path still exists
+    // instead of retiring it in favour of buy-links entirely.
+    //
+    // Derived here from the database, NOT trusted from the request body -
+    // same discipline the webhook already applies to tier/billing (derive
+    // from variant_id, never trust client-supplied custom_data). A client
+    // could reach this endpoint directly and claim anything; it cannot make
+    // this query return something other than the truth.
+    const { data: existingSub } = await supabase
+      .from("app_11941c8fec_subscriptions")
+      .select("trial_used")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const skipTrial = !!existingSub?.trial_used;
+    console.log(JSON.stringify({ requestId, userId: user.id, skipTrial }));
+
     // Map tier + billing to variant ID from environment variables
     const variantIdKey = `APP_11941c8fec_LEMONSQUEEZY_${tier.toUpperCase()}_${billing.toUpperCase()}_VARIANT_ID`;
     const variantId = Deno.env.get(variantIdKey);

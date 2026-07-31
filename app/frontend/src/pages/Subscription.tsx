@@ -8,8 +8,59 @@ import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
-// Primary payment provider — Lemon Squeezy (only visible flow)
+// CHECKOUT_ENDPOINT is used for "Manage Subscription" (looking up the Lemon
+// Squeezy customer portal URL for an existing subscriber - see
+// handleManageSubscription below) and for starting a NEW subscription when
+// the signed-in user has already used their trial (see handleUpgrade) - that
+// case needs the API-based checkout so checkout_options.skip_trial can
+// actually suppress Lemon Squeezy's own native trial offer, which a static
+// buy-link cannot do. A first-time-trial-eligible user skips this endpoint
+// entirely and goes straight to Lemon Squeezy's hosted buy-links instead
+// (BUY_LINKS/buildCheckoutUrl below).
 const CHECKOUT_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout';
+
+// One buy-link per (tier, billing) variant - confirmed by live-checking each
+// of the 4 URLs in a browser: each shows a single fixed price with no
+// interval selector, so all 4 are genuinely required (2 given earlier turned
+// out to be yearly-only). The `?enabled=<variant_id>` query param restricts
+// the buy-link to that one variant, matching what Lemon Squeezy itself
+// generated when these were created.
+const BUY_LINKS: Record<'balanced' | 'family', Record<'monthly' | 'yearly', string>> = {
+  balanced: {
+    monthly: 'https://amanahlife.lemonsqueezy.com/checkout/buy/648ef373-e4f9-4a53-8837-3c42306acf48?enabled=1959952',
+    yearly: 'https://amanahlife.lemonsqueezy.com/checkout/buy/134fbb9c-1a72-4cfa-a3cb-8d90d733bcf1?enabled=1959859',
+  },
+  family: {
+    monthly: 'https://amanahlife.lemonsqueezy.com/checkout/buy/0d44ea94-b1db-450e-bf8b-47a39fd304f0?enabled=1959970',
+    yearly: 'https://amanahlife.lemonsqueezy.com/checkout/buy/008ffbea-25d1-47dc-a1ec-8acc17e56c96?enabled=1959954',
+  },
+};
+
+/**
+ * Builds a Lemon Squeezy checkout URL for the given plan, pre-filled with
+ * the signed-in user's email and carrying their user_id (+ this app's fixed
+ * app_id) in custom_data so the webhook can attribute the resulting
+ * subscription to the right account. app_id is NOT optional here - the
+ * webhook rejects any payload where custom_data.app_id !== "11941c8fec" as
+ * an "App ID mismatch", so a buy-link missing this would silently never
+ * grant access after a real payment.
+ */
+function buildCheckoutUrl(
+  tier: 'balanced' | 'family',
+  billing: 'monthly' | 'yearly',
+  user: { id: string; email?: string | null }
+): string {
+  if (!user?.id) {
+    throw new Error('buildCheckoutUrl requires an authenticated user');
+  }
+  const base = BUY_LINKS[tier][billing];
+  const params = new URLSearchParams();
+  if (user.email) params.set('checkout[email]', user.email);
+  params.set('checkout[custom][user_id]', user.id);
+  params.set('checkout[custom][app_id]', '11941c8fec');
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}${params.toString()}`;
+}
 
 const PLANS = [
   {
@@ -85,7 +136,20 @@ export default function Subscription() {
     return () => { cancelled = true; };
   }, []);
 
-  // Handle URL params for success/canceled
+  // Handle URL params for success/canceled.
+  //
+  // KNOWN GAP since moving checkout initiation to Lemon Squeezy's hosted
+  // buy-links: this only fires if the browser actually lands back on
+  // /subscription?success=true, but static buy-links have no per-user
+  // redirect_url query param - that's API-only (part of product_options on
+  // the Create-a-Checkout endpoint), confirmed via Lemon Squeezy's own docs
+  // and a 3-year-old open (unresolved) feature request asking for exactly
+  // this on buy-links. Without a fixed confirmation-redirect URL configured
+  // in each product's own Lemon Squeezy dashboard settings, a customer who
+  // pays via one of these buy-links will see Lemon Squeezy's own receipt
+  // page, not this banner, and has to navigate back to the app manually.
+  // This does NOT affect whether they actually get access - the webhook
+  // still grants it - only whether they see this specific on-page message.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
@@ -113,7 +177,7 @@ export default function Subscription() {
     setCheckoutLoading(tier);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!session?.user) {
         setMessage({
           type: 'canceled',
           text: isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first',
@@ -122,35 +186,52 @@ export default function Subscription() {
         return;
       }
 
-      const response = await fetch(CHECKOUT_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          tier,
-          billing,
-          successUrl: window.location.origin + '/subscription?success=true',
-          cancelUrl: window.location.origin + '/subscription?canceled=true',
-        }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setMessage({
-          type: 'canceled',
-          text: isAr ? 'حدث خطأ أثناء إنشاء جلسة الدفع' : 'Error creating checkout session',
+      // A trial-used account is routed through the API-based checkout
+      // instead of the static buy-link, because only the API can set
+      // checkout_options.skip_trial - genuinely suppressing Lemon Squeezy's
+      // own native trial offer, rather than just disclosing it. Everyone
+      // else goes straight to the buy-link, skipping the extra round trip
+      // since skip_trial would be a no-op for a first-time user anyway.
+      // (The Edge Function independently re-derives trial_used from the
+      // database - this branch is purely an optimization, not the source of
+      // enforcement.)
+      if (trialUsed) {
+        const response = await fetch(CHECKOUT_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tier,
+            billing,
+            successUrl: `${window.location.origin}/subscription?success=true`,
+          }),
         });
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setMessage({
+            type: 'canceled',
+            text: isAr ? 'حدث خطأ أثناء إنشاء جلسة الدفع' : 'Error creating checkout session',
+          });
+          setCheckoutLoading(null);
+        }
+        return;
       }
+
+      // setCheckoutLoading is left set rather than cleared in a finally: the
+      // page is navigating away, so there is nothing left here to reset it
+      // for, and clearing it first would flash the button back to its
+      // normal state for a frame before the browser actually leaves.
+      const url = buildCheckoutUrl(tier, billing, { id: session.user.id, email: session.user.email });
+      window.location.href = url;
     } catch {
       setMessage({
         type: 'canceled',
-        text: isAr ? 'حدث خطأ في الاتصال' : 'Connection error occurred',
+        text: isAr ? 'حدث خطأ أثناء إنشاء جلسة الدفع' : 'Error creating checkout session',
       });
-    } finally {
       setCheckoutLoading(null);
     }
   };
