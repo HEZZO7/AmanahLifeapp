@@ -220,6 +220,7 @@ Deno.serve(async (req: Request) => {
           },
           checkout_options: {
             embed: false,
+            skip_trial: skipTrial,
           },
         },
         relationships: {
