@@ -1,9 +1,45 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import nodemailer from "npm:nodemailer";
 
 // Server-to-server webhook — Lemon Squeezy calls this directly, a browser
 // never does, so CORS headers are meaningless here and have been removed
 // rather than left wildcarded.
 const jsonHeaders = { "Content-Type": "application/json" };
+
+// A failed DB write here used to be a silent 500 - Lemon Squeezy would
+// retry a few times per its own policy then give up, and nothing else ever
+// surfaced the failure (this exact class of bug is what let the
+// status-check-constraint gap go undetected since this table was created -
+// see the 2026-08-01 migration). Reuses the SMTP credentials
+// app_11941c8fec_weekly_digest already has configured (SMTP_HOST/PORT/
+// SECURE/USER/PASSWORD/FROM) - no new secret setup required. Best-effort:
+// a failure here must never affect the webhook's own response to Lemon
+// Squeezy, so every step is wrapped and swallows its own errors.
+async function alertOnFailure(subject: string, details: Record<string, unknown>): Promise<void> {
+  try {
+    const smtpHost = Deno.env.get("SMTP_HOST");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
+    if (!smtpHost || !smtpUser || !smtpPassword) return; // nothing configured - console.error is still the fallback
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+      secure: Deno.env.get("SMTP_SECURE") !== "false",
+      auth: { user: smtpUser, pass: smtpPassword },
+    });
+
+    await transporter.sendMail({
+      from: Deno.env.get("SMTP_FROM") || smtpUser,
+      to: "support@amanahlife.com",
+      subject: `[AmanahLife webhook alert] ${subject}`,
+      text: JSON.stringify(details, null, 2),
+    });
+  } catch (alertError) {
+    // Never let the alert path itself break or mask the original error.
+    console.error(JSON.stringify({ error: "alertOnFailure itself failed", details: alertError instanceof Error ? alertError.message : String(alertError) }));
+  }
+}
 
 async function verifySignature(rawBody: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -218,6 +254,19 @@ Deno.serve(async (req: Request) => {
 
     if (upsertError) {
       console.error(JSON.stringify({ requestId, error: "Upsert failed", details: upsertError.message }));
+      // Fire-and-forget - do not await inline in a way that could throw past
+      // this point; alertOnFailure already swallows its own errors, but the
+      // response below must go out regardless of whether the email sends.
+      await alertOnFailure("Subscription DB write failed", {
+        requestId,
+        eventName,
+        userId,
+        lemonsqueezyCustomerId: lsCustomerId,
+        lemonsqueezySubscriptionId: lsSubscriptionId,
+        attemptedStatus: status,
+        attemptedTier: plan.tier,
+        dbError: upsertError.message,
+      });
       return new Response(
         JSON.stringify({ error: "Database update failed" }),
         { status: 500, headers: jsonHeaders }
