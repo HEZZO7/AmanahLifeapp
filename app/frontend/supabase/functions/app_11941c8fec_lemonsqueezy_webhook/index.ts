@@ -254,9 +254,9 @@ Deno.serve(async (req: Request) => {
 
     if (upsertError) {
       console.error(JSON.stringify({ requestId, error: "Upsert failed", details: upsertError.message }));
-      // Fire-and-forget - do not await inline in a way that could throw past
-      // this point; alertOnFailure already swallows its own errors, but the
-      // response below must go out regardless of whether the email sends.
+      // Awaited so the alert reliably sends before the Deno isolate can be
+      // torn down after the response returns - alertOnFailure swallows its
+      // own errors internally, so this can never throw past this point.
       await alertOnFailure("Subscription DB write failed", {
         requestId,
         eventName,
