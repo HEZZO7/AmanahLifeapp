@@ -12,15 +12,17 @@ interface NotificationType {
   descAr: string;
 }
 
+// prayer_reminders intentionally omitted - the real, working prayer-reminder
+// control (per-prayer enable + minutes-before, real Aladhan-backed
+// scheduling) is the dedicated PrayerReminderSettings panel rendered right
+// below this one on the Settings page. A second, non-functional "prayer"
+// toggle here would just be confusing next to it.
+//
+// The 5 categories below are honestly disabled ("Coming soon") rather than
+// left live - none of them currently schedule or send anything real. See
+// PROJECT.md's Known Issues for what real infrastructure this needs
+// (server-side scheduler + protocol-correct Web Push) before they can work.
 const NOTIFICATION_TYPES: NotificationType[] = [
-  {
-    key: 'prayer_reminders',
-    icon: '🕌',
-    labelEn: 'Prayer Reminders',
-    labelAr: 'تذكير الصلاة',
-    descEn: 'Get notified before prayer times',
-    descAr: 'تنبيه قبل أوقات الصلاة',
-  },
   {
     key: 'bill_reminders',
     icon: '💳',
@@ -68,12 +70,9 @@ export default function NotificationSettings() {
   const {
     isSupported,
     permission,
-    isSubscribed,
     preferences,
     loading,
     requestPermission,
-    unsubscribe,
-    updatePreferences,
     sendLocalNotification,
   } = useNotifications();
 
@@ -83,11 +82,10 @@ export default function NotificationSettings() {
     const granted = await requestPermission();
     if (granted) {
       toast.success(isAr ? 'تم تفعيل الإشعارات بنجاح!' : 'Notifications enabled successfully!');
-      // Send a test notification
       setTimeout(() => {
         sendLocalNotification(
           isAr ? 'مرحباً!' : 'Welcome!',
-          isAr ? 'تم تفعيل الإشعارات. ستتلقى تذكيرات مهمة.' : 'Notifications are active. You\'ll receive important reminders.',
+          isAr ? 'تم تفعيل الإشعارات لتذكيرات الصلاة.' : 'Notifications are active for prayer reminders.',
           { tag: 'welcome' }
         );
       }, 1000);
@@ -98,15 +96,6 @@ export default function NotificationSettings() {
           : 'Notification permission denied. Please enable in browser settings.'
       );
     }
-  };
-
-  const handleDisableNotifications = async () => {
-    await unsubscribe();
-    toast.success(isAr ? 'تم إيقاف الإشعارات' : 'Notifications disabled');
-  };
-
-  const handleTogglePreference = (key: keyof NotificationPreferences) => {
-    updatePreferences({ [key]: !preferences[key] });
   };
 
   if (loading) {
@@ -156,7 +145,10 @@ export default function NotificationSettings() {
         )}
       </div>
 
-      {/* Permission / Enable Toggle */}
+      {/* Permission request - one-shot, matches the browser's own permission
+          model (a site can request it, but can't toggle it back off itself;
+          the user does that from browser settings, reflected below via the
+          'denied' badge/messaging). */}
       {permission === 'denied' ? (
         <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3 mb-3">
           <p className="text-xs text-red-400">
@@ -165,7 +157,7 @@ export default function NotificationSettings() {
               : 'Notifications are blocked. To enable them, open your browser settings and allow notifications for this site.'}
           </p>
         </div>
-      ) : (
+      ) : permission !== 'granted' ? (
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-foreground" />
@@ -174,54 +166,63 @@ export default function NotificationSettings() {
             </span>
           </div>
           <button
-            onClick={isSubscribed ? handleDisableNotifications : handleEnableNotifications}
-            className={`w-11 h-6 rounded-full transition-all relative ${isSubscribed ? 'bg-primary' : 'bg-secondary'}`}
+            onClick={handleEnableNotifications}
+            className="px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium"
           >
-            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${isSubscribed ? 'left-6' : 'left-1'}`} />
+            {isAr ? 'تفعيل' : 'Enable'}
           </button>
         </div>
-      )}
-
-      {/* Notification Type Preferences */}
-      {isSubscribed && (
-        <div className="space-y-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            {isAr ? 'أنواع الإشعارات' : 'Notification Types'}
-          </p>
-          {NOTIFICATION_TYPES.map((type) => (
-            <div key={type.key} className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-sm flex-shrink-0">{type.icon}</span>
-                <div className="min-w-0">
-                  <p className="text-foreground text-sm truncate">
-                    {isAr ? type.labelAr : type.labelEn}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {isAr ? type.descAr : type.descEn}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleTogglePreference(type.key)}
-                className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ml-2 ${
-                  preferences[type.key] ? 'bg-primary' : 'bg-secondary'
-                }`}
-              >
-                <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] transition-all ${
-                  preferences[type.key] ? 'left-[22px]' : 'left-[3px]'
-                }`} />
-              </button>
-            </div>
-          ))}
+      ) : (
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border text-primary">
+          <Bell className="w-4 h-4" />
+          <span className="text-sm">{isAr ? 'الإشعارات مفعّلة' : 'Notifications enabled'}</span>
         </div>
       )}
 
-      {/* Info text when not subscribed */}
-      {!isSubscribed && permission !== 'denied' && (
-        <p className="text-xs text-muted-foreground mt-2">
+      {/* Notification Type Preferences - disabled, honest "Coming soon".
+          Values still save/load normally so nothing is lost once real
+          scheduling infrastructure lands. */}
+      <div className="space-y-3">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          {isAr ? 'أنواع الإشعارات' : 'Notification Types'}
+        </p>
+        {NOTIFICATION_TYPES.map((type) => (
+          <div key={type.key} className="flex items-center justify-between opacity-50">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-sm flex-shrink-0">{type.icon}</span>
+              <div className="min-w-0">
+                <p className="text-foreground text-sm truncate">
+                  {isAr ? type.labelAr : type.labelEn}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {isAr ? 'قريباً - متوفر على أندرويد' : 'Coming soon - available on Android'}
+                </p>
+              </div>
+            </div>
+            {/* Disabled, not removed - still reflects the stored preference
+                value so nothing looks lost, it just can't be changed here
+                since it doesn't gate anything real yet. */}
+            <button
+              disabled
+              aria-disabled="true"
+              className={`w-10 h-5 rounded-full relative flex-shrink-0 ml-2 cursor-not-allowed ${
+                preferences[type.key] ? 'bg-primary/40' : 'bg-secondary'
+              }`}
+            >
+              <div className={`w-3.5 h-3.5 rounded-full bg-white/70 absolute top-[3px] ${
+                preferences[type.key] ? 'left-[22px]' : 'left-[3px]'
+              }`} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Info text */}
+      {permission === 'granted' && (
+        <p className="text-xs text-muted-foreground mt-3">
           {isAr
-            ? 'فعّل الإشعارات لتلقي تذكيرات الصلاة، الفواتير، الأهداف، والمزيد.'
-            : 'Enable notifications to receive prayer, bill, goal, and other important reminders.'}
+            ? 'تعمل تذكيرات الصلاة أدناه بالفعل. الأنواع الأخرى قيد التطوير.'
+            : 'Prayer reminders below already work. Other types are still in development.'}
         </p>
       )}
     </div>

@@ -25,18 +25,33 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 
 export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
+/**
+ * Handles Notification permission + service-worker registration only.
+ *
+ * Web Push (subscribing to app_11941c8fec_push_notify's `subscribe` action
+ * via pushManager.subscribe) was removed here - it only ever used a
+ * hardcoded placeholder VAPID public key (a well-known Web Push tutorial
+ * demo key, not one paired with any real private key on our server), so
+ * every subscription it created could never actually receive a push. See
+ * PROJECT.md's Known Issues for the real-infrastructure follow-up
+ * (server-side scheduler + protocol-correct VAPID Web Push) this needs
+ * before subscribing can mean anything again.
+ *
+ * permission/isSupported are still real and still needed:
+ * PrayerReminderSettings.tsx's setTimeout-based same-day scheduler and
+ * sendLocalNotification below both call swRegistration.showNotification,
+ * which requires Notification permission + an active service worker, not
+ * a push subscription.
+ */
 export function useNotifications() {
   const { user } = useAuth();
   const [permission, setPermission] = useState<NotificationPermissionState>('default');
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
-  // Check if push notifications are supported
-  const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const isSupported = 'serviceWorker' in navigator && 'Notification' in window;
 
-  // Initialize service worker and check status
   useEffect(() => {
     if (!isSupported) {
       setPermission('unsupported');
@@ -46,14 +61,9 @@ export function useNotifications() {
 
     setPermission(Notification.permission as NotificationPermissionState);
 
-    // Register service worker
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         setSwRegistration(registration);
-        return registration.pushManager.getSubscription();
-      })
-      .then((subscription) => {
-        setIsSubscribed(!!subscription);
       })
       .catch((err) => {
         console.error('SW registration failed:', err);
@@ -102,96 +112,23 @@ export function useNotifications() {
     loadPreferences();
   }, [user]);
 
-  // Request notification permission and subscribe
+  // Request Notification permission only - no push subscription.
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!isSupported) return false;
 
     try {
       const result = await Notification.requestPermission();
       setPermission(result as NotificationPermissionState);
-
-      if (result === 'granted') {
-        await subscribeToPush();
-        return true;
-      }
-      return false;
+      return result === 'granted';
     } catch (err) {
       console.error('Permission request failed:', err);
       return false;
     }
-  }, [isSupported, swRegistration, user]);
+  }, [isSupported]);
 
-  // Subscribe to push notifications
-  const subscribeToPush = useCallback(async () => {
-    if (!swRegistration || !user) return;
-
-    try {
-      // Use a VAPID public key placeholder - in production this would come from env
-      const vapidPublicKey = localStorage.getItem('amanah_vapid_public_key') || 
-        'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkOs-qy_MUlGfGFVQfO-Q8-0CDxBAEnwIFKjXvVGg0';
-      
-      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-
-      const subscription = await swRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
-
-      // Save subscription to backend
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'subscribe',
-          subscription: subscription.toJSON(),
-        }),
-      });
-
-      if (response.ok) {
-        setIsSubscribed(true);
-      }
-    } catch (err) {
-      console.error('Push subscription failed:', err);
-    }
-  }, [swRegistration, user]);
-
-  // Unsubscribe from push notifications
-  const unsubscribe = useCallback(async () => {
-    if (!swRegistration || !user) return;
-
-    try {
-      const subscription = await swRegistration.pushManager.getSubscription();
-      if (subscription) {
-        await subscription.unsubscribe();
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await fetch(EDGE_FUNCTION_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              action: 'unsubscribe',
-              endpoint: subscription.endpoint,
-            }),
-          });
-        }
-      }
-      setIsSubscribed(false);
-    } catch (err) {
-      console.error('Unsubscribe failed:', err);
-    }
-  }, [swRegistration, user]);
-
-  // Update notification preferences
+  // Update notification preferences. Values are still saved even for the
+  // categories currently disabled in the UI, so nothing is lost once real
+  // scheduling infrastructure lands for them.
   const updatePreferences = useCallback(async (newPrefs: Partial<NotificationPreferences>) => {
     const updated = { ...preferences, ...newPrefs };
     setPreferences(updated);
@@ -218,7 +155,8 @@ export function useNotifications() {
     }
   }, [preferences, user]);
 
-  // Send a local notification (for testing / immediate notifications)
+  // Send a local notification (for testing / immediate notifications) -
+  // shows directly via the service worker, no network push involved.
   const sendLocalNotification = useCallback((title: string, body: string, options?: { icon?: string; url?: string; tag?: string }) => {
     if (permission !== 'granted') return;
 
@@ -237,24 +175,10 @@ export function useNotifications() {
   return {
     isSupported,
     permission,
-    isSubscribed,
     preferences,
     loading,
     requestPermission,
-    unsubscribe,
     updatePreferences,
     sendLocalNotification,
   };
-}
-
-// Utility: Convert VAPID key
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
 }

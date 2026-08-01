@@ -31,7 +31,7 @@ const MINUTE_OPTIONS = [5, 10, 15, 20, 30];
 
 export default function PrayerReminderSettings() {
   const { language } = useLanguage();
-  const { isSubscribed, permission } = useNotifications();
+  const { permission } = useNotifications();
   const isAr = language === 'ar';
 
   const [config, setConfig] = useState<PrayerReminderConfig>(() => {
@@ -62,8 +62,10 @@ export default function PrayerReminderSettings() {
     }));
   };
 
-  // Only show if notifications are enabled
-  if (!isSubscribed || permission !== 'granted') {
+  // Gated on Notification permission alone - this scheduler is real
+  // setTimeout + service-worker showNotification, it needs permission to
+  // display anything, not a (currently non-functional) push subscription.
+  if (permission !== 'granted') {
     return null;
   }
 
@@ -76,10 +78,15 @@ export default function PrayerReminderSettings() {
         </h3>
       </div>
 
-      <p className="text-[10px] text-muted-foreground mb-3">
+      <p className="text-[10px] text-muted-foreground mb-1">
         {isAr
           ? 'تنبيه قبل وقت الصلاة بعدد الدقائق المحدد'
           : 'Get notified before each prayer time'}
+      </p>
+      <p className="text-[10px] text-amber-500/90 mb-3">
+        {isAr
+          ? 'ملاحظة: تعمل هذه التذكيرات فقط أثناء فتح أمانة لايف في نافذة المتصفح، وتتوقف عند إغلاق النافذة. للتذكيرات في الخلفية، استخدم تطبيق أندرويد.'
+          : 'Note: these reminders only fire while AmanahLife is open in a browser tab, and stop once the tab is closed. For background reminders, use the Android app.'}
       </p>
 
       <div className="space-y-2.5">
