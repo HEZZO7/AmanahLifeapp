@@ -90,7 +90,20 @@ Deno.serve(async (req: Request) => {
     const eventName = payload.meta?.event_name;
     console.log(JSON.stringify({ requestId, event: eventName }));
 
-    const handledEvents = ["subscription_created", "subscription_updated", "subscription_cancelled", "subscription_expired"];
+    // subscription_refunded is deliberately absent: Lemon Squeezy has no such
+    // subscription-lifecycle event (refunds are order-level - order_refunded -
+    // a different object entirely, not a subscription row), so there is
+    // nothing here to fabricate a handler for.
+    const handledEvents = [
+      "subscription_created",
+      "subscription_updated",
+      "subscription_cancelled",
+      "subscription_expired",
+      "subscription_resumed",
+      "subscription_paused",
+      "subscription_unpaused",
+      "subscription_payment_failed",
+    ];
     if (!handledEvents.includes(eventName)) {
       return new Response(
         JSON.stringify({ received: true, message: "Event not handled" }),
@@ -136,12 +149,25 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Map Lemon Squeezy status to our status
+    // Map Lemon Squeezy status to our status. Event-name checks come first
+    // since they're unambiguous about intent; subscriptionData.status is the
+    // fallback for events (created/updated) where the event itself doesn't
+    // say what changed.
     let status = "active";
     if (eventName === "subscription_cancelled") {
       status = "canceled";
     } else if (eventName === "subscription_expired") {
       status = "expired";
+    } else if (eventName === "subscription_paused") {
+      status = "paused";
+    } else if (eventName === "subscription_unpaused" || eventName === "subscription_resumed") {
+      status = "active";
+    } else if (eventName === "subscription_payment_failed") {
+      // Matches ENTITLING_STATUSES ('active' + 'past_due') above and on the
+      // web client - a failed renewal attempt doesn't cut off access
+      // mid-retry, it only starts the dunning window Lemon Squeezy itself
+      // tracks via this same "past_due" status on the subscription object.
+      status = "past_due";
     } else if (subscriptionData.status === "paused") {
       status = "paused";
     } else if (subscriptionData.status === "past_due") {
