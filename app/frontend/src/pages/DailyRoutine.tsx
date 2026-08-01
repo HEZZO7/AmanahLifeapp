@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserItem, setUserItem, migrateLegacyKeyIfNeeded } from '@/lib/userStorage';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
@@ -23,22 +25,27 @@ const DEFAULT_ROUTINES: Omit<Routine, 'streak' | 'completed'>[] = [
 
 export default function DailyRoutine() {
   const { language, t, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [routines, setRoutines] = useState<Routine[]>([]);
 
   useEffect(() => {
     const today = new Date().toDateString();
-    const stored = localStorage.getItem(`routines_${today}`);
+    const routinesKey = `routines_${today}`;
+    migrateLegacyKeyIfNeeded(routinesKey, userId);
+    const stored = getUserItem(routinesKey, userId);
     if (stored) {
       setRoutines(JSON.parse(stored));
     } else {
       const initial = DEFAULT_ROUTINES.map((r) => {
         const streakKey = `routine_streak_${r.id}`;
-        const streak = parseInt(localStorage.getItem(streakKey) || '0', 10);
+        migrateLegacyKeyIfNeeded(streakKey, userId);
+        const streak = parseInt(getUserItem(streakKey, userId) || '0', 10);
         return { ...r, streak, completed: false };
       });
       setRoutines(initial);
     }
-  }, []);
+  }, [userId]);
 
   const toggleRoutine = (id: string) => {
     const today = new Date().toDateString();
@@ -47,13 +54,13 @@ export default function DailyRoutine() {
         const newCompleted = !r.completed;
         const streakKey = `routine_streak_${r.id}`;
         const newStreak = newCompleted ? r.streak + 1 : Math.max(0, r.streak - 1);
-        localStorage.setItem(streakKey, String(newStreak));
+        setUserItem(streakKey, userId, String(newStreak));
         return { ...r, completed: newCompleted, streak: newStreak };
       }
       return r;
     });
     setRoutines(updated);
-    localStorage.setItem(`routines_${today}`, JSON.stringify(updated));
+    setUserItem(`routines_${today}`, userId, JSON.stringify(updated));
   };
 
   const completedCount = routines.filter((r) => r.completed).length;
