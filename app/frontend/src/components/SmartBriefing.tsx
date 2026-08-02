@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getExcusedPeriods, isDateExcusedForPrayer, isoDate } from '@/lib/excusedPeriods';
 
 interface BriefingData {
   greeting: string;
@@ -23,6 +25,7 @@ const quotes = [
 
 export default function SmartBriefing() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
 
   useEffect(() => {
@@ -54,6 +57,7 @@ export default function SmartBriefing() {
     // Streak
     let currentStreak = 0;
     const today = new Date();
+    const excusedPeriods = getExcusedPeriods(user?.id ?? null);
     for (let i = 0; i < 365; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
@@ -66,6 +70,8 @@ export default function SmartBriefing() {
         } else {
           break;
         }
+      } else if (isDateExcusedForPrayer(isoDate(date), excusedPeriods)) {
+        continue; // Phase C: excused day - skip, don't break the streak.
       } else {
         if (i === 0) continue;
         break;
@@ -97,7 +103,7 @@ export default function SmartBriefing() {
       tasksCount: todayTasks.length,
       quote,
     });
-  }, [language]);
+  }, [language, user?.id]);
 
   if (!briefing) return null;
 

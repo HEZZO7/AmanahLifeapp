@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getExcusedPeriods, isDateExcusedForPrayer, isoDate } from '@/lib/excusedPeriods';
 
 interface StreakData {
   appStreak: number;
@@ -17,9 +19,17 @@ const LEVEL_TITLES_AR = ['مبتدئ', 'باحث', 'متعبد', 'عالم', 'م
 
 export default function Streaks() {
   const { language } = useLanguage();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [data, setData] = useState<StreakData | null>(null);
 
   useEffect(() => {
+    // Phase C: excused periods are stored scoped to the real signed-in
+    // user (via getUserItem/setUserItem), even though this file's own
+    // prayer_completed_<date> reads below remain unscoped raw localStorage
+    // (a separate, pre-existing gap - not this phase's scope to fix). Read
+    // with the real userId so the lookup matches where periods actually live.
+    const excusedPeriods = getExcusedPeriods(userId);
     // Calculate app usage streak
     const today = new Date();
     let appStreak = 0;
@@ -50,6 +60,8 @@ export default function Streaks() {
         } else {
           break;
         }
+      } else if (isDateExcusedForPrayer(isoDate(date), excusedPeriods)) {
+        continue; // Phase C: excused day - skip, don't break the streak.
       } else {
         if (i === 0) continue;
         break;
@@ -113,7 +125,7 @@ export default function Streaks() {
     ];
 
     setData({ appStreak, prayerStreak, quranStreak, savingsStreak, xp, level, title, badges });
-  }, [language]);
+  }, [language, userId]);
 
   if (!data) return null;
 
