@@ -16,6 +16,7 @@ import {
   calculatePrayerTimes, CALCULATION_METHODS, DEFAULT_CALCULATION_METHOD, CalculationMethodKey,
 } from '@/lib/prayerCalculation';
 import { CURATED_CITIES, CityOption } from '@/lib/curatedCities';
+import ExcusedPeriodsDialog from '@/components/ExcusedPeriodsDialog';
 
 interface PrayerTime {
   name: string;
@@ -53,6 +54,7 @@ export default function PrayerTimes() {
   const [locationMode, setLocationMode] = useState<'auto' | 'manual'>('auto');
   const [manualCity, setManualCity] = useState<CityOption | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [excusedDialogOpen, setExcusedDialogOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
 
   useEffect(() => {
@@ -289,6 +291,15 @@ export default function PrayerTimes() {
             </Card>
           ))}
         </div>
+
+        {/* Discreet entry point - no dashboard tile, no notification about it. */}
+        <button
+          onClick={() => setExcusedDialogOpen(true)}
+          className="block mx-auto text-xs text-muted-foreground hover:text-foreground mt-2"
+        >
+          {language === 'ar' ? 'عذر شرعي' : 'Excused period'}
+        </button>
+        <ExcusedPeriodsDialog open={excusedDialogOpen} onOpenChange={setExcusedDialogOpen} />
       </main>
 
       {/* Location + calculation-method settings */}
