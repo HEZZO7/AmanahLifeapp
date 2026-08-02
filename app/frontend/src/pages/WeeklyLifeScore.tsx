@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
+import { getExcusedPeriods, isDateExcusedForPrayer, isoDate } from '@/lib/excusedPeriods';
 
 interface DimensionScore {
   name: string;
@@ -20,17 +22,24 @@ interface WeeklyRecord {
 
 const STORAGE_KEY = 'amanah-weekly-life-scores';
 
-function calculateScores(): DimensionScore[] {
-  // Spiritual: based on prayer completions this week
+function calculateScores(userId: string | null): DimensionScore[] {
+  // Spiritual: based on prayer completions this week. Phase C: excused
+  // days (hayd/nifas/incapacitated illness) are dropped from the
+  // denominator entirely instead of contributing 0 - two passes so an
+  // excused day's position in the loop doesn't skew earlier/later days
+  // differently.
   let spiritualScore = 0;
   const today = new Date();
+  const excusedPeriods = getExcusedPeriods(userId);
+  const weekDates = Array.from({ length: 7 }, (_, i) => { const d = new Date(today); d.setDate(d.getDate() - i); return d; });
+  const excusedFlags = weekDates.map((d) => isDateExcusedForPrayer(isoDate(d), excusedPeriods));
+  const trackedDayCount = Math.max(1, 7 - excusedFlags.filter(Boolean).length);
   for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const prayerData = localStorage.getItem(`prayer_completed_${date.toDateString()}`);
+    if (excusedFlags[i]) continue;
+    const prayerData = localStorage.getItem(`prayer_completed_${weekDates[i].toDateString()}`);
     if (prayerData) {
       const completed = JSON.parse(prayerData);
-      spiritualScore += (completed.length / 5) * (100 / 7);
+      spiritualScore += (completed.length / 5) * (100 / trackedDayCount);
     }
   }
 
@@ -109,13 +118,14 @@ const RECOMMENDATIONS = {
 
 export default function WeeklyLifeScore() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const isAr = language === 'ar';
   const [dimensions, setDimensions] = useState<DimensionScore[]>([]);
   const [weeklyHistory, setWeeklyHistory] = useState<WeeklyRecord[]>([]);
   const [overallScore, setOverallScore] = useState(0);
 
   useEffect(() => {
-    const scores = calculateScores();
+    const scores = calculateScores(user?.id ?? null);
     setDimensions(scores);
     const overall = Math.round(scores.reduce((sum, d) => sum + d.score, 0) / scores.length);
     setOverallScore(overall);
@@ -137,7 +147,7 @@ export default function WeeklyLifeScore() {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     setWeeklyHistory(stored.slice(-4));
-  }, []);
+  }, [user?.id]);
 
   function getWeekStart(): string {
     const now = new Date();
