@@ -5,23 +5,22 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import { getUserItem, setUserItem } from '@/lib/userStorage';
+import {
+  calculatePrayerTimes, CALCULATION_METHODS, DEFAULT_CALCULATION_METHOD, CalculationMethodKey,
+} from '@/lib/prayerCalculation';
+import { CURATED_CITIES, CityOption } from '@/lib/curatedCities';
 
 interface PrayerTime {
   name: string;
   time: string;
   icon: string;
-}
-
-interface PrayerData {
-  Fajr: string;
-  Sunrise: string;
-  Dhuhr: string;
-  Asr: string;
-  Maghrib: string;
-  Isha: string;
 }
 
 const PRAYER_NAMES_AR: Record<string, string> = {
@@ -33,48 +32,48 @@ const PRAYER_NAMES_AR: Record<string, string> = {
   Isha: 'العشاء',
 };
 
+const MECCA_COORDS = { latitude: 21.4225, longitude: 39.8262 };
+const CALC_METHOD_KEY = 'prayer_calc_method';
+const LOCATION_MODE_KEY = 'prayer_location_mode';
+const MANUAL_CITY_KEY = 'prayer_manual_city';
+
 export default function PrayerTimes() {
   const { user, loading: authLoading } = useAuth();
   const { language, isRTL } = useLanguage();
   const { formatTime } = useTimeFormat();
   const navigate = useNavigate();
+  const userId = user?.id ?? null;
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<string>('');
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string; countdown: string } | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
+  const [calcMethod, setCalcMethod] = useState<CalculationMethodKey>(DEFAULT_CALCULATION_METHOD);
+  const [locationMode, setLocationMode] = useState<'auto' | 'manual'>('auto');
+  const [manualCity, setManualCity] = useState<CityOption | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
+
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
   }, [user, authLoading, navigate]);
 
-  const fetchPrayerTimes = useCallback(async (lat: number, lng: number) => {
-    try {
-      const today = new Date();
-      const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-      const res = await fetch(
-        `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=2`
-      );
-      const data = await res.json();
-      const timings: PrayerData = data.data.timings;
-      setLocation(data.data.meta.timezone || (language === 'ar' ? 'موقعك' : 'Your Location'));
-
-      const prayerList: PrayerTime[] = [
-        { name: 'Fajr', time: timings.Fajr, icon: '🌅' },
-        { name: 'Sunrise', time: timings.Sunrise, icon: '☀️' },
-        { name: 'Dhuhr', time: timings.Dhuhr, icon: '🌤️' },
-        { name: 'Asr', time: timings.Asr, icon: '⛅' },
-        { name: 'Maghrib', time: timings.Maghrib, icon: '🌇' },
-        { name: 'Isha', time: timings.Isha, icon: '🌙' },
-      ];
-      setPrayers(prayerList);
-      updateNextPrayer(prayerList);
-    } catch {
-      toast.error(language === 'ar' ? 'فشل في تحميل مواقيت الصلاة' : 'Failed to fetch prayer times');
-    } finally {
-      setLoading(false);
-    }
-  }, [language]);
+  const computePrayerTimes = useCallback((lat: number, lng: number, locationLabel: string, method: CalculationMethodKey) => {
+    const timings = calculatePrayerTimes(lat, lng, new Date(), method);
+    setLocation(locationLabel);
+    const prayerList: PrayerTime[] = [
+      { name: 'Fajr', time: timings.Fajr, icon: '🌅' },
+      { name: 'Sunrise', time: timings.Sunrise, icon: '☀️' },
+      { name: 'Dhuhr', time: timings.Dhuhr, icon: '🌤️' },
+      { name: 'Asr', time: timings.Asr, icon: '⛅' },
+      { name: 'Maghrib', time: timings.Maghrib, icon: '🌇' },
+      { name: 'Isha', time: timings.Isha, icon: '🌙' },
+    ];
+    setPrayers(prayerList);
+    updateNextPrayer(prayerList);
+    setLoading(false);
+  }, []);
 
   const updateNextPrayer = (prayerList: PrayerTime[]) => {
     const now = new Date();
@@ -98,23 +97,61 @@ export default function PrayerTimes() {
     setNextPrayer({ name: tomorrowLabel, time: prayerList[0]?.time || '', countdown: '' });
   };
 
-  useEffect(() => {
+  const loadByLocation = useCallback((method: CalculationMethodKey, mode: 'auto' | 'manual', city: CityOption | null) => {
+    if (mode === 'manual' && city) {
+      computePrayerTimes(city.lat, city.lon, language === 'ar' ? city.nameAr : city.name, method);
+      return;
+    }
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => fetchPrayerTimes(pos.coords.latitude, pos.coords.longitude),
+        (pos) => computePrayerTimes(pos.coords.latitude, pos.coords.longitude, language === 'ar' ? 'موقعك الحالي' : 'Your location', method),
         () => {
-          // Default to Mecca if location denied or timed out
-          fetchPrayerTimes(21.4225, 39.8262);
+          // Denied, unavailable, or timed out (timeout below) - Mecca default.
+          // maximumAge lets the browser return a recent cached fix instantly
+          // instead of renegotiating GPS every time - the browser's own
+          // equivalent of a "last known location" fallback.
+          computePrayerTimes(MECCA_COORDS.latitude, MECCA_COORDS.longitude, language === 'ar' ? 'مكة المكرمة (افتراضي)' : 'Mecca (default)', method);
           toast.info(language === 'ar'
-            ? 'يتم استخدام موقع مكة المكرمة. فعّل الموقع لنتائج دقيقة.'
-            : 'Using default location (Mecca). Enable location for accurate times.');
+            ? 'يتم استخدام موقع مكة المكرمة. فعّل الموقع لنتائج دقيقة، أو اختر مدينتك يدوياً.'
+            : 'Using default location (Mecca). Enable location for accurate times, or set your city manually.');
         },
-        { timeout: 5000, maximumAge: 300000 }
+        { timeout: 10000, maximumAge: 300000 }
       );
     } else {
-      fetchPrayerTimes(21.4225, 39.8262);
+      computePrayerTimes(MECCA_COORDS.latitude, MECCA_COORDS.longitude, language === 'ar' ? 'مكة المكرمة (افتراضي)' : 'Mecca (default)', method);
     }
-  }, [fetchPrayerTimes, language]);
+  }, [computePrayerTimes, language]);
+
+  // Load persisted location/method settings once, populate state for the
+  // settings dialog, and compute prayer times against them.
+  useEffect(() => {
+    const savedMethod = (getUserItem(CALC_METHOD_KEY, userId) as CalculationMethodKey | null) || DEFAULT_CALCULATION_METHOD;
+    const savedMode = getUserItem(LOCATION_MODE_KEY, userId) === 'manual' ? 'manual' : 'auto';
+    const savedCityRaw = getUserItem(MANUAL_CITY_KEY, userId);
+    let savedCity: CityOption | null = null;
+    if (savedCityRaw) { try { savedCity = JSON.parse(savedCityRaw); } catch { /* ignore corrupt value */ } }
+    setCalcMethod(savedMethod);
+    setLocationMode(savedMode);
+    setManualCity(savedCity);
+    loadByLocation(savedMethod, savedMode, savedCity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const applyLocationMode = (mode: 'auto' | 'manual', city: CityOption | null) => {
+    setLocationMode(mode);
+    setManualCity(city);
+    setUserItem(LOCATION_MODE_KEY, userId, mode);
+    if (city) setUserItem(MANUAL_CITY_KEY, userId, JSON.stringify(city));
+    setLoading(true);
+    loadByLocation(calcMethod, mode, city);
+  };
+
+  const applyCalcMethod = (method: CalculationMethodKey) => {
+    setCalcMethod(method);
+    setUserItem(CALC_METHOD_KEY, userId, method);
+    setLoading(true);
+    loadByLocation(method, locationMode, manualCity);
+  };
 
   // Update countdown every minute
   useEffect(() => {
@@ -196,10 +233,13 @@ export default function PrayerTimes() {
           </Card>
         )}
 
-        {/* Location */}
-        <p className="text-sm text-muted-foreground text-center">
-          📍 {language === 'ar' ? 'الموقع:' : 'Location:'} {location}
-        </p>
+        {/* Location - click to change location / calculation method */}
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="w-full text-sm text-muted-foreground text-center hover:text-foreground transition-colors"
+        >
+          📍 {language === 'ar' ? 'الموقع:' : 'Location:'} {location} · ⚙️
+        </button>
 
         {/* Progress */}
         <div className="text-center">
@@ -250,6 +290,77 @@ export default function PrayerTimes() {
           ))}
         </div>
       </main>
+
+      {/* Location + calculation-method settings */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{language === 'ar' ? 'إعدادات مواقيت الصلاة' : 'Prayer Time Settings'}</DialogTitle>
+          </DialogHeader>
+          <Tabs defaultValue="location" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="location">{language === 'ar' ? 'الموقع' : 'Location'}</TabsTrigger>
+              <TabsTrigger value="method">{language === 'ar' ? 'طريقة الحساب' : 'Calculation Method'}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="location" className="flex-1 overflow-hidden flex flex-col gap-3 mt-3">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={locationMode === 'auto' ? 'default' : 'outline'}
+                  className={locationMode === 'auto' ? 'bg-primary hover:bg-primary/90' : ''}
+                  onClick={() => applyLocationMode('auto', manualCity)}
+                >
+                  {language === 'ar' ? '📡 تلقائي (GPS)' : '📡 Automatic (GPS)'}
+                </Button>
+                <Button
+                  variant={locationMode === 'manual' ? 'default' : 'outline'}
+                  className={locationMode === 'manual' ? 'bg-primary hover:bg-primary/90' : ''}
+                  onClick={() => manualCity && applyLocationMode('manual', manualCity)}
+                >
+                  {language === 'ar' ? '🏙️ يدوي' : '🏙️ Manual'}
+                </Button>
+              </div>
+              <Input
+                placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search for a city...'}
+                value={citySearch}
+                onChange={(e) => setCitySearch(e.target.value)}
+              />
+              <div className="flex-1 overflow-y-auto space-y-1">
+                {CURATED_CITIES.filter((c) =>
+                  !citySearch ||
+                  c.name.toLowerCase().includes(citySearch.toLowerCase()) ||
+                  c.nameAr.includes(citySearch) ||
+                  c.country.toLowerCase().includes(citySearch.toLowerCase())
+                ).map((c) => (
+                  <button
+                    key={`${c.name}-${c.countryCode}`}
+                    onClick={() => { applyLocationMode('manual', c); setSettingsOpen(false); }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-secondary text-left"
+                  >
+                    <span className="text-sm font-medium text-foreground">{language === 'ar' ? c.nameAr : c.name}</span>
+                    <span className="text-xs text-muted-foreground">{c.country}</span>
+                  </button>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="method" className="flex-1 overflow-y-auto mt-3 space-y-1">
+              {CALCULATION_METHODS.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => { applyCalcMethod(m.key); setSettingsOpen(false); }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-secondary text-left"
+                >
+                  <span className={`text-sm ${calcMethod === m.key ? 'font-semibold text-primary' : 'text-foreground'}`}>
+                    {language === 'ar' ? m.labelAr : m.labelEn}
+                  </span>
+                  {calcMethod === m.key && <span className="text-primary">✓</span>}
+                </button>
+              ))}
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>

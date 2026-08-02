@@ -42,6 +42,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/supabase-js": "^2.106.0",
     "@tanstack/react-query": "^5.56.2",
+    "adhan": "^4.4.4",
     "axios": "1.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -62,6 +63,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "tz-lookup": "^6.1.25",
     "vaul": "^0.9.3",
     "yaml": "^2.8.2",
     "zod": "^3.23.8"
@@ -74,6 +76,7 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/tz-lookup": "^6.1.2",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "@typescript-eslint/parser": "^8.42.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
