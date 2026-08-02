@@ -12,19 +12,21 @@ import Streaks from '@/components/Streaks';
 import DuaOfTheDay from '@/components/DuaOfTheDay';
 import MotivationalQuote from '@/components/MotivationalQuote';
 import OfflineIndicator from '@/components/OfflineIndicator';
-
-interface HijriInfo {
-  day: string;
-  month: string;
-  year: string;
-}
+import { gregorianToHijri, formatHijri, formatGregorian } from '@/lib/hijriDate';
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
   const { t, language, setLanguage, isRTL } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [hijriDate, setHijriDate] = useState<HijriInfo | null>(null);
+  // Computed locally (see src/lib/hijriDate.ts) - no network call, renders
+  // instantly, works offline. Previously fetched from api.aladhan.com/gToH,
+  // which made this badge depend on network latency, and hardcoded the
+  // English month name regardless of UI language (the "Safar 19 1448 هـ"
+  // bug in an otherwise Arabic UI).
+  const isAr = language === 'ar';
+  const today = useMemo(() => new Date(), []);
+  const hijriDate = useMemo(() => gregorianToHijri(today), [today]);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string } | null>(null);
   const [dailyVerse, setDailyVerse] = useState<{ arabic: string; translation: string; reference: string } | null>(null);
   const [streak, setStreak] = useState(0);
@@ -35,26 +37,6 @@ export default function HomePage() {
       navigate('/landing');
     }
   }, [user, loading, navigate]);
-
-  // Fetch Hijri date
-  useEffect(() => {
-    const fetchHijri = async () => {
-      try {
-        const today = new Date();
-        const dateStr = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dateStr}`);
-        const data = await res.json();
-        setHijriDate({
-          day: data.data.hijri.day,
-          month: data.data.hijri.month.en,
-          year: data.data.hijri.year,
-        });
-      } catch {
-        // Silently fail
-      }
-    };
-    fetchHijri();
-  }, []);
 
   // Fetch next prayer time
   useEffect(() => {
@@ -311,12 +293,10 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-foreground">{t('assalamuAlaikum')}</h2>
             <p className="text-muted-foreground mt-1">{t('islamicCompanion')}</p>
           </div>
-          {hijriDate && (
-            <div className="text-right bg-card px-3 py-2 rounded-xl border border-border">
-              <p className="text-xs text-[#D4A017] font-medium">{hijriDate.day} {hijriDate.month}</p>
-              <p className="text-[10px] text-muted-foreground">{hijriDate.year} {language === 'ar' ? 'هـ' : 'AH'}</p>
-            </div>
-          )}
+          <div className="text-right bg-card px-3 py-2 rounded-xl border border-border">
+            <p className="text-xs text-[#D4A017] font-medium">{formatHijri(hijriDate, isAr)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{formatGregorian(today, isAr)}</p>
+          </div>
         </div>
 
         {/* Promotional Banner */}
