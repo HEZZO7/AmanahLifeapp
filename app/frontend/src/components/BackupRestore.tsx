@@ -34,6 +34,17 @@ const LOCAL_STORAGE_KEYS = [
   'amanah-savings-challenges',
 ];
 
+// DELIBERATELY NOT SWEPT: excused-period data (src/lib/excusedPeriods.ts -
+// keys 'excused_periods', 'excused_qada_fasts_made_up',
+// 'excused_qada_prayers_made_up', 'excused_disclaimer_seen'). This is
+// sensitive (menstruation/nifas/illness/travel exemption history) and is
+// device-local-only by explicit design (Phase C, 2026-08-02) - it must
+// never appear in a backup export or be restorable to a different
+// device/account. Do not add an 'excused_' entry to LOCAL_STORAGE_KEYS or
+// the dynamic-prefix sweep below without an explicit, separate
+// privacy-design approval - this exclusion is intentional, not an
+// oversight.
+
 export default function BackupRestore() {
   const { user } = useAuth();
   const { language } = useLanguage();
