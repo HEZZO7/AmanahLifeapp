@@ -45,10 +45,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('al_theme', newTheme);
   };
 
+  // Always resolves to an explicit theme and takes themeMode out of 'auto' -
+  // otherwise tapping this while auto mode is on used to no-op silently,
+  // since the old guard only ever flipped the theme when already 'manual'.
   const toggleTheme = () => {
-    if (themeMode === 'manual') {
-      setTheme(theme === 'dark' ? 'light' : 'dark');
-    }
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setThemeMode('manual');
   };
 
   const setThemeMode = (mode: ThemeMode) => {
