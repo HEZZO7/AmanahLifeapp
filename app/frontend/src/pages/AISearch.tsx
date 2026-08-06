@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
 import PageHeader from '@/components/PageHeader';
@@ -16,24 +18,37 @@ interface SearchResult {
 const CATEGORIES_AR = ['الكل', 'المهام', 'الأهداف', 'المالية', 'القرآن', 'الأذكار'];
 const CATEGORIES_EN = ['All', 'Tasks', 'Goals', 'Finance', 'Quran', 'Adhkar'];
 
-const SAMPLE_RESULTS_AR: SearchResult[] = [
-  { type: 'المهام', title: 'مراجعة الميزانية الشهرية', description: 'مهمة مجدولة ليوم الأحد - أولوية عالية', icon: '✅' },
-  { type: 'المالية', title: 'مصاريف البقالة', description: 'إجمالي هذا الشهر: 850 ر.س من أصل 1200 ر.س', icon: '💰' },
-  { type: 'الأهداف', title: 'ختم القرآن', description: 'التقدم: 15 جزء من 30 - 50%', icon: '🎯' },
-  { type: 'الأذكار', title: 'أذكار الصباح', description: 'سبحان الله وبحمده - 100 مرة', icon: '📿' },
-  { type: 'القرآن', title: 'سورة الكهف', description: 'آخر قراءة: الآية 45 - يوم الجمعة', icon: '📖' },
-];
-
-const SAMPLE_RESULTS_EN: SearchResult[] = [
-  { type: 'Tasks', title: 'Monthly Budget Review', description: 'Scheduled for Sunday - High Priority', icon: '✅' },
-  { type: 'Finance', title: 'Grocery Expenses', description: 'This month total: 850 of 1200 budget', icon: '💰' },
-  { type: 'Goals', title: 'Complete Quran', description: 'Progress: 15 of 30 Juz - 50%', icon: '🎯' },
-  { type: 'Adhkar', title: 'Morning Adhkar', description: 'SubhanAllah wa bihamdihi - 100 times', icon: '📿' },
-  { type: 'Quran', title: 'Surah Al-Kahf', description: 'Last read: Ayah 45 - Friday', icon: '📖' },
-];
-
 const SUGGESTION_CHIPS_AR = ['ميزانيتي هذا الشهر', 'مهام اليوم', 'تقدم الأهداف', 'أذكار لم أكملها'];
 const SUGGESTION_CHIPS_EN = ['My budget this month', 'Today\'s tasks', 'Goals progress', 'Incomplete adhkar'];
+
+// Calls the real app_11941c8fec_ai_search Edge Function (Claude-backed) -
+// Phase J (Phase D decision, 2026-08). This used to return a hardcoded
+// static array of 5 sample results, identical for every query and every
+// user. Tasks/goals/finance/adhkar/Quran progress are localStorage-only
+// (no server tables for any of them - confirmed while building this), so
+// the client gathers its own local data and sends it in the request body;
+// Claude interprets the query against it and returns real matches.
+const AI_SEARCH_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_ai_search';
+
+function gatherLocalData() {
+  const readJson = (key: string, fallback: unknown) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const tasks = (readJson('amanah_tasks', []) as unknown[]).slice(0, 30);
+  const goals = (readJson('amanah-goals', []) as unknown[]).slice(0, 20);
+  const transactions = (readJson('amanah-transactions', []) as unknown[]).slice(-30);
+  const adhkarToday = readJson(`adhkar_progress_${new Date().toDateString()}`, null);
+  const quranBookmarks = (readJson('quran_bookmarks', []) as unknown[]).slice(0, 20);
+  const quranLastRead = readJson('quran_last_read', null);
+
+  return { tasks, goals, transactions, adhkarToday, quranBookmarks, quranLastRead };
+}
 
 export default function AISearch() {
   const { language } = useLanguage();
@@ -42,12 +57,44 @@ export default function AISearch() {
   const [activeCategory, setActiveCategory] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<SearchResult[]>([]);
 
   const { history, addSearch, deleteSearch, clearHistory, isLoading: historyLoading } = useSearchHistory('ai');
 
   const categories = isAr ? CATEGORIES_AR : CATEGORIES_EN;
-  const results = isAr ? SAMPLE_RESULTS_AR : SAMPLE_RESULTS_EN;
   const chips = isAr ? SUGGESTION_CHIPS_AR : SUGGESTION_CHIPS_EN;
+
+  const runSearch = async (q: string) => {
+    setSearching(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first');
+        return;
+      }
+
+      const response = await fetch(AI_SEARCH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ query: q, language: isAr ? 'ar' : 'en', data: gatherLocalData() }),
+      });
+      const responseData = await response.json();
+
+      if (!response.ok || responseData.error) {
+        toast.error(isAr ? 'البحث الذكي غير متاح حالياً' : 'Smart Search is currently unavailable');
+        setResults([]);
+        return;
+      }
+
+      setResults(responseData.results || []);
+    } catch {
+      toast.error(isAr ? 'حدث خطأ أثناء البحث' : 'Something went wrong while searching');
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const handleSearch = (searchQuery?: string) => {
     const q = searchQuery || query;
@@ -56,6 +103,7 @@ export default function AISearch() {
       addSearch(q.trim());
       setShowResults(true);
       setIsFocused(false);
+      runSearch(q.trim());
     }
   };
 
@@ -64,6 +112,7 @@ export default function AISearch() {
     setIsFocused(false);
     addSearch(selectedQuery);
     setShowResults(true);
+    runSearch(selectedQuery);
   };
 
   const filteredResults = activeCategory === 0
@@ -140,11 +189,22 @@ export default function AISearch() {
             </div>
 
             {/* Results */}
-            {showResults && (
+            {showResults && searching && (
+              <div className="flex flex-col items-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
+                <p className="text-muted-foreground text-sm">{isAr ? 'جاري البحث...' : 'Searching...'}</p>
+              </div>
+            )}
+            {showResults && !searching && (
               <div className="space-y-2 animate-in fade-in duration-300">
                 <p className="text-xs text-muted-foreground">
                   {isAr ? `${filteredResults.length} نتائج` : `${filteredResults.length} results`}
                 </p>
+                {filteredResults.length === 0 && (
+                  <p className="text-center text-muted-foreground text-sm py-8">
+                    {isAr ? 'لم يتم العثور على نتائج مطابقة' : 'No matching results found'}
+                  </p>
+                )}
                 {filteredResults.map((result, i) => (
                   <div key={i} className="bg-card rounded-2xl p-4 border border-border hover:border-primary/50 transition-all">
                     <div className="flex items-start gap-3">
