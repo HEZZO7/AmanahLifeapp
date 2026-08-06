@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
@@ -35,42 +37,28 @@ const CATEGORY_MAP: Record<string, string> = {
   'أخرى': 'Other',
 };
 
-// Mock parsed receipts for simulation
-const MOCK_RECEIPTS: Array<{ storeName: string; items: ParsedItem[] }> = [
-  {
-    storeName: 'Fresh Market',
-    items: [
-      { name: 'Organic Milk', amount: 4.99 },
-      { name: 'Whole Wheat Bread', amount: 3.49 },
-      { name: 'Fresh Vegetables', amount: 8.75 },
-      { name: 'Olive Oil', amount: 12.99 },
-      { name: 'Rice (5kg)', amount: 9.99 },
-    ],
-  },
-  {
-    storeName: 'City Pharmacy',
-    items: [
-      { name: 'Vitamins D3', amount: 15.99 },
-      { name: 'Hand Sanitizer', amount: 3.49 },
-      { name: 'Face Masks (50pk)', amount: 8.99 },
-    ],
-  },
-  {
-    storeName: 'Gas Station',
-    items: [
-      { name: 'Fuel (45L)', amount: 67.50 },
-      { name: 'Car Wash', amount: 12.00 },
-    ],
-  },
-  {
-    storeName: 'Electronics Store',
-    items: [
-      { name: 'USB Cable', amount: 9.99 },
-      { name: 'Phone Case', amount: 24.99 },
-      { name: 'Screen Protector', amount: 7.99 },
-    ],
-  },
-];
+// Calls the real app_11941c8fec_receipt_scan Edge Function (Claude vision-backed) -
+// Phase I (Phase D decision, 2026-08). This used to ignore the uploaded photo
+// entirely and return a random pick from 4 hardcoded mock receipts after a fake
+// 2-second delay, despite the "AI analyzing receipt" label. Same endpoint
+// pattern as app_11941c8fec_ai_life_coach.
+const RECEIPT_SCAN_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_receipt_scan';
+
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the "data:<mime>;base64," prefix - the function wants raw base64.
+      const commaIndex = result.indexOf(',');
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ReceiptScanner() {
   const { language } = useLanguage();
@@ -100,33 +88,57 @@ export default function ReceiptScanner() {
     fileInputRef.current?.click();
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = '';
     if (!file) return;
 
-    // Simulate scanning
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+      toast.error(isAr ? 'صيغة الصورة غير مدعومة - استخدم JPEG أو PNG' : 'Unsupported image format - use JPEG or PNG');
+      return;
+    }
+
     setScanning(true);
-    setTimeout(() => {
-      const mockData = MOCK_RECEIPTS[Math.floor(Math.random() * MOCK_RECEIPTS.length)];
-      const total = mockData.items.reduce((sum, item) => sum + item.amount, 0);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error(isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first');
+        return;
+      }
+
+      const imageBase64 = await readFileAsBase64(file);
+      const response = await fetch(RECEIPT_SCAN_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ imageBase64, mimeType: file.type, language: isAr ? 'ar' : 'en' }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        if (data.error === 'not_a_receipt') {
+          toast.error(isAr ? 'لا تبدو هذه الصورة كإيصال' : "This doesn't look like a receipt");
+        } else if (data.error === 'unreadable') {
+          toast.error(isAr ? 'تعذّرت قراءة الإيصال - جرّب صورة أوضح' : "Couldn't read this receipt clearly - try a clearer photo");
+        } else {
+          toast.error(isAr ? 'ماسح الإيصالات غير متاح حالياً' : 'Receipt scanner is currently unavailable');
+        }
+        return;
+      }
 
       const receipt: ScannedReceipt = {
         id: Date.now().toString(),
-        date: new Date().toISOString(),
-        storeName: mockData.storeName,
-        items: mockData.items,
-        total: Math.round(total * 100) / 100,
+        date: data.date || new Date().toISOString(),
+        storeName: data.storeName,
+        items: data.items,
+        total: data.total,
         category: 'Food',
         addedToFinance: false,
       };
-
       setParsedReceipt(receipt);
+    } catch {
+      toast.error(isAr ? 'حدث خطأ أثناء مسح الإيصال' : 'Something went wrong scanning the receipt');
+    } finally {
       setScanning(false);
-    }, 2000);
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   }
 
