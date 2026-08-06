@@ -160,12 +160,19 @@ export default function QuranReader() {
     loadMeta();
   }, [language]);
 
+  // Same class of bug as RN's Quran reader: switching pages/surahs only
+  // updated state (view/currentPage/pageAyahs) - the page uses ordinary
+  // document/window scroll (no inner scroll container), and nothing ever
+  // reset it, so opening a surah while scrolled partway down the index (or
+  // a previous page) left the reader visually at that same scroll
+  // position instead of the top of the new content.
   const openPage = async (pageNumber: number) => {
     const clamped = Math.min(Math.max(1, pageNumber), TOTAL_PAGES);
     setReaderLoading(true);
     setView('reader');
     setCurrentPage(clamped);
     setRevealed(new Set());
+    window.scrollTo({ top: 0, behavior: 'auto' });
     try {
       const [arabicRes, translationRes] = await Promise.all([
         fetch(`https://api.alquran.cloud/v1/page/${clamped}/quran-uthmani`),
@@ -300,7 +307,10 @@ export default function QuranReader() {
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-16 gap-3">
           <button
-            onClick={() => (view === 'reader' ? setView('index') : navigate(-1))}
+            onClick={() => {
+              if (view === 'reader') { setView('index'); window.scrollTo({ top: 0, behavior: 'auto' }); }
+              else navigate(-1);
+            }}
             className="w-9 h-9 rounded-full bg-card flex items-center justify-center border border-border"
           >
             <svg className="w-5 h-5 text-foreground rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
