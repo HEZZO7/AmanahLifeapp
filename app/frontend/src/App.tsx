@@ -10,6 +10,7 @@ import { TimeFormatProvider } from '@/contexts/TimeFormatContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Onboarding from '@/components/Onboarding';
 import Index from './pages/Index';
+import CategoryLanding from './pages/CategoryLanding';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import AuthError from './pages/AuthError';
@@ -72,6 +73,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/auth/error" element={<AuthError />} />
+    <Route path="/dashboard/:category" element={<CategoryLanding />} />
     <Route path="/prayer-times" element={<PrayerTimes />} />
     <Route path="/quran" element={<QuranReader />} />
     <Route path="/dhikr" element={<DhikrCounter />} />

@@ -14,6 +14,7 @@ import DuaOfTheDay from '@/components/DuaOfTheDay';
 import MotivationalQuote from '@/components/MotivationalQuote';
 import OfflineIndicator from '@/components/OfflineIndicator';
 import { gregorianToHijri, formatHijri, formatGregorian } from '@/lib/hijriDate';
+import { getCategories } from '@/lib/dashboardNav';
 
 export default function HomePage() {
   const { user, loading, signOut } = useAuth();
@@ -189,6 +190,12 @@ export default function HomePage() {
   const filteredNavItems = navItems.filter(item =>
     !searchQuery || item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Category selector shown when not searching (Phase G). Search still
+  // searches the full navItems list above, so Family Dashboard/Receipt
+  // Scanner/Blog remain reachable by typing even though they're excluded
+  // from the category grouping itself - see src/lib/dashboardNav.ts.
+  const categories = getCategories(language);
 
   const getPrayerNameTranslation = (name: string): string => {
     if (language !== 'ar') return name;
@@ -416,13 +423,26 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Quick Actions Grid */}
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('quickActions')}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {filteredNavItems.map(item => (
-            <QuickAction key={item.path} icon={item.icon} title={item.title} description={item.description} onClick={() => navigate(item.path)} />
-          ))}
-        </div>
+        {/* Search Results vs Category Selector (Phase G) */}
+        {searchQuery ? (
+          <>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('quickActions')}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {filteredNavItems.map(item => (
+                <QuickAction key={item.path} icon={item.icon} title={item.title} description={item.description} onClick={() => navigate(item.path)} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3">{language === 'ar' ? 'الفئات' : 'Categories'}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {categories.map(cat => (
+                <QuickAction key={cat.id} icon={cat.icon} title={cat.title} description={cat.description} onClick={() => navigate(`/dashboard/${cat.id}`)} />
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <BottomNav />
