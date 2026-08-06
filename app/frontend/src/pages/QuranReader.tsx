@@ -38,16 +38,34 @@ const TOTAL_PAGES = 604;
 // exception per the Madinah Mushaf/Hafs convention), and the app already
 // renders it as a separate header above the surah, so it must be stripped
 // here to avoid it being duplicated/glued onto ayah 1's text.
+//
+// The API's Uthmani-script text uses alef wasla (ٱ, U+0671) for "Allah"/
+// "ar-Rahman"/"ar-Raheem" - real Mushaf orthography - and its shadda+fatha
+// combining marks are stored in the opposite order from the plain-alef
+// literal below (both render visually identical, but aren't byte-equal).
+// Comparing raw strings never matched on either count, so this was
+// silently a no-op for the entire Quran. Fixed by normalizing alef wasla
+// to plain alef AND applying Unicode NFC normalization (which canonically
+// reorders combining marks) before comparing - match + slice both happen
+// in normalized space, and the normalized remainder is returned. NFC text
+// renders identically to its NFD/mixed-order equivalent, so this has no
+// visible effect beyond fixing the match.
 const BASMALAH_VARIANTS = [
   'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
   'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
 ];
 
+function normalizeArabic(text: string): string {
+  return text.replace(/ٱ/g, 'ا').normalize('NFC');
+}
+
 function stripBasmalahPrefix(text: string, surahNumber: number, numberInSurah: number): string {
   if (surahNumber === 1 || numberInSurah !== 1) return text;
+  const normalized = normalizeArabic(text);
   for (const b of BASMALAH_VARIANTS) {
-    if (text.startsWith(b)) {
-      return text.slice(b.length).trim();
+    const normalizedVariant = normalizeArabic(b);
+    if (normalized.startsWith(normalizedVariant)) {
+      return normalized.slice(normalizedVariant.length).trim();
     }
   }
   return text;
