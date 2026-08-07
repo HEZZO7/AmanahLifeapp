@@ -8,10 +8,12 @@
  *
  * Blog and Settings are excluded (Settings is already reachable via
  * BottomNav; Blog gets a small link on the Growth landing page). Family
- * Dashboard and Receipt Scanner are ALSO excluded for now - both are
- * explicit Phase D items still awaiting a product decision (real backend
- * vs. pulling from sale) - not dropped, just not part of this grouping
- * yet, matching the approved Phase G plan's explicit call-out of this gap.
+ * Dashboard and Receipt Scanner ARE included (finance category) - both
+ * are real, built features (Phase I / Family Dashboard pass) as of
+ * 2026-08. They were deliberately excluded here during Phase G itself,
+ * while still Phase D items awaiting a decision, but that exclusion was
+ * never revisited after they shipped - this file just hadn't been
+ * updated. Same orphan-navigation bug already fixed on amanahlife-rn.
  */
 export type CategoryId = 'worship' | 'finance' | 'planning' | 'growth';
 
@@ -50,6 +52,8 @@ export function getNavItems(language: string): NavItem[] {
     { icon: '📊', title: ar ? 'لوحة مالية' : 'Dashboard', description: ar ? 'مؤشرات مالية' : 'Lifestyle KPIs', path: '/financial-dashboard', category: 'finance' },
     { icon: '📈', title: ar ? 'استثمار حلال' : 'Halal Invest', description: ar ? 'التمويل الأخلاقي' : 'Ethical finance', path: '/halal-investment', category: 'finance' },
     { icon: '🏆', title: ar ? 'تحديات الادخار' : 'Savings Challenges', description: ar ? 'تحديات ممتعة' : 'Gamified saving', path: '/savings-challenges', category: 'finance' },
+    { icon: '📸', title: ar ? 'ماسح الإيصالات' : 'Receipt Scanner', description: ar ? 'مسح وتصنيف' : 'Scan & categorize', path: '/receipt-scanner', category: 'finance' },
+    { icon: '👨‍👩‍👧', title: ar ? 'لوحة العائلة' : 'Family Dashboard', description: ar ? 'مشاركة عائلية' : 'Shared family', path: '/family-dashboard', category: 'finance' },
 
     { icon: '✅', title: ar ? 'المهام' : 'Tasks', description: ar ? 'إدارة المهام' : 'Manage tasks', path: '/tasks', category: 'planning' },
     { icon: '🌅', title: ar ? 'الروتين اليومي' : 'Daily Routine', description: ar ? 'العادات اليومية' : 'Daily habits', path: '/daily-routine', category: 'planning' },
