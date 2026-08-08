@@ -141,7 +141,7 @@ export default function AILifeCoach() {
 
   return (
     <div className="min-h-screen bg-background pb-20" dir={isAr ? 'rtl' : 'ltr'}>
-      <PageHeader icon="🤖" title={isAr ? 'المدرب الذكي' : 'AI Life Coach'} />
+      <PageHeader icon="✨" title={isAr ? 'المدرب الذكي' : 'AI Life Coach'} />
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <PremiumGate requiredTier="balanced" featureName={isAr ? 'المدرب الذكي' : 'AI Life Coach'}>
@@ -204,7 +204,7 @@ export default function AILifeCoach() {
                     >
                       {msg.type === 'coach' && (
                         <span className="text-xs text-[#c9a96e] font-medium block mb-1">
-                          🤖 {isAr ? 'المدرب' : 'Coach'}
+                          ✨ {isAr ? 'المدرب' : 'Coach'}
                         </span>
                       )}
                       {msg.text}
