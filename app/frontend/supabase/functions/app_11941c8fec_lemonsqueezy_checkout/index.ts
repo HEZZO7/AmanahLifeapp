@@ -149,10 +149,21 @@ Deno.serve(async (req: Request) => {
     // truthy value through (including non-strings), so a malformed body
     // threw inside .toUpperCase() and surfaced as an opaque 500 instead of
     // a 400.
-    const { tier, billing, successUrl } = body;
+    const { tier, billing, successUrl, discountCode } = body;
     if (!VALID_TIERS.has(tier) || !VALID_BILLING.has(billing)) {
       return new Response(
         JSON.stringify({ error: "Invalid tier or billing cycle" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Lemon Squeezy discount codes are uppercase letters/numbers, 3-256
+    // chars (per their own validation) - reject anything else here rather
+    // than forwarding a malformed value to their API for an opaque error.
+    const DISCOUNT_CODE_RE = /^[A-Z0-9]{3,256}$/;
+    if (discountCode !== undefined && (typeof discountCode !== "string" || !DISCOUNT_CODE_RE.test(discountCode))) {
+      return new Response(
+        JSON.stringify({ error: "Invalid discount code format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -214,6 +225,7 @@ Deno.serve(async (req: Request) => {
               tier,
               billing,
             },
+            ...(discountCode ? { discount_code: discountCode } : {}),
           },
           product_options: {
             redirect_url: isAllowedRedirect(successUrl) ? successUrl : undefined,

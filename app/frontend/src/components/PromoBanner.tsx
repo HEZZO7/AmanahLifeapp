@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
+import { LEMONSQUEEZY_CHECKOUT_ENDPOINT, buildCheckoutUrl } from '@/lib/lemonSqueezyCheckout';
 
 const FIRST_USE_KEY = 'amanahlife_first_use';
 const DISMISSED_KEY = 'amanahlife_promo_dismissed';
 const COUPON_CODE = 'AMANAH30';
-const EDGE_FUNCTION_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_stripe_coupon_checkout';
 const DAYS_BEFORE_SHOW = 7;
 const DAYS_BEFORE_RESHOW = 3;
 
 export default function PromoBanner() {
-  const { tier } = useSubscription();
+  const { tier, trialUsed } = useSubscription();
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,41 +75,59 @@ export default function PromoBanner() {
     }
   }, []);
 
+  // Routes through the same real Lemon Squeezy checkout Subscription.tsx's
+  // "Upgrade" button uses (src/lib/lemonSqueezyCheckout.ts), instead of the
+  // old app_11941c8fec_stripe_coupon_checkout function - that Stripe path
+  // had nothing to do with this app's actual subscriptions (Lemon Squeezy),
+  // so a completed Stripe checkout would never have granted real access.
+  // Mirrors handleUpgrade's trialUsed branch in Subscription.tsx: a
+  // trial-used account needs the API-based checkout so skip_trial can
+  // suppress Lemon Squeezy's own native trial offer; everyone else goes
+  // straight to the hosted buy-link, now with the discount code attached.
   const handleSubscribe = useCallback(async () => {
     setLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
+      const session = sessionData?.session;
+      if (!session?.user) {
         setLoading(false);
         return;
       }
 
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          tier: 'balanced',
-          billing: 'monthly',
-          couponCode: COUPON_CODE,
-          successUrl: `${window.location.origin}/settings?subscription=success`,
-          cancelUrl: `${window.location.origin}/subscription`,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (trialUsed) {
+        const response = await fetch(LEMONSQUEEZY_CHECKOUT_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tier: 'balanced',
+            billing: 'monthly',
+            discountCode: COUPON_CODE,
+            successUrl: `${window.location.origin}/subscription?success=true`,
+          }),
+        });
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+        }
+        return;
       }
+
+      const url = buildCheckoutUrl(
+        'balanced',
+        'monthly',
+        { id: session.user.id, email: session.user.email },
+        COUPON_CODE
+      );
+      window.location.href = url;
     } catch {
       // Silently fail
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [trialUsed]);
 
   if (!visible) return null;
 
