@@ -46,21 +46,6 @@ export default function CategoryLanding() {
             </button>
           ))}
         </div>
-
-        {/* Blog has no grid card in any category (it's content, not a
-            feature) - Growth's landing page carries a small link to it
-            instead, per the approved Phase G plan. */}
-        {categoryId === 'growth' && (
-          <button
-            onClick={() => navigate('/blog')}
-            className="mt-4 w-full bg-card border border-border rounded-2xl p-3.5 flex items-center gap-2.5 hover:shadow-lg transition-all"
-          >
-            <span className="text-lg">📝</span>
-            <span className="text-primary text-sm font-semibold">
-              {language === 'ar' ? 'اقرأ المدونة ←' : 'Read the blog →'}
-            </span>
-          </button>
-        )}
       </main>
     </div>
   );

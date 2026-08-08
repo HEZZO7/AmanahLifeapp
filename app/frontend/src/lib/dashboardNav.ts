@@ -7,8 +7,9 @@
  * as-is rather than overwritten with RN's copies.
  *
  * Blog and Settings are excluded (Settings is already reachable via
- * BottomNav; Blog gets a small link on the Growth landing page). Family
- * Dashboard and Receipt Scanner ARE included (finance category) - both
+ * BottomNav; Blog gets its own standalone "Quick Access" card on the
+ * dashboard home page instead, alongside AI Life Coach - see Index.tsx).
+ * Family Dashboard and Receipt Scanner ARE included (finance category) - both
  * are real, built features (Phase I / Family Dashboard pass) as of
  * 2026-08. They were deliberately excluded here during Phase G itself,
  * while still Phase D items awaiting a decision, but that exclusion was

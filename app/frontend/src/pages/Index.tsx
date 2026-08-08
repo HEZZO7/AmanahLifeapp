@@ -197,6 +197,15 @@ export default function HomePage() {
   // from the category grouping itself - see src/lib/dashboardNav.ts.
   const categories = getCategories(language);
 
+  // Blog + AI Life Coach get their own standalone "Quick Access" cards
+  // below the 4 category cards, reused from navItems above rather than
+  // duplicating their icon/title/description. AI Life Coach stays listed
+  // inside the Growth category too (unchanged) - deliberate duplicate
+  // entry point, not a move. Blog's old "small link on Growth's landing
+  // page" is removed in favor of this (see CategoryLanding.tsx).
+  const blogItem = navItems.find((i) => i.path === '/blog');
+  const aiCoachItem = navItems.find((i) => i.path === '/ai-life-coach');
+
   const getPrayerNameTranslation = (name: string): string => {
     if (language !== 'ar') return name;
     const prayerNames: Record<string, string> = {
@@ -440,6 +449,19 @@ export default function HomePage() {
               {categories.map(cat => (
                 <QuickAction key={cat.id} icon={cat.icon} title={cat.title} description={cat.description} onClick={() => navigate(`/dashboard/${cat.id}`)} />
               ))}
+            </div>
+
+            {/* Blog + AI Life Coach: standalone one-tap cards, kept outside
+                the 4 category cards above rather than requiring a category
+                drill-down first. */}
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 mt-6">{language === 'ar' ? 'وصول سريع' : 'Quick Access'}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {blogItem && (
+                <QuickAction key={blogItem.path} icon={blogItem.icon} title={blogItem.title} description={blogItem.description} onClick={() => navigate(blogItem.path)} />
+              )}
+              {aiCoachItem && (
+                <QuickAction key={aiCoachItem.path} icon={aiCoachItem.icon} title={aiCoachItem.title} description={aiCoachItem.description} onClick={() => navigate(aiCoachItem.path)} />
+              )}
             </div>
           </>
         )}
