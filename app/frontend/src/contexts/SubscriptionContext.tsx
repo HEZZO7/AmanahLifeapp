@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type SubscriptionTier = 'free' | 'balanced' | 'family';
 type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'expired' | 'paused';
 type BillingCycle = 'monthly' | 'yearly';
-type PaymentProvider = 'stripe' | 'lemonsqueezy' | 'paddle';
+type PaymentProvider = 'lemonsqueezy' | 'paddle';
 
 // Statuses that still grant access to a paid tier. 'past_due' is included
 // deliberately — a payment retry is in flight, and cutting off a paying
@@ -39,11 +39,10 @@ interface SubscriptionContextType {
   status: SubscriptionStatus;
   billingCycle: BillingCycle;
   paymentProvider: PaymentProvider;
-  // ISO date string, or null. Populated by the Stripe webhook for Stripe
-  // subscribers; populated by the Lemon Squeezy webhook from the real
-  // ends_at/renews_at fields on its subscription object (never fabricated -
-  // see that function's comments). Null for free/trial users and, for now,
-  // for Paddle, whose webhook doesn't populate this column yet.
+  // ISO date string, or null. Populated by the Lemon Squeezy webhook from
+  // the real ends_at/renews_at fields on its subscription object (never
+  // fabricated - see that function's comments). Null for free/trial users
+  // and, for now, for Paddle, whose webhook doesn't populate this column yet.
   currentPeriodEnd: string | null;
   loading: boolean;
   isTrialActive: boolean;
@@ -60,7 +59,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [tier, setTier] = useState<SubscriptionTier>('free');
   const [status, setStatus] = useState<SubscriptionStatus>('active');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
-  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('stripe');
+  const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('lemonsqueezy');
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isTrialActive, setIsTrialActive] = useState(false);
@@ -82,13 +81,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
-      setPaymentProvider('stripe');
+      setPaymentProvider('lemonsqueezy');
       setCurrentPeriodEnd(null);
       setIsTrialActive(false);
       setTrialDaysRemaining(0);
       setTrialUsed(false);
       setLoading(false);
-      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
+      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'lemonsqueezy' }));
       return;
     }
 
@@ -109,17 +108,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setTier('free');
         setStatus('active');
         setBillingCycle('monthly');
-        setPaymentProvider('stripe');
+        setPaymentProvider('lemonsqueezy');
         setCurrentPeriodEnd(null);
         setIsTrialActive(false);
         setTrialDaysRemaining(0);
         setTrialUsed(false);
-        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
+        localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'lemonsqueezy' }));
       } else {
         const fetchedTier = (data.tier as SubscriptionTier) || 'free';
         const fetchedStatus = (data.status as SubscriptionStatus) || 'active';
         const fetchedBilling = (data.billing_cycle as BillingCycle) || 'monthly';
-        const fetchedProvider = (data.payment_provider as PaymentProvider) || 'stripe';
+        const fetchedProvider = (data.payment_provider as PaymentProvider) || 'lemonsqueezy';
         setTier(fetchedTier);
         setStatus(fetchedStatus);
         setBillingCycle(fetchedBilling);
@@ -142,8 +141,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
-      setPaymentProvider('stripe');
-      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'stripe' }));
+      setPaymentProvider('lemonsqueezy');
+      localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'lemonsqueezy' }));
     } finally {
       setLoading(false);
     }
@@ -241,7 +240,7 @@ const defaultSubscription: SubscriptionContextType = {
   tier: 'free',
   status: 'active',
   billingCycle: 'monthly',
-  paymentProvider: 'stripe',
+  paymentProvider: 'lemonsqueezy',
   currentPeriodEnd: null,
   loading: false,
   isTrialActive: false,

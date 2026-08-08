@@ -75,7 +75,7 @@ export default function PricingPage() {
     },
     {
       q: isAr ? 'ما هي طرق الدفع المقبولة؟' : 'What payment methods are accepted?',
-      a: isAr ? 'نقبل بطاقات الائتمان والخصم عبر Lemon Squeezy و Paddle و Stripe.' : 'We accept credit and debit cards via Lemon Squeezy, Paddle, and Stripe.',
+      a: isAr ? 'نقبل بطاقات الائتمان والخصم عبر Lemon Squeezy و Paddle.' : 'We accept credit and debit cards via Lemon Squeezy and Paddle.',
     },
     {
       q: isAr ? 'هل هناك ضمان استرداد؟' : 'Is there a money-back guarantee?',
