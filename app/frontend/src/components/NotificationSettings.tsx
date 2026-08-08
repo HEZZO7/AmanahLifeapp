@@ -199,19 +199,22 @@ export default function NotificationSettings() {
                 </p>
               </div>
             </div>
-            {/* Disabled, not removed - still reflects the stored preference
-                value so nothing looks lost, it just can't be changed here
-                since it doesn't gate anything real yet. */}
+            {/* Disabled, not removed - the stored preference value is kept
+                (nothing is lost once real scheduling infrastructure lands),
+                but it's deliberately NOT reflected in this toggle's visual
+                state. Coloring/positioning it as "on" using the same teal
+                the rest of the app uses for genuinely active controls reads
+                as a working feature that's simply switched on - misleading
+                for something that's disabled and does nothing. Always
+                rendered as a plain, muted, off-looking switch instead, so
+                the visual honestly matches "coming soon", not the stored
+                value. */}
             <button
               disabled
               aria-disabled="true"
-              className={`w-10 h-5 rounded-full relative flex-shrink-0 ml-2 cursor-not-allowed ${
-                preferences[type.key] ? 'bg-primary/40' : 'bg-secondary'
-              }`}
+              className="w-10 h-5 rounded-full relative flex-shrink-0 ml-2 cursor-not-allowed bg-muted"
             >
-              <div className={`w-3.5 h-3.5 rounded-full bg-white/70 absolute top-[3px] ${
-                preferences[type.key] ? 'left-[22px]' : 'left-[3px]'
-              }`} />
+              <div className="w-3.5 h-3.5 rounded-full bg-muted-foreground/40 absolute top-[3px] left-[3px]" />
             </button>
           </div>
         ))}
