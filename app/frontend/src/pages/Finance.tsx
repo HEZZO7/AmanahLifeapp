@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
@@ -53,9 +54,12 @@ export default function Finance() {
     if (stored) setTransactions(JSON.parse(stored));
   }, []);
 
+  // Writes to storage BEFORE updating state, so a thrown write (quota
+  // exceeded, storage disabled in private mode) never leaves a transaction
+  // visible in the list that didn't actually persist.
   const saveTransactions = (updated: Transaction[]) => {
-    setTransactions(updated);
     localStorage.setItem('amanah_finance', JSON.stringify(updated));
+    setTransactions(updated);
   };
 
   const resetForm = () => {
@@ -68,27 +72,40 @@ export default function Finance() {
   };
 
   const submitTransaction = () => {
-    if (!amount || parseFloat(amount) <= 0) return;
-    if (editingId) {
-      saveTransactions(
-        transactions.map((tx) =>
-          tx.id === editingId
-            ? { ...tx, type, category, amount: parseFloat(amount), description: description.trim() || t(category) }
-            : tx
-        )
-      );
-    } else {
-      const newTx: Transaction = {
-        id: Date.now().toString(),
-        type,
-        category,
-        amount: parseFloat(amount),
-        description: description.trim() || t(category),
-        date: new Date().toISOString(),
-      };
-      saveTransactions([newTx, ...transactions]);
+    const parsedAmount = parseFloat(amount);
+    // Number.isNaN check matters here specifically: parseFloat('abc') is
+    // NaN, and `NaN <= 0` is always false, so the old `!amount ||
+    // parseFloat(amount) <= 0` check let non-numeric input straight through
+    // and silently created a transaction with amount: NaN.
+    if (!amount.trim() || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error(t('pleaseEnterValidAmount'));
+      return;
     }
-    resetForm();
+    try {
+      if (editingId) {
+        saveTransactions(
+          transactions.map((tx) =>
+            tx.id === editingId
+              ? { ...tx, type, category, amount: parsedAmount, description: description.trim() || t(category) }
+              : tx
+          )
+        );
+      } else {
+        const newTx: Transaction = {
+          id: Date.now().toString(),
+          type,
+          category,
+          amount: parsedAmount,
+          description: description.trim() || t(category),
+          date: new Date().toISOString(),
+        };
+        saveTransactions([newTx, ...transactions]);
+      }
+      resetForm();
+      toast.success(editingId ? t('transactionUpdated') : t('transactionAdded'));
+    } catch {
+      toast.error(t('transactionSaveFailed'));
+    }
   };
 
   const openEditForm = (tx: Transaction) => {
@@ -101,7 +118,11 @@ export default function Finance() {
   };
 
   const deleteTransaction = (id: string) => {
-    saveTransactions(transactions.filter((tx) => tx.id !== id));
+    try {
+      saveTransactions(transactions.filter((tx) => tx.id !== id));
+    } catch {
+      toast.error(t('transactionDeleteFailed'));
+    }
   };
 
   // Monthly calculations
