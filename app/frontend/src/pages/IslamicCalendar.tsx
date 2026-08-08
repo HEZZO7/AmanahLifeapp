@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
+import { gregorianToHijri, formatGregorian } from '@/lib/hijriDate';
 
 interface IslamicEvent {
   name: string;
@@ -65,83 +66,24 @@ const HIJRI_MONTHS_AR = [
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
 ];
 
-/**
- * Dynamically approximate the Hijri date based on known anchor points.
- * This is used ONLY as a fallback when the API call fails.
- * Anchor: 1 Muharram 1447 AH ≈ July 7, 2025 (Gregorian)
- * Average Hijri month length: ~29.5306 days
- */
-function approximateHijriDate(): { day: number; month: number; year: number } {
-  const anchorGregorian = new Date(2025, 6, 7); // July 7, 2025 = 1 Muharram 1447
-  const today = new Date();
-  const diffMs = today.getTime() - anchorGregorian.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  const hijriDayLength = 29.5306;
-  const totalHijriDays = Math.floor(diffDays * (354.36667 / 365.25)); // scale Gregorian to Hijri
-  const hijriMonthsSinceAnchor = Math.floor(totalHijriDays / hijriDayLength);
-  const hijriDayInMonth = Math.floor(totalHijriDays - hijriMonthsSinceAnchor * hijriDayLength) + 1;
-
-  const totalMonths = hijriMonthsSinceAnchor; // months since 1 Muharram 1447
-  const yearOffset = Math.floor(totalMonths / 12);
-  const monthIndex = totalMonths % 12; // 0-based
-
-  return {
-    day: Math.min(Math.max(hijriDayInMonth, 1), 30),
-    month: monthIndex + 1, // 1-based
-    year: 1447 + yearOffset,
-  };
-}
-
 export default function IslamicCalendar() {
   const { user, loading: authLoading } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const navigate = useNavigate();
 
-  // Use dynamic fallback instead of hardcoded values
-  const fallback = approximateHijriDate();
-
-  const [selectedMonth, setSelectedMonth] = useState<number>(fallback.month);
-  const [hijriDay, setHijriDay] = useState<number>(fallback.day);
-  const [hijriMonth, setHijriMonth] = useState<number>(fallback.month);
-  const [hijriYear, setHijriYear] = useState<number>(fallback.year);
-  const [loading, setLoading] = useState(true);
+  // Computed locally via src/lib/hijriDate.ts - the same offline calculator
+  // the dashboard's date badge uses, no network fetch and no
+  // fetched-vs-fallback distinction to reconcile.
+  const today = gregorianToHijri(new Date());
+  const { day: hijriDay, month: hijriMonth, year: hijriYear } = today;
+  const [selectedMonth, setSelectedMonth] = useState<number>(today.month);
 
   const hijriMonths = isAr ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN;
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
   }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    const fetchHijriDate = async () => {
-      try {
-        // Use Makkah city timings endpoint which returns the Hijri date based on Makkah timezone
-        const res = await fetch(
-          'https://api.aladhan.com/v1/timingsByCity?city=Makkah&country=Saudi+Arabia&method=4'
-        );
-        const data = await res.json();
-
-        if (data?.data?.date?.hijri) {
-          const hijri = data.data.date.hijri;
-          const day = parseInt(hijri.day, 10);
-          const month = hijri.month.number;
-          const year = parseInt(hijri.year, 10);
-
-          setHijriDay(day);
-          setHijriMonth(month);
-          setHijriYear(year);
-          setSelectedMonth(month);
-        }
-      } catch {
-        // Fallback values already set from approximateHijriDate()
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHijriDate();
-  }, []);
 
   // Get upcoming events from current date forward (next ~3 months)
   const getUpcomingEvents = () => {
@@ -211,7 +153,7 @@ export default function IslamicCalendar() {
     return ISLAMIC_EVENTS.filter((e) => e.hijriMonth === month);
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -239,6 +181,9 @@ export default function IslamicCalendar() {
             </p>
             <p className="text-2xl mt-2 text-emerald-100">
               {isAr ? `${hijriYear} هـ` : `${hijriYear} AH`}
+            </p>
+            <p className="text-sm mt-1 text-emerald-200/80">
+              {formatGregorian(new Date(), isAr)}
             </p>
             <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <span className="text-lg">🗓️</span>
