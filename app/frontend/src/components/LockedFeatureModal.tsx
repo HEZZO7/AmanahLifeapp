@@ -32,7 +32,10 @@ export default function LockedFeatureModal({ open, onOpenChange, requiredPlan }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent dir={isRTL ? 'rtl' : 'ltr'}>
         <DialogHeader>
-          <DialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+          {/* pe-6 (padding-end) reserves space for the close button so its
+              hit area never sits flush against the title's leading glyph
+              (the 🔒 emoji), in either direction. */}
+          <DialogTitle className={`pe-6 ${isRTL ? 'text-right' : 'text-left'}`}>
             {isAr ? '🔒 ميزة مدفوعة' : '🔒 Premium Feature'}
           </DialogTitle>
           <DialogDescription className={isRTL ? 'text-right' : 'text-left'}>
