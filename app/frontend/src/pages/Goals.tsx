@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
@@ -13,6 +15,24 @@ interface Goal {
   createdAt: string;
 }
 
+// Same lean scheduling-mirror pattern as BillReminders.tsx's
+// syncBillsToSupabase - goals stay localStorage-first, only target_date/
+// status are mirrored for the server-side reminder sweep to read.
+async function syncGoalsToSupabase(goals: Goal[], userId: string | undefined) {
+  if (!userId) return;
+  try {
+    await supabase.from('app_11941c8fec_goal_reminders_sync').delete().eq('user_id', userId);
+    // target_date is NOT NULL server-side - a goal created without one
+    // (newGoal.targetDate defaults to '') simply has nothing to sweep for.
+    const withDates = goals.filter((g) => g.targetDate);
+    if (withDates.length > 0) {
+      await supabase.from('app_11941c8fec_goal_reminders_sync').insert(
+        withDates.map((g) => ({ user_id: userId, local_id: g.id, title: g.title, target_date: g.targetDate, status: g.status }))
+      );
+    }
+  } catch { /* best-effort mirror - localStorage remains the source of truth for the UI */ }
+}
+
 const CATEGORY_ICONS: Record<string, string> = {
   Personal: '👤',
   Financial: '💰',
@@ -22,6 +42,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default function Goals() {
   const { t, language, isRTL } = useLanguage();
+  const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>(() => {
     const stored = localStorage.getItem('amanah-goals');
     return stored ? JSON.parse(stored) : [];
@@ -33,7 +54,8 @@ export default function Goals() {
 
   useEffect(() => {
     localStorage.setItem('amanah-goals', JSON.stringify(goals));
-  }, [goals]);
+    syncGoalsToSupabase(goals, user?.id);
+  }, [goals, user?.id]);
 
   const addGoal = () => {
     if (!newGoal.title.trim()) return;

@@ -1,7 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 
 const NOTIFICATION_STORAGE_KEY = 'amanah-savings-notifications';
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const PUSH_NOTIFY_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_push_notify';
+
+// Real background push for a milestone, on top of the direct in-tab
+// Notification() call below - this is the ONLY category (of the 4 brought
+// to real parity) that's event-triggered rather than cron-swept, matching
+// Android's own trigger:null "send now" pattern exactly (see
+// savings-challenges.tsx's addSavings()). Gated server-side by
+// push_notify's own savings_reminders preference check - this hook's own
+// isEnabled flag below stays a separate, purely local "instant in-tab
+// celebration" preference, not merged with it, since they're genuinely
+// different capabilities (foreground-only vs background-capable) with no
+// reason to force one shared toggle.
+async function sendRealMilestonePush(userId: string | null, title: string, body: string) {
+  if (!userId) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await fetch(PUSH_NOTIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ action: 'send_notification', user_id: userId, notification_type: 'savings', title, body }),
+    });
+  } catch { /* best-effort - the in-tab celebration above already covers the foreground case */ }
+}
 
 interface NotificationPrefs {
   enabled: boolean;
@@ -32,7 +57,7 @@ function sendNotification(title: string, body: string, icon?: string) {
   } catch { /* ignore - some browsers block */ }
 }
 
-export function useSavingsNotifications(language: string) {
+export function useSavingsNotifications(language: string, userId: string | null = null) {
   const isAr = language === 'ar';
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(getPermissionStatus());
   const [isEnabled, setIsEnabled] = useState<boolean>(getStoredPrefs().enabled);
@@ -96,9 +121,6 @@ export function useSavingsNotifications(language: string) {
   }, []);
 
   const celebrateMilestone = useCallback((challengeName: string, percentage: number) => {
-    if (getPermissionStatus() !== 'granted') return;
-    if (!getStoredPrefs().enabled) return;
-
     const milestoneEmojis: Record<number, string> = { 25: '🌱', 50: '🔥', 75: '⭐', 100: '🏆' };
     const emoji = milestoneEmojis[percentage] || '🎉';
 
@@ -109,8 +131,14 @@ export function useSavingsNotifications(language: string) {
       ? `وصلت إلى ${percentage}% في تحدي "${challengeName}"! استمر في التقدم!`
       : `You reached ${percentage}% in "${challengeName}"! Keep going!`;
 
-    sendNotification(title, body);
-  }, [isAr]);
+    // In-tab celebration - this hook's own local preference.
+    if (getPermissionStatus() === 'granted' && getStoredPrefs().enabled) {
+      sendNotification(title, body);
+    }
+    // Real background-capable push - gated server-side by the account's
+    // savings_reminders preference, independent of the local flag above.
+    sendRealMilestonePush(userId, title, body);
+  }, [isAr, userId]);
 
   return {
     permissionStatus,

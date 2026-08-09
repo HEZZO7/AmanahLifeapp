@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import PremiumGate from '@/components/PremiumGate';
@@ -95,6 +96,7 @@ const CHALLENGES: Challenge[] = [
 
 export default function SmartSavingsChallenges() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const isAr = language === 'ar';
   const [joinedChallenges, setJoinedChallenges] = useState<JoinedChallenge[]>([]);
   const [celebratingMilestone, setCelebratingMilestone] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export default function SmartSavingsChallenges() {
     enableNotifications,
     disableNotifications,
     celebrateMilestone: notifyCelebrateMilestone,
-  } = useSavingsNotifications(language);
+  } = useSavingsNotifications(language, user?.id ?? null);
 
   const tipChallenges = useMemo(() => {
     return joinedChallenges.map(j => {

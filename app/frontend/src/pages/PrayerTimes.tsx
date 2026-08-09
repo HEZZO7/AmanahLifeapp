@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import { getUserItem, setUserItem } from '@/lib/userStorage';
+import { supabase } from '@/lib/supabase';
 import {
   calculatePrayerTimes, CALCULATION_METHODS, DEFAULT_CALCULATION_METHOD, CalculationMethodKey,
 } from '@/lib/prayerCalculation';
@@ -37,6 +38,35 @@ const MECCA_COORDS = { latitude: 21.4225, longitude: 39.8262 };
 const CALC_METHOD_KEY = 'prayer_calc_method';
 const LOCATION_MODE_KEY = 'prayer_location_mode';
 const MANUAL_CITY_KEY = 'prayer_manual_city';
+
+// Server-side scheduling (Fasting/Suhoor-Iftar reminders, push_scheduler
+// edge function) can't see GPS or the "auto" mode - only a synced manual
+// city is reachable server-side (falls back to Mecca otherwise, matching
+// this screen's own on-screen fallback). Upsert-only-these-columns is safe:
+// Postgres upsert with onConflict only updates the columns actually
+// listed, leaving prayer/bill/goal/etc. preference toggles on the same row
+// untouched. Also carries timezone/language (needed for the 9am/10am local
+// bill/goal rules and for which language to send notification text in) -
+// there's no better single place these are already computed client-side.
+async function syncLocationToSupabase(
+  userId: string | null,
+  method: CalculationMethodKey,
+  mode: 'auto' | 'manual',
+  city: CityOption | null,
+  language: string
+) {
+  if (!userId) return;
+  try {
+    await supabase.from('app_11941c8fec_notification_preferences').upsert({
+      user_id: userId,
+      prayer_calc_method: method,
+      prayer_location_mode: mode,
+      prayer_manual_city: mode === 'manual' && city ? city : null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language,
+    }, { onConflict: 'user_id' });
+  } catch { /* best-effort - only affects server-side reminder accuracy, not this screen's own display */ }
+}
 
 export default function PrayerTimes() {
   const { user, loading: authLoading } = useAuth();
@@ -136,6 +166,9 @@ export default function PrayerTimes() {
     setLocationMode(savedMode);
     setManualCity(savedCity);
     loadByLocation(savedMethod, savedMode, savedCity);
+    // Keeps timezone/language current even for a user who never touches
+    // location settings again after their first visit.
+    syncLocationToSupabase(userId, savedMethod, savedMode, savedCity, language);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -146,6 +179,7 @@ export default function PrayerTimes() {
     if (city) setUserItem(MANUAL_CITY_KEY, userId, JSON.stringify(city));
     setLoading(true);
     loadByLocation(calcMethod, mode, city);
+    syncLocationToSupabase(userId, calcMethod, mode, city, language);
   };
 
   const applyCalcMethod = (method: CalculationMethodKey) => {
@@ -153,6 +187,7 @@ export default function PrayerTimes() {
     setUserItem(CALC_METHOD_KEY, userId, method);
     setLoading(true);
     loadByLocation(method, locationMode, manualCity);
+    syncLocationToSupabase(userId, method, locationMode, manualCity, language);
   };
 
   // Update countdown every minute

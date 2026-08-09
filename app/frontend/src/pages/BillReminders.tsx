@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import BottomNav from '@/components/BottomNav';
@@ -20,8 +22,30 @@ interface Bill {
 
 const STORAGE_KEY = 'amanah-bills';
 
+// Bills stay localStorage-first (this app's deliberate local-first design
+// for most user data - see BackupRestore.tsx). This mirrors only the fields
+// a server-side reminder sweep needs (due date, paid status) into a lean
+// Supabase table, write-through on every save, full delete+reinsert per
+// user rather than surgical diffing - simplest thing that's always correct
+// for a small personal list, and matches the same "full-sweep rebuild"
+// philosophy Android's own scheduler already uses. Best-effort: local
+// storage remains the real source of truth for the UI regardless of
+// whether this sync call succeeds.
+async function syncBillsToSupabase(bills: Bill[], userId: string | undefined) {
+  if (!userId) return;
+  try {
+    await supabase.from('app_11941c8fec_bill_reminders_sync').delete().eq('user_id', userId);
+    if (bills.length > 0) {
+      await supabase.from('app_11941c8fec_bill_reminders_sync').insert(
+        bills.map((b) => ({ user_id: userId, local_id: b.id, name: b.name, due_date: b.dueDate, is_paid: b.isPaid }))
+      );
+    }
+  } catch { /* best-effort mirror, see comment above */ }
+}
+
 export default function BillReminders() {
   const { language, isRTL } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -40,6 +64,7 @@ export default function BillReminders() {
   const saveBills = (updated: Bill[]) => {
     setBills(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    syncBillsToSupabase(updated, user?.id);
   };
 
   const handleAdd = () => {

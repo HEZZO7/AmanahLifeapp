@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import webpush from 'npm:web-push@3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -250,6 +251,38 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // This function has verify_jwt disabled (called directly from the
+      // browser for other actions) and this action previously had NO
+      // authorization check at all - any caller could POST an arbitrary
+      // user_id and send that user a fake notification. Now that this is
+      // called from two real places - the client itself (Savings milestone
+      // celebrations, on behalf of the signed-in user only) and the
+      // server-side push_scheduler function (on behalf of any user, since
+      // it's the trusted cron sweep) - both need a real check: either the
+      // caller is the trusted scheduler (a shared internal secret only it
+      // knows), or the caller is a signed-in user sending to themselves.
+      const internalSecret = req.headers.get('X-Internal-Push-Secret');
+      const expectedInternalSecret = Deno.env.get('INTERNAL_PUSH_SECRET');
+      const isInternalCaller = !!internalSecret && !!expectedInternalSecret && internalSecret === expectedInternalSecret;
+
+      if (!isInternalCaller) {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user || user.id !== user_id) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
       // Check user preferences for this notification type
       const prefColumn = `${notification_type}_reminders` === 'general_activity_reminders' 
         ? 'general_activity' 
@@ -282,18 +315,29 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Send push to all user's subscriptions using Web Push protocol
+      // Send push to all of the user's subscriptions via real Web Push
+      // (VAPID JWT auth + AES128GCM payload encryption, RFC 8291/8292).
+      // The previous implementation here POSTed the raw JSON payload
+      // straight to the push service's endpoint with no encryption and no
+      // VAPID Authorization header - real push services (FCM, Mozilla
+      // autopush) reject that outright, so this action never actually
+      // delivered anything. web-push is the maintained, spec-correct
+      // implementation of that crypto - not hand-rolled here, since a
+      // subtle bug in AES128GCM/ECDH framing fails silently rather than
+      // loudly, which is exactly the kind of thing worth not reinventing.
       const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
       const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+      const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:support@amanahlife.com';
 
       if (!vapidPublicKey || !vapidPrivateKey) {
-        // Fallback: store notification for client-side polling
-        console.warn(JSON.stringify({ requestId, warning: 'VAPID keys not configured, notification stored for polling' }));
+        console.warn(JSON.stringify({ requestId, warning: 'VAPID keys not configured' }));
         return new Response(JSON.stringify({ success: true, sent: 0, reason: 'VAPID keys not configured' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
       const payload = JSON.stringify({
         title,
@@ -306,27 +350,22 @@ Deno.serve(async (req: Request) => {
       let sent = 0;
       for (const sub of subscriptions) {
         try {
-          // Use web-push compatible fetch
-          const response = await fetch(sub.endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              'TTL': '86400',
-            },
-            body: payload,
-          });
-
-          if (response.status === 201 || response.status === 200) {
-            sent++;
-          } else if (response.status === 410) {
-            // Subscription expired, remove it
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
+            payload,
+            { TTL: 86400 }
+          );
+          sent++;
+        } catch (err: any) {
+          if (err?.statusCode === 404 || err?.statusCode === 410) {
+            // Subscription expired or the browser unregistered it - remove it.
             await supabase
               .from('app_11941c8fec_push_subscriptions')
               .delete()
               .eq('id', sub.id);
+          } else {
+            console.error(JSON.stringify({ requestId, action: 'send_error', endpoint: sub.endpoint, statusCode: err?.statusCode, message: err?.message }));
           }
-        } catch (err) {
-          console.error(JSON.stringify({ requestId, error: err, endpoint: sub.endpoint }));
         }
       }
 

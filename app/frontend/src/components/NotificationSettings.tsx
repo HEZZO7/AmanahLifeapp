@@ -18,10 +18,10 @@ interface NotificationType {
 // below this one on the Settings page. A second, non-functional "prayer"
 // toggle here would just be confusing next to it.
 //
-// The 5 categories below are honestly disabled ("Coming soon") rather than
-// left live - none of them currently schedule or send anything real. See
-// PROJECT.md's Known Issues for what real infrastructure this needs
-// (server-side scheduler + protocol-correct Web Push) before they can work.
+// These 4 categories are now real: VAPID Web Push + a cron-driven server
+// sweep (Bill/Habit&Goal/Fasting) or event-triggered send (Savings) bring
+// them to parity with Android's real expo-notifications scheduling. See
+// PROJECT.md for the push-infra build.
 const NOTIFICATION_TYPES: NotificationType[] = [
   {
     key: 'bill_reminders',
@@ -55,15 +55,21 @@ const NOTIFICATION_TYPES: NotificationType[] = [
     descEn: 'Reminders for your savings challenges',
     descAr: 'تذكير بتحديات الادخار الخاصة بك',
   },
-  {
-    key: 'general_activity',
-    icon: '📱',
-    labelEn: 'General Activity',
-    labelAr: 'النشاط العام',
-    descEn: 'App updates and general notifications',
-    descAr: 'تحديثات التطبيق والإشعارات العامة',
-  },
 ];
+
+// General Activity has no real scheduled content on EITHER platform today -
+// stays honestly disabled ("Coming soon") rather than wired to a toggle
+// that would gate nothing. Flagged in PROJECT.md as a separate future item
+// needing a product decision on real content first, not bundled into the
+// push-infra build the 4 categories above are part of.
+const DISABLED_NOTIFICATION_TYPE: NotificationType = {
+  key: 'general_activity',
+  icon: '📱',
+  labelEn: 'General Activity',
+  labelAr: 'النشاط العام',
+  descEn: 'App updates and general notifications',
+  descAr: 'تحديثات التطبيق والإشعارات العامة',
+};
 
 export default function NotificationSettings() {
   const { language } = useLanguage();
@@ -73,7 +79,9 @@ export default function NotificationSettings() {
     preferences,
     loading,
     requestPermission,
+    updatePreferences,
     sendLocalNotification,
+    subscribeToPush,
   } = useNotifications();
 
   const isAr = language === 'ar';
@@ -82,6 +90,7 @@ export default function NotificationSettings() {
     const granted = await requestPermission();
     if (granted) {
       toast.success(isAr ? 'تم تفعيل الإشعارات بنجاح!' : 'Notifications enabled successfully!');
+      subscribeToPush();
       setTimeout(() => {
         sendLocalNotification(
           isAr ? 'مرحباً!' : 'Welcome!',
@@ -179,53 +188,70 @@ export default function NotificationSettings() {
         </div>
       )}
 
-      {/* Notification Type Preferences - disabled, honest "Coming soon".
-          Values still save/load normally so nothing is lost once real
-          scheduling infrastructure lands. */}
+      {/* Notification Type Preferences - the 4 real categories are live,
+          interactive toggles now (real Web Push + server scheduling).
+          General Activity stays disabled below since it has no real
+          content to gate on either platform yet. */}
       <div className="space-y-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
           {isAr ? 'أنواع الإشعارات' : 'Notification Types'}
         </p>
-        {NOTIFICATION_TYPES.map((type) => (
-          <div key={type.key} className="flex items-center justify-between opacity-50">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-sm flex-shrink-0">{type.icon}</span>
-              <div className="min-w-0">
-                <p className="text-foreground text-sm truncate">
-                  {isAr ? type.labelAr : type.labelEn}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {isAr ? 'قريباً - متوفر على أندرويد' : 'Coming soon - available on Android'}
-                </p>
+        {NOTIFICATION_TYPES.map((type) => {
+          const enabled = preferences[type.key] !== false;
+          return (
+            <div key={type.key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="text-sm flex-shrink-0">{type.icon}</span>
+                <div className="min-w-0">
+                  <p className="text-foreground text-sm truncate">
+                    {isAr ? type.labelAr : type.labelEn}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {isAr ? type.descAr : type.descEn}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => updatePreferences({ [type.key]: !enabled })}
+                className={`w-10 h-5 rounded-full relative flex-shrink-0 ml-2 transition-all ${
+                  enabled ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-[3px] transition-all ${
+                  enabled ? 'left-[19px]' : 'left-[3px]'
+                }`} />
+              </button>
             </div>
-            {/* Disabled, not removed - the stored preference value is kept
-                (nothing is lost once real scheduling infrastructure lands),
-                but it's deliberately NOT reflected in this toggle's visual
-                state. Coloring/positioning it as "on" using the same teal
-                the rest of the app uses for genuinely active controls reads
-                as a working feature that's simply switched on - misleading
-                for something that's disabled and does nothing. Always
-                rendered as a plain, muted, off-looking switch instead, so
-                the visual honestly matches "coming soon", not the stored
-                value. */}
-            <button
-              disabled
-              aria-disabled="true"
-              className="w-10 h-5 rounded-full relative flex-shrink-0 ml-2 cursor-not-allowed bg-muted"
-            >
-              <div className="w-3.5 h-3.5 rounded-full bg-muted-foreground/40 absolute top-[3px] left-[3px]" />
-            </button>
+          );
+        })}
+
+        <div className="flex items-center justify-between opacity-50 pt-1 border-t border-border/50">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-sm flex-shrink-0">{DISABLED_NOTIFICATION_TYPE.icon}</span>
+            <div className="min-w-0">
+              <p className="text-foreground text-sm truncate">
+                {isAr ? DISABLED_NOTIFICATION_TYPE.labelAr : DISABLED_NOTIFICATION_TYPE.labelEn}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {isAr ? 'قريباً' : 'Coming soon'}
+              </p>
+            </div>
           </div>
-        ))}
+          <button
+            disabled
+            aria-disabled="true"
+            className="w-10 h-5 rounded-full relative flex-shrink-0 ml-2 cursor-not-allowed bg-muted"
+          >
+            <div className="w-3.5 h-3.5 rounded-full bg-muted-foreground/40 absolute top-[3px] left-[3px]" />
+          </button>
+        </div>
       </div>
 
-      {/* Info text */}
-      {permission === 'granted' && (
+      {permission !== 'granted' && (
         <p className="text-xs text-muted-foreground mt-3">
           {isAr
-            ? 'تعمل تذكيرات الصلاة أدناه بالفعل. الأنواع الأخرى قيد التطوير.'
-            : 'Prayer reminders below already work. Other types are still in development.'}
+            ? 'فعّل الإشعارات أعلاه لتلقي هذه التذكيرات فعلياً.'
+            : 'Enable notifications above to actually receive these reminders.'}
         </p>
       )}
     </div>

@@ -5,6 +5,24 @@ import { useAuth } from '@/contexts/AuthContext';
 const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/app_11941c8fec_push_notify`;
 
+// Real VAPID public key - safe to ship in client source (that's the whole
+// point of the public/private VAPID split, same as any other publishable
+// key in this app). Generated 2026-08-09 alongside real Supabase secrets
+// for the matching private key - see PROJECT.md for the push-infra build
+// this replaced the old hardcoded Web Push tutorial demo key with.
+const VAPID_PUBLIC_KEY = 'BMUp_FS7rsxaOSVNK70SzGGFPIx3tKtDNIB4IWfKq2dEZzJ4awMAtgunI8npER14GSMwOFn7hBUjgIWqSF2kJdg';
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export interface NotificationPreferences {
   prayer_reminders: boolean;
   bill_reminders: boolean;
@@ -26,22 +44,18 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
 /**
- * Handles Notification permission + service-worker registration only.
+ * Handles Notification permission, service-worker registration, real Web
+ * Push subscription, and notification-category preferences.
  *
- * Web Push (subscribing to app_11941c8fec_push_notify's `subscribe` action
- * via pushManager.subscribe) was removed here - it only ever used a
+ * subscribeToPush (real pushManager.subscribe, real VAPID key) replaces
+ * what used to be dead code here - the previous implementation used a
  * hardcoded placeholder VAPID public key (a well-known Web Push tutorial
- * demo key, not one paired with any real private key on our server), so
- * every subscription it created could never actually receive a push. See
- * PROJECT.md's Known Issues for the real-infrastructure follow-up
- * (server-side scheduler + protocol-correct VAPID Web Push) this needs
- * before subscribing can mean anything again.
- *
- * permission/isSupported are still real and still needed:
- * PrayerReminderSettings.tsx's setTimeout-based same-day scheduler and
- * sendLocalNotification below both call swRegistration.showNotification,
- * which requires Notification permission + an active service worker, not
- * a push subscription.
+ * demo key, not one paired with any real private key on the server), so
+ * every subscription it created could never actually receive a push, and
+ * it was removed outright rather than ship something that silently didn't
+ * work. Real VAPID keys + a spec-correct (VAPID JWT + AES128GCM) sender in
+ * app_11941c8fec_push_notify now make this real - see PROJECT.md for the
+ * full push-infra build this is part of.
  */
 export function useNotifications() {
   const { user } = useAuth();
@@ -112,7 +126,6 @@ export function useNotifications() {
     loadPreferences();
   }, [user]);
 
-  // Request Notification permission only - no push subscription.
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!isSupported) return false;
 
@@ -125,6 +138,49 @@ export function useNotifications() {
       return false;
     }
   }, [isSupported]);
+
+  // Real pushManager.subscribe(), sent to push_notify's `subscribe` action
+  // (already a real, working DB writer - only the send side was broken
+  // before this build). One subscription per browser/device; which
+  // categories it actually receives is controlled entirely by preferences,
+  // not by re-subscribing per category.
+  const subscribeToPush = useCallback(async (): Promise<boolean> => {
+    if (!swRegistration || !user) return false;
+    try {
+      let subscription = await swRegistration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return false;
+
+      const subJson = subscription.toJSON();
+      const response = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'subscribe', subscription: subJson }),
+      });
+      return response.ok;
+    } catch (err) {
+      console.error('Push subscribe failed:', err);
+      return false;
+    }
+  }, [swRegistration, user]);
+
+  // Subscribe automatically once permission is already granted and the
+  // service worker + signed-in user are both ready - covers a returning
+  // user who granted permission in an earlier session, not just the
+  // one-shot Enable button click below.
+  useEffect(() => {
+    if (permission === 'granted' && swRegistration && user) {
+      subscribeToPush();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission, swRegistration, user]);
 
   // Update notification preferences. Values are still saved even for the
   // categories currently disabled in the UI, so nothing is lost once real
@@ -180,5 +236,6 @@ export function useNotifications() {
     requestPermission,
     updatePreferences,
     sendLocalNotification,
+    subscribeToPush,
   };
 }
