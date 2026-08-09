@@ -87,18 +87,52 @@ Deno.serve(async (req: Request) => {
       console.log(JSON.stringify({ requestId, userId: user.id, action: "manage" }));
 
       const lsApiKey = Deno.env.get("LEMONSQUEEZY_API_KEY");
-      const storeId = Deno.env.get("APP_11941c8fec_LEMONSQUEEZY_STORE_ID");
 
-      if (!lsApiKey || !storeId) {
+      if (!lsApiKey) {
+        console.error(JSON.stringify({ requestId, action: "manage_error", reason: "not_configured" }));
         return new Response(
           JSON.stringify({ error: "Lemon Squeezy not configured" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Find customer by email
-      const customerSearchUrl = `https://api.lemonsqueezy.com/v1/customers?filter[store_id]=${storeId}&filter[email]=${encodeURIComponent(user.email || "")}`;
-      const customerResponse = await fetch(customerSearchUrl, {
+      // Look up the customer by the lemonsqueezy_customer_id our own
+      // webhook already stored for this user, NOT by searching Lemon
+      // Squeezy for a customer whose email matches the signed-in account.
+      // The email search this used to do (filter[email]=user.email)
+      // silently failed for any subscriber whose Lemon Squeezy checkout
+      // email didn't exactly match their app account's email - which
+      // nothing guaranteed, since the checkout payload below never told
+      // Lemon Squeezy what email to use, leaving their hosted checkout
+      // page's email field open for the customer to fill in freely. An ID
+      // lookup keyed off data we already own and trust removes that
+      // dependency entirely - it's also how the old Stripe portal button
+      // worked (stripe_customer_id, not an email search) before this
+      // "manage" action replaced it.
+      const { data: subRow, error: subError } = await supabase
+        .from("app_11941c8fec_subscriptions")
+        .select("lemonsqueezy_customer_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (subError) {
+        console.error(JSON.stringify({ requestId, action: "manage_error", reason: "subscription_lookup_failed", details: subError.message }));
+        return new Response(
+          JSON.stringify({ error: "no_subscription", message: "Unable to find subscription" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const customerId = subRow?.lemonsqueezy_customer_id;
+      if (!customerId) {
+        console.log(JSON.stringify({ requestId, action: "manage_no_customer_id", userId: user.id }));
+        return new Response(
+          JSON.stringify({ error: "no_subscription", message: "No active subscription found" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const customerResponse = await fetch(`https://api.lemonsqueezy.com/v1/customers/${customerId}`, {
         method: "GET",
         headers: {
           "Accept": "application/vnd.api+json",
@@ -107,7 +141,7 @@ Deno.serve(async (req: Request) => {
       });
 
       if (!customerResponse.ok) {
-        console.error(JSON.stringify({ requestId, action: "customer_search_error", status: customerResponse.status }));
+        console.error(JSON.stringify({ requestId, action: "manage_error", reason: "customer_fetch_failed", status: customerResponse.status, customerId }));
         return new Response(
           JSON.stringify({ error: "no_subscription", message: "Unable to find subscription" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -115,27 +149,17 @@ Deno.serve(async (req: Request) => {
       }
 
       const customerData = await customerResponse.json();
-      const customers = customerData.data;
-
-      if (!customers || customers.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "no_subscription", message: "No active subscription found" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Get customer portal URL from the first matching customer
-      const customer = customers[0];
-      const portalUrl = customer.attributes?.urls?.customer_portal;
+      const portalUrl = customerData.data?.attributes?.urls?.customer_portal;
 
       if (!portalUrl) {
+        console.error(JSON.stringify({ requestId, action: "manage_error", reason: "no_portal_url_on_customer", customerId }));
         return new Response(
           JSON.stringify({ error: "no_subscription", message: "Customer portal not available" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log(JSON.stringify({ requestId, action: "manage_portal", customerId: customer.id }));
+      console.log(JSON.stringify({ requestId, action: "manage_portal", customerId }));
 
       return new Response(
         JSON.stringify({ url: portalUrl }),
@@ -219,6 +243,15 @@ Deno.serve(async (req: Request) => {
         type: "checkouts",
         attributes: {
           checkout_data: {
+            // Prefills (and Lemon Squeezy's hosted checkout lets the buyer
+            // edit) the checkout's email - without this, nothing ties the
+            // Lemon Squeezy customer's email to the signed-in app account,
+            // which is exactly what broke the email-based "manage" lookup
+            // this used to have. The "manage" action no longer depends on
+            // this (it now looks up by the stored customer_id), but setting
+            // it keeps Lemon Squeezy's own records/receipts consistent with
+            // the app account by default.
+            email: user.email || undefined,
             custom: {
               user_id: user.id,
               app_id: "11941c8fec",
