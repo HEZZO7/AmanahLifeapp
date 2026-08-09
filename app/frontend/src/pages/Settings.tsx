@@ -303,12 +303,17 @@ export default function Settings() {
         {/* Smart Prayer Reminders */}
         <PrayerReminderSettings />
 
-        {/* Regional */}
+        {/* Currency & Display - was labelled "Country", which reads as if it
+            also controls prayer-time location. It never has: this only sets
+            currency/number formatting. Prayer location is a separate,
+            independent setting on the Prayer Times page (manual city or
+            GPS). Relabelled + a one-line note added here instead of leaving
+            that ambiguous, mirroring the same fix on the RN app. */}
         <div className="bg-card rounded-2xl p-4 border border-border">
-          <h3 className="text-sm text-muted-foreground mb-3">{isAr ? 'الإقليمية' : 'Regional'}</h3>
+          <h3 className="text-sm text-muted-foreground mb-3">{isAr ? 'العملة والعرض' : 'Currency & Display'}</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">{isAr ? 'الدولة' : 'Country'}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{isAr ? 'منطقة العملة' : 'Currency Region'}</label>
               <select
                 value={settings.country}
                 onChange={(e) => handleCountryChange(e.target.value)}
@@ -327,6 +332,11 @@ export default function Settings() {
                 {settings.currency} {getSelectedCountry()?.symbol || ''}
               </span>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-1">
+              {isAr
+                ? 'يحدد هذا العملة وتنسيق الأرقام فقط، ولا يغيّر مواقيت الصلاة. لضبط موقع الصلاة، استخدم صفحة "مواقيت الصلاة".'
+                : 'This sets currency & number formatting only - it does not change prayer times. Set your prayer location from the Prayer Times page.'}
+            </p>
           </div>
         </div>
 
