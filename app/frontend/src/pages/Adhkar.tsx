@@ -192,8 +192,17 @@ export default function Adhkar() {
               }`}
             >
               <p className="text-foreground font-arabic text-lg leading-relaxed mb-2 text-right">{item.arabic}</p>
-              <p className="text-muted-foreground text-xs italic mb-1">{item.transliteration}</p>
-              <p className="text-muted-foreground text-xs mb-3">{item.translation}</p>
+              {/* Transliteration/translation are Latin-script content and
+                  must stay left-aligned regardless of UI language - only
+                  the Arabic line above should flip with RTL. Without this,
+                  both inherit the page's dir="rtl" in Arabic mode (set
+                  globally by LanguageContext) and right-align, pulling
+                  Latin text the wrong way. text-left is an explicit
+                  physical value (not a logical start/end), so it doesn't
+                  flip with dir; dir="ltr" additionally fixes the bidi
+                  algorithm's handling of embedded numbers/punctuation. */}
+              <p className="text-muted-foreground text-xs italic mb-1 text-left" dir="ltr">{item.transliteration}</p>
+              <p className="text-muted-foreground text-xs mb-3 text-left" dir="ltr">{item.translation}</p>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-24 h-1.5 bg-secondary rounded-full overflow-hidden">
