@@ -1,3 +1,13 @@
+// SHARED CONTENT — mirrored by hand across two repos, not a single source
+// (see amanahlife-rn's PROJECT.md 0h-24 for why this note exists: this
+// file silently drifted to a shorter, unaudited 24-item version for months
+// before that was caught). RN's copy: app/(tabs)/adhkar.tsx in
+// HEZZO7/amanahlife-rn.
+// Last synced: this file's content (commit 640cef2, 2026-08-13) ported RN
+// commit 50709b6 (Priority 5 IslamWeb cross-reference) verbatim.
+// If you edit ADHKAR_DATA below, mirror the same change to RN's file in
+// the same session/PR, and update the "last synced" commit hashes in both
+// files' header comments.
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import BottomNav from '@/components/BottomNav';
