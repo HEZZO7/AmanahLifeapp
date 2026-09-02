@@ -1,6 +1,7 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
+import fs from 'node:fs';
 import { viteSourceLocator } from '@metagptx/vite-plugin-source-locator';
 import { atoms } from '@metagptx/web-sdk/plugins';
 import { vitePrerenderPlugin } from 'vite-prerender-plugin';
@@ -15,6 +16,61 @@ function escapeHtmlAttr(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function collectHtmlFiles(dir: string, out: string[] = []): string[] {
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) collectHtmlFiles(full, out);
+    else if (entry.isFile() && entry.name.endsWith('.html')) out.push(full);
+  }
+  return out;
+}
+
+// vite-prerender-plugin injects each blog page's own SEO <meta> tags by
+// appending them to the base index.html's <head> (its own source only
+// special-cases <title> for find-and-replace; every other head element is
+// pure insertAdjacentHTML append, no deduplication). The base template's
+// generic description/og/twitter tags therefore end up duplicated alongside
+// the article-specific ones on every prerendered blog page - most crawlers
+// take the first tag of a given name, so they'd see the generic app-wide
+// copy instead of the per-article one. Strip the generic copies (everything
+// before the `prerender-static-page` marker that always precedes the
+// injected block - see prerender/blog.js) once the build has written the
+// files, so each of these names appears exactly once, the article-specific
+// one.
+const BLOG_DUPLICATE_BASE_META = [
+  /<meta\s+name="description"[^>]*>\s*/i,
+  /<meta\s+property="og:title"[^>]*>\s*/i,
+  /<meta\s+property="og:description"[^>]*>\s*/i,
+  /<meta\s+name="twitter:card"[^>]*>\s*/i,
+  /<meta\s+name="twitter:title"[^>]*>\s*/i,
+  /<meta\s+name="twitter:description"[^>]*>\s*/i,
+];
+
+function stripDuplicateBlogMetaPlugin(): Plugin {
+  return {
+    name: 'strip-duplicate-blog-meta',
+    closeBundle() {
+      const blogDir = path.resolve(__dirname, 'dist/blog');
+      const marker = '<meta name="prerender-static-page"';
+      for (const file of collectHtmlFiles(blogDir)) {
+        const html = fs.readFileSync(file, 'utf-8');
+        const markerIdx = html.indexOf(marker);
+        if (markerIdx === -1) continue;
+        const before = html.slice(0, markerIdx);
+        const after = html.slice(markerIdx);
+        const cleanedBefore = BLOG_DUPLICATE_BASE_META.reduce(
+          (acc, pattern) => acc.replace(pattern, ''),
+          before,
+        );
+        if (cleanedBefore !== before) {
+          fs.writeFileSync(file, cleanedBefore + after, 'utf-8');
+        }
+      }
+    },
+  };
 }
 
 process.env.VITE_APP_TITLE ??= process.env.OVERVIEW_TITLE ?? 'AmanahLife';
@@ -53,11 +109,14 @@ export default defineConfig(({ command }) => {
         ],
       }),
       ...(blogPrerenderRoutes.length > 0
-        ? vitePrerenderPlugin({
-            renderTarget: '#root',
-            prerenderScript: path.resolve(__dirname, 'prerender/blog.js'),
-            additionalPrerenderRoutes: blogPrerenderRoutes,
-          })
+        ? [
+            ...vitePrerenderPlugin({
+              renderTarget: '#root',
+              prerenderScript: path.resolve(__dirname, 'prerender/blog.js'),
+              additionalPrerenderRoutes: blogPrerenderRoutes,
+            }),
+            stripDuplicateBlogMetaPlugin(),
+          ]
         : []),
     ],
     resolve: {

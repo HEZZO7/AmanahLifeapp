@@ -25,6 +25,15 @@ function getHeadElements(url) {
         content: 'blog',
       },
     },
+    seoMeta.url
+      ? {
+          type: 'link',
+          props: {
+            rel: 'canonical',
+            href: seoMeta.url,
+          },
+        }
+      : null,
     {
       type: 'meta',
       props: {
@@ -50,6 +59,20 @@ function getHeadElements(url) {
           },
         }
       : null,
+    {
+      type: 'meta',
+      props: {
+        property: 'og:title',
+        content: seoMeta.ogTitle,
+      },
+    },
+    {
+      type: 'meta',
+      props: {
+        property: 'og:description',
+        content: seoMeta.ogDescription,
+      },
+    },
     {
       type: 'meta',
       props: {
