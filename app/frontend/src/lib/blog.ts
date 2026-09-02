@@ -174,6 +174,21 @@ function getBlogPost(slug: string) {
   return blogPosts.find((post) => post.slug === slug);
 }
 
+// /blog/ has no single post of its own, so it has no per-article hero
+// image to use for its og:image - fall back to the most recent English
+// post's hero image (matches what the index page itself actually lists)
+// rather than the site-wide app logo used everywhere else on the site.
+function getBlogIndexImage(): { image?: string; alt: string } {
+  const featured = blogPosts.find((post) => {
+    const lang = typeof post.frontmatter.lang === 'string' ? post.frontmatter.lang : 'en';
+    return lang === 'en';
+  });
+  const image =
+    frontmatterString(featured?.frontmatter ?? {}, 'og_image') ??
+    frontmatterString(featured?.frontmatter ?? {}, 'hero_image');
+  return { image, alt: featured?.title ?? getSiteName() };
+}
+
 function getBlogRoute(slug: string) {
   return `/blog/${slug}/`.replace(/\/+/g, '/');
 }
@@ -237,6 +252,7 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
 
   if (!post) {
     const fallbackUrl = getAbsoluteUrl('/blog/');
+    const indexImage = getBlogIndexImage();
     return {
       title: fallbackTitle,
       description: fallbackDescription,
@@ -244,7 +260,8 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
       siteName,
       ogTitle: fallbackTitle,
       ogDescription: fallbackDescription,
-      ogImageAlt: siteName,
+      ogImage: indexImage.image,
+      ogImageAlt: indexImage.alt,
       ogType: 'website',
     };
   }

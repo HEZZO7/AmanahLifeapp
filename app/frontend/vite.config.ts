@@ -32,14 +32,14 @@ function collectHtmlFiles(dir: string, out: string[] = []): string[] {
 // appending them to the base index.html's <head> (its own source only
 // special-cases <title> for find-and-replace; every other head element is
 // pure insertAdjacentHTML append, no deduplication). The base template's
-// generic description/og:title/og:description end up duplicated alongside
-// the article-specific ones on every prerendered blog page - most crawlers
-// take the first tag of a given name, so they'd see the generic app-wide
-// copy instead of the per-article one. Strip the generic copies (everything
-// before the `prerender-static-page` marker that always precedes the
-// injected block - see prerender/blog.js) once the build has written the
-// files, so each of these names appears exactly once, the article-specific
-// one.
+// generic description/og:title/og:description/og:url/og:image end up
+// duplicated alongside the article-specific ones on every prerendered blog
+// page - most crawlers take the first tag of a given name, so they'd see
+// the generic app-wide copy (site root URL, generic app logo) instead of
+// the per-article one. Strip the generic copies (everything before the
+// `prerender-static-page` marker that always precedes the injected block -
+// see prerender/blog.js) once the build has written the files, so each of
+// these names appears exactly once, the article-specific one.
 //
 // twitter:* is different: the project has no Twitter/X account, so blog
 // pages should carry zero twitter:* tags, not a deduplicated one. Nothing
@@ -52,6 +52,8 @@ const BLOG_DUPLICATE_BASE_META = [
   /<meta\s+name="description"[^>]*>\s*/i,
   /<meta\s+property="og:title"[^>]*>\s*/i,
   /<meta\s+property="og:description"[^>]*>\s*/i,
+  /<meta\s+property="og:url"[^>]*>\s*/i,
+  /<meta\s+property="og:image"[^>]*>\s*/i,
 ];
 const BLOG_REMOVED_TWITTER_META = /<meta\s+name="twitter:[^"]*"[^>]*>\s*/gi;
 
