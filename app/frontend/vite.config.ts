@@ -32,7 +32,7 @@ function collectHtmlFiles(dir: string, out: string[] = []): string[] {
 // appending them to the base index.html's <head> (its own source only
 // special-cases <title> for find-and-replace; every other head element is
 // pure insertAdjacentHTML append, no deduplication). The base template's
-// generic description/og/twitter tags therefore end up duplicated alongside
+// generic description/og:title/og:description end up duplicated alongside
 // the article-specific ones on every prerendered blog page - most crawlers
 // take the first tag of a given name, so they'd see the generic app-wide
 // copy instead of the per-article one. Strip the generic copies (everything
@@ -40,14 +40,20 @@ function collectHtmlFiles(dir: string, out: string[] = []): string[] {
 // injected block - see prerender/blog.js) once the build has written the
 // files, so each of these names appears exactly once, the article-specific
 // one.
+//
+// twitter:* is different: the project has no Twitter/X account, so blog
+// pages should carry zero twitter:* tags, not a deduplicated one. Nothing
+// in prerender/blog.js or BlogPostPage.tsx injects twitter:* any more - the
+// only source left is the base template's static twitter:card/title/
+// description/image (index.html), which still needs to be stripped from
+// blog pages specifically (the main app's non-blog pages are untouched -
+// out of scope here).
 const BLOG_DUPLICATE_BASE_META = [
   /<meta\s+name="description"[^>]*>\s*/i,
   /<meta\s+property="og:title"[^>]*>\s*/i,
   /<meta\s+property="og:description"[^>]*>\s*/i,
-  /<meta\s+name="twitter:card"[^>]*>\s*/i,
-  /<meta\s+name="twitter:title"[^>]*>\s*/i,
-  /<meta\s+name="twitter:description"[^>]*>\s*/i,
 ];
+const BLOG_REMOVED_TWITTER_META = /<meta\s+name="twitter:[^"]*"[^>]*>\s*/gi;
 
 function stripDuplicateBlogMetaPlugin(): Plugin {
   return {
@@ -58,15 +64,19 @@ function stripDuplicateBlogMetaPlugin(): Plugin {
       for (const file of collectHtmlFiles(blogDir)) {
         const html = fs.readFileSync(file, 'utf-8');
         const markerIdx = html.indexOf(marker);
-        if (markerIdx === -1) continue;
-        const before = html.slice(0, markerIdx);
-        const after = html.slice(markerIdx);
-        const cleanedBefore = BLOG_DUPLICATE_BASE_META.reduce(
-          (acc, pattern) => acc.replace(pattern, ''),
-          before,
-        );
-        if (cleanedBefore !== before) {
-          fs.writeFileSync(file, cleanedBefore + after, 'utf-8');
+        let next = html;
+        if (markerIdx !== -1) {
+          const before = html.slice(0, markerIdx);
+          const after = html.slice(markerIdx);
+          const cleanedBefore = BLOG_DUPLICATE_BASE_META.reduce(
+            (acc, pattern) => acc.replace(pattern, ''),
+            before,
+          );
+          next = cleanedBefore + after;
+        }
+        next = next.replace(BLOG_REMOVED_TWITTER_META, '');
+        if (next !== html) {
+          fs.writeFileSync(file, next, 'utf-8');
         }
       }
     },

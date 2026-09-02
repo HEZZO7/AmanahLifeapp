@@ -98,63 +98,6 @@ function getHeadElements(url) {
           },
         }
       : null,
-    {
-      type: 'meta',
-      props: {
-        name: 'twitter:card',
-        content: seoMeta.twitterCard,
-      },
-    },
-    seoMeta.twitterSite
-      ? {
-          type: 'meta',
-          props: {
-            name: 'twitter:site',
-            content: seoMeta.twitterSite,
-          },
-        }
-      : null,
-    seoMeta.twitterCreator
-      ? {
-          type: 'meta',
-          props: {
-            name: 'twitter:creator',
-            content: seoMeta.twitterCreator,
-          },
-        }
-      : null,
-    {
-      type: 'meta',
-      props: {
-        name: 'twitter:title',
-        content: seoMeta.twitterTitle,
-      },
-    },
-    {
-      type: 'meta',
-      props: {
-        name: 'twitter:description',
-        content: seoMeta.twitterDescription,
-      },
-    },
-    seoMeta.twitterImage
-      ? {
-          type: 'meta',
-          props: {
-            name: 'twitter:image',
-            content: seoMeta.twitterImage,
-          },
-        }
-      : null,
-    seoMeta.twitterImageAlt
-      ? {
-          type: 'meta',
-          props: {
-            name: 'twitter:image:alt',
-            content: seoMeta.twitterImageAlt,
-          },
-        }
-      : null,
     seoMeta.publishedTime
       ? {
           type: 'meta',

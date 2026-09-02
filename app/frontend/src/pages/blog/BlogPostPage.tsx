@@ -81,33 +81,6 @@ const BlogPostPage = () => {
         key: 'article:published_time',
         value: seoMeta.publishedTime,
       },
-      { attribute: 'name' as const, key: 'twitter:card', value: seoMeta.twitterCard },
-      { attribute: 'name' as const, key: 'twitter:site', value: seoMeta.twitterSite },
-      {
-        attribute: 'name' as const,
-        key: 'twitter:creator',
-        value: seoMeta.twitterCreator,
-      },
-      {
-        attribute: 'name' as const,
-        key: 'twitter:title',
-        value: seoMeta.twitterTitle,
-      },
-      {
-        attribute: 'name' as const,
-        key: 'twitter:description',
-        value: seoMeta.twitterDescription,
-      },
-      {
-        attribute: 'name' as const,
-        key: 'twitter:image',
-        value: seoMeta.twitterImage,
-      },
-      {
-        attribute: 'name' as const,
-        key: 'twitter:image:alt',
-        value: seoMeta.twitterImageAlt,
-      },
     ];
 
     const previousValues = metaDefinitions.map(({ attribute, key, value }) => {

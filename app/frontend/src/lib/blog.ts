@@ -29,13 +29,6 @@ type SeoMeta = {
   ogImage?: string;
   ogImageAlt?: string;
   ogType: string;
-  twitterCard: string;
-  twitterSite?: string;
-  twitterCreator?: string;
-  twitterTitle: string;
-  twitterDescription: string;
-  twitterImage?: string;
-  twitterImageAlt?: string;
   publishedTime?: string;
   tags?: string[];
 };
@@ -194,14 +187,6 @@ function getSiteName() {
   return import.meta.env.VITE_APP_TITLE?.trim() || 'AmanahLife';
 }
 
-function getTwitterSiteHandle() {
-  return import.meta.env.VITE_TWITTER_SITE?.trim() || '@amanahlife';
-}
-
-function getTwitterCreatorHandle() {
-  return import.meta.env.VITE_TWITTER_CREATOR?.trim() || getTwitterSiteHandle();
-}
-
 function getAbsoluteUrl(pathname: string) {
   const siteDomainUrl = getSiteDomainUrl();
   if (!siteDomainUrl) {
@@ -246,8 +231,6 @@ function frontmatterStringList(
 
 function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
   const siteName = getSiteName();
-  const twitterSiteHandle = getTwitterSiteHandle();
-  const twitterCreatorHandle = getTwitterCreatorHandle();
   const fallbackTitle = `Blog | ${siteName}`;
   const fallbackDescription =
     'This is a flexible blog starter that can be filled with Markdown content and prerendered into indexable pages.';
@@ -263,11 +246,6 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
       ogDescription: fallbackDescription,
       ogImageAlt: siteName,
       ogType: 'website',
-      twitterCard: 'summary_large_image',
-      twitterSite: twitterSiteHandle,
-      twitterCreator: twitterCreatorHandle,
-      twitterTitle: fallbackTitle,
-      twitterDescription: fallbackDescription,
     };
   }
 
@@ -282,11 +260,7 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
     frontmatterString(post.frontmatter, 'og_image') ??
     frontmatterString(post.frontmatter, 'hero_image');
   const imageAlt =
-    frontmatterString(post.frontmatter, 'og_image_alt') ??
-    frontmatterString(post.frontmatter, 'twitter_image_alt') ??
-    post.title;
-  const twitterImage =
-    frontmatterString(post.frontmatter, 'twitter_image') ?? ogImage;
+    frontmatterString(post.frontmatter, 'og_image_alt') ?? post.title;
 
   return {
     title,
@@ -301,20 +275,6 @@ function getPostSeoMeta(post?: BlogPost | null): SeoMeta {
     ogImage,
     ogImageAlt: imageAlt,
     ogType: frontmatterString(post.frontmatter, 'og_type') ?? 'article',
-    twitterCard:
-      frontmatterString(post.frontmatter, 'twitter_card') ??
-      (twitterImage ? 'summary_large_image' : 'summary'),
-    twitterSite:
-      frontmatterString(post.frontmatter, 'twitter_site') ?? twitterSiteHandle,
-    twitterCreator:
-      frontmatterString(post.frontmatter, 'twitter_creator') ??
-      twitterCreatorHandle,
-    twitterTitle:
-      frontmatterString(post.frontmatter, 'twitter_title') ?? title,
-    twitterDescription:
-      frontmatterString(post.frontmatter, 'twitter_description') ?? description,
-    twitterImage,
-    twitterImageAlt: imageAlt,
     publishedTime: frontmatterString(post.frontmatter, 'date'),
     tags: post.frontmatter.tags,
   };
