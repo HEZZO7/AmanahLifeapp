@@ -4,12 +4,9 @@ description: "Revolutionize your Muslim life with AmanahLife, the ultimate app f
 keywords: "Muslim productivity, Islamic finance app, halal investment, Muslim daily planner, Islamic family budget"
 lang: "en"
 hero_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
-og_url: "https://atoms.template.com/blog/amanahlife-productivity-halal-finance"
 og_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
 og_image_alt: "Master Your Muslim Life: Productivity & Halal Finance with AmanahLife"
 twitter_card: "summary_large_image"
-twitter_site: "https://atoms.template.com/"
-twitter_creator: "@atoms_dev"
 twitter_title: "Master Your Muslim Life: Productivity & Halal Finance with AmanahLife"
 twitter_description: "Revolutionize your Muslim life with AmanahLife, the ultimate app for Muslim productivity and halal finance. Organize your spiritual journey, manage finances, and plan with ease."
 twitter_image: "https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-05-21/parfcaqaagrq/amanahlife-productivity-halal-finance-hero.png"
@@ -112,4 +109,4 @@ Yes, AmanahLife's Planner and Islamic Calendar features support both Gregorian a
 
 Mastering your Muslim life, whether through enhanced **Muslim productivity** or diligent **halal investment**, no longer requires a fragmented approach. AmanahLife brings together the essential tools for spiritual growth, personal organization, and ethical financial management into one powerful, intuitive platform. From streamlining your daily tasks with Islamic principles to simplifying your Zakat calculations and family budgeting, AmanahLife empowers you to live a life that is both productive and deeply rooted in your faith.
 
-By integrating features like the Zakat Calculator, a robust **Islamic finance app** suite, and a comprehensive **Muslim daily planner**, AmanahLife helps you overcome common challenges and achieve a harmonious balance between your spiritual and worldly commitments. Experience the peace of mind that comes with knowing your life is organized, your finances are halal, and your spiritual journey is consistently nurtured. Don't just manage your life; master it with AmanahLife. Ready to transform your daily routine and financial well-being? [Explore our subscription plans](https://atoms.template.com/subscription) today and start your journey towards a more organized, spiritual, and prosperous life.
+By integrating features like the Zakat Calculator, a robust **Islamic finance app** suite, and a comprehensive **Muslim daily planner**, AmanahLife helps you overcome common challenges and achieve a harmonious balance between your spiritual and worldly commitments. Experience the peace of mind that comes with knowing your life is organized, your finances are halal, and your spiritual journey is consistently nurtured. Don't just manage your life; master it with AmanahLife. Ready to transform your daily routine and financial well-being? [Explore our subscription plans](https://app.amanahlife.com/subscription) today and start your journey towards a more organized, spiritual, and prosperous life.
