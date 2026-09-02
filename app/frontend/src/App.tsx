@@ -47,6 +47,7 @@ import WeeklyLifeScore from './pages/WeeklyLifeScore';
 import SmartSavingsChallenges from './pages/SmartSavingsChallenges';
 import ReceiptScanner from './pages/ReceiptScanner';
 import BlogRoutes from './blog-routes';
+import WealthRoutes from './wealth-routes';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import RefundPolicy from './pages/RefundPolicy';
@@ -115,6 +116,7 @@ const AppRoutes = () => (
     <Route path="/about" element={<About />} />
     <Route path="/delete-account" element={<DeleteAccount />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
+    <Route path="/wealth/*" element={<WealthRoutes />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

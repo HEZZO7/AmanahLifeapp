@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const ONBOARDING_KEY = 'amanah-onboarding-complete';
 
-const PUBLIC_PATHS = ['/landing', '/privacy', '/terms', '/refund', '/contact', '/pricing', '/blog', '/login', '/auth'];
+const PUBLIC_PATHS = ['/landing', '/privacy', '/terms', '/refund', '/contact', '/pricing', '/blog', '/wealth', '/login', '/auth'];
 
 const steps = [
   {

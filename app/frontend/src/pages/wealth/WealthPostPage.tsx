@@ -1,0 +1,152 @@
+import { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import WealthArticleLayout from '@/components/wealth/WealthArticleLayout';
+import MarkdownArticle from '@/components/blog/MarkdownArticle';
+import { getWealthPost, getWealthSeoMeta } from '@/lib/wealth';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+function getSlugFromPathname(pathname: string) {
+  return pathname
+    .replace(/^\/wealth\/?/, '')
+    .replace(/\/+$/, '')
+    .replace(/^\/+/, '');
+}
+
+function ensureMetaTag(
+  attribute: 'name' | 'property',
+  value: string,
+) {
+  let tag = document.head.querySelector(
+    `meta[${attribute}="${value}"]`,
+  ) as HTMLMetaElement | null;
+
+  if (!tag) {
+    tag = document.createElement('meta');
+    tag.setAttribute(attribute, value);
+    document.head.appendChild(tag);
+  }
+
+  return tag;
+}
+
+function getCurrentPageUrl(pathname: string) {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  return `${window.location.origin}${pathname}`;
+}
+
+const notFoundTranslations = {
+  title: { ar: 'الصفحة غير موجودة', en: 'Page Not Found' },
+  description: { ar: 'عذراً، المقال الذي تبحث عنه غير موجود أو تمت إزالته.', en: 'Sorry, the article you are looking for does not exist or has been removed.' },
+};
+
+const WealthPostPage = () => {
+  const location = useLocation();
+  const { language } = useLanguage();
+  const slug = getSlugFromPathname(location.pathname);
+  const post = slug === '*' ? null : getWealthPost(slug);
+
+  useEffect(() => {
+    if (!post) {
+      return;
+    }
+
+    const seoMeta = getWealthSeoMeta(post);
+    const resolvedUrl = seoMeta.url ?? getCurrentPageUrl(location.pathname);
+    const previousTitle = document.title;
+    const previousLang = document.documentElement.lang;
+
+    const metaDefinitions = [
+      { attribute: 'name' as const, key: 'description', value: seoMeta.description },
+      { attribute: 'name' as const, key: 'keywords', value: seoMeta.keywords },
+      { attribute: 'property' as const, key: 'og:url', value: resolvedUrl },
+      { attribute: 'property' as const, key: 'og:site_name', value: seoMeta.siteName },
+      { attribute: 'property' as const, key: 'og:title', value: seoMeta.ogTitle },
+      {
+        attribute: 'property' as const,
+        key: 'og:description',
+        value: seoMeta.ogDescription,
+      },
+      { attribute: 'property' as const, key: 'og:image', value: seoMeta.ogImage },
+      {
+        attribute: 'property' as const,
+        key: 'og:image:alt',
+        value: seoMeta.ogImageAlt,
+      },
+      { attribute: 'property' as const, key: 'og:type', value: seoMeta.ogType },
+      {
+        attribute: 'property' as const,
+        key: 'article:published_time',
+        value: seoMeta.publishedTime,
+      },
+    ];
+
+    const previousValues = metaDefinitions.map(({ attribute, key, value }) => {
+      if (!value) {
+        return null;
+      }
+
+      const tag = ensureMetaTag(attribute, key);
+      const previousContent = tag.content;
+      tag.content = value;
+      return { tag, previousContent };
+    });
+
+    document.title = seoMeta.title;
+    if (seoMeta.lang) {
+      document.documentElement.lang = seoMeta.lang;
+    }
+
+    const articleTagEntries = (seoMeta.tags ?? []).map((tag) => {
+      const metaTag = document.createElement('meta');
+      metaTag.setAttribute('property', 'article:tag');
+      metaTag.content = tag;
+      document.head.appendChild(metaTag);
+      return metaTag;
+    });
+
+    return () => {
+      document.title = previousTitle;
+      document.documentElement.lang = previousLang;
+      articleTagEntries.forEach((tag) => tag.remove());
+      previousValues.forEach((entry) => {
+        if (!entry) {
+          return;
+        }
+        entry.tag.content = entry.previousContent;
+      });
+    };
+  }, [post, location.pathname]);
+
+  if (slug === '*') {
+    return <Navigate to="/wealth/" replace />;
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 text-center">
+        <div className="space-y-6 max-w-md">
+          <div className="space-y-4">
+            <h1 className="text-7xl font-bold text-muted-foreground/40">404</h1>
+            <h2 className="text-2xl font-bold text-foreground">
+              {notFoundTranslations.title[language]}
+            </h2>
+            <p className="text-base text-muted-foreground">
+              {notFoundTranslations.description[language]}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <WealthArticleLayout title={post.title} description={post.description} slug={slug}>
+      <MarkdownArticle markdown={post.markdown} />
+    </WealthArticleLayout>
+  );
+};
+
+export default WealthPostPage;

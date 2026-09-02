@@ -8,6 +8,8 @@ import { vitePrerenderPlugin } from 'vite-prerender-plugin';
 import Sitemap from 'vite-plugin-sitemap';
 import { getBlogRoutes } from './prerender/blog-routes.js';
 import { getSitemapLastmod } from './prerender/blog-sitemap.js';
+import { getWealthRoutes } from './prerender/wealth-routes.js';
+import { getWealthSitemapLastmod } from './prerender/wealth-sitemap.js';
 
 function escapeHtmlAttr(str: string): string {
   return str
@@ -28,57 +30,61 @@ function collectHtmlFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// vite-prerender-plugin injects each blog page's own SEO <meta> tags by
-// appending them to the base index.html's <head> (its own source only
+// vite-prerender-plugin injects each prerendered page's own SEO <meta> tags
+// by appending them to the base index.html's <head> (its own source only
 // special-cases <title> for find-and-replace; every other head element is
 // pure insertAdjacentHTML append, no deduplication). The base template's
 // generic description/og:title/og:description/og:url/og:image end up
-// duplicated alongside the article-specific ones on every prerendered blog
-// page - most crawlers take the first tag of a given name, so they'd see
-// the generic app-wide copy (site root URL, generic app logo) instead of
-// the per-article one. Strip the generic copies (everything before the
+// duplicated alongside the page-specific ones on every prerendered page -
+// most crawlers take the first tag of a given name, so they'd see the
+// generic app-wide copy (site root URL, generic app logo) instead of the
+// specific one. Strip the generic copies (everything before the
 // `prerender-static-page` marker that always precedes the injected block -
-// see prerender/blog.js) once the build has written the files, so each of
-// these names appears exactly once, the article-specific one.
+// see prerender/blog.js and prerender/wealth.js) once the build has written
+// the files, so each of these names appears exactly once, the page-specific
+// one. Same mechanism applies to both /blog/ and /wealth/, just pointed at
+// each one's own dist/ output directory.
 //
-// twitter:* is different: the project has no Twitter/X account, so blog
+// twitter:* is different: the project has no Twitter/X account, so these
 // pages should carry zero twitter:* tags, not a deduplicated one. Nothing
-// in prerender/blog.js or BlogPostPage.tsx injects twitter:* any more - the
-// only source left is the base template's static twitter:card/title/
-// description/image (index.html), which still needs to be stripped from
-// blog pages specifically (the main app's non-blog pages are untouched -
-// out of scope here).
-const BLOG_DUPLICATE_BASE_META = [
+// in prerender/blog.js, prerender/wealth.js, BlogPostPage.tsx, or
+// WealthPostPage.tsx injects twitter:* any more - the only source left is
+// the base template's static twitter:card/title/description/image
+// (index.html), which still needs to be stripped from these pages
+// specifically (the main app's other pages are untouched - out of scope
+// here).
+const DUPLICATE_BASE_META = [
   /<meta\s+name="description"[^>]*>\s*/i,
   /<meta\s+property="og:title"[^>]*>\s*/i,
   /<meta\s+property="og:description"[^>]*>\s*/i,
   /<meta\s+property="og:url"[^>]*>\s*/i,
   /<meta\s+property="og:image"[^>]*>\s*/i,
 ];
-const BLOG_REMOVED_TWITTER_META = /<meta\s+name="twitter:[^"]*"[^>]*>\s*/gi;
+const REMOVED_TWITTER_META = /<meta\s+name="twitter:[^"]*"[^>]*>\s*/gi;
 
-function stripDuplicateBlogMetaPlugin(): Plugin {
+function stripDuplicatePrerenderMetaPlugin(dirs: string[]): Plugin {
   return {
-    name: 'strip-duplicate-blog-meta',
+    name: 'strip-duplicate-prerender-meta',
     closeBundle() {
-      const blogDir = path.resolve(__dirname, 'dist/blog');
       const marker = '<meta name="prerender-static-page"';
-      for (const file of collectHtmlFiles(blogDir)) {
-        const html = fs.readFileSync(file, 'utf-8');
-        const markerIdx = html.indexOf(marker);
-        let next = html;
-        if (markerIdx !== -1) {
-          const before = html.slice(0, markerIdx);
-          const after = html.slice(markerIdx);
-          const cleanedBefore = BLOG_DUPLICATE_BASE_META.reduce(
-            (acc, pattern) => acc.replace(pattern, ''),
-            before,
-          );
-          next = cleanedBefore + after;
-        }
-        next = next.replace(BLOG_REMOVED_TWITTER_META, '');
-        if (next !== html) {
-          fs.writeFileSync(file, next, 'utf-8');
+      for (const dir of dirs) {
+        for (const file of collectHtmlFiles(path.resolve(__dirname, dir))) {
+          const html = fs.readFileSync(file, 'utf-8');
+          const markerIdx = html.indexOf(marker);
+          let next = html;
+          if (markerIdx !== -1) {
+            const before = html.slice(0, markerIdx);
+            const after = html.slice(markerIdx);
+            const cleanedBefore = DUPLICATE_BASE_META.reduce(
+              (acc, pattern) => acc.replace(pattern, ''),
+              before,
+            );
+            next = cleanedBefore + after;
+          }
+          next = next.replace(REMOVED_TWITTER_META, '');
+          if (next !== html) {
+            fs.writeFileSync(file, next, 'utf-8');
+          }
         }
       }
     },
@@ -94,6 +100,7 @@ process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/assets/aman
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
   const blogPrerenderRoutes = command === 'build' ? getBlogRoutes() : [];
+  const wealthPrerenderRoutes = command === 'build' ? getWealthRoutes() : [];
 
   return {
     plugins: [
@@ -104,12 +111,12 @@ export default defineConfig(({ command }) => {
       atoms(),
       Sitemap({
         hostname: 'https://app.amanahlife.com',
-        lastmod: getSitemapLastmod(),
+        lastmod: { ...getSitemapLastmod(), ...getWealthSitemapLastmod() },
         readable: true,
         generateRobotsTxt: true,
-        // These public pages have no prerendered HTML (only blog posts do),
-        // so the plugin can't auto-discover them by scanning dist/ output —
-        // list them explicitly so they're at least in the sitemap.
+        // These public pages have no prerendered HTML (only blog/wealth posts
+        // do), so the plugin can't auto-discover them by scanning dist/
+        // output — list them explicitly so they're at least in the sitemap.
         dynamicRoutes: [
           '/about',
           '/pricing',
@@ -120,14 +127,27 @@ export default defineConfig(({ command }) => {
           '/delete-account',
         ],
       }),
-      ...(blogPrerenderRoutes.length > 0
+      // A single combined entry (prerender/index.js), not one per section -
+      // vite-prerender-plugin identifies its entry chunk by scanning every
+      // bundled .js chunk for one exporting a function named `prerender`,
+      // with no other disambiguation. Two separate vitePrerenderPlugin()
+      // instances (one per section) each force their own script into its
+      // own chunk, and since both prerender/blog.js and prerender/wealth.js
+      // export a function with that same name, one instance can silently
+      // pick up the other's chunk depending on bundle key order - confirmed
+      // by testing that way first: /blog/'s pages came out completely empty.
+      // See prerender/index.js for the full explanation.
+      ...(blogPrerenderRoutes.length > 0 || wealthPrerenderRoutes.length > 0
         ? [
             ...vitePrerenderPlugin({
               renderTarget: '#root',
-              prerenderScript: path.resolve(__dirname, 'prerender/blog.js'),
-              additionalPrerenderRoutes: blogPrerenderRoutes,
+              prerenderScript: path.resolve(__dirname, 'prerender/index.js'),
+              additionalPrerenderRoutes: [
+                ...blogPrerenderRoutes,
+                ...wealthPrerenderRoutes,
+              ],
             }),
-            stripDuplicateBlogMetaPlugin(),
+            stripDuplicatePrerenderMetaPlugin(['dist/blog', 'dist/wealth']),
           ]
         : []),
     ],
