@@ -29,6 +29,7 @@ function getHeadElements(url) {
   }
 
   const canonicalUrl = getLegalAbsoluteUrl(url);
+  const logoUrl = getLegalAbsoluteUrl('/assets/amanah-logo.png');
   const elements = [
     // Same marker prerender/blog.js and prerender/wealth.js emit - the
     // dedup plugin in vite.config.ts finds this exact string to know where
@@ -44,6 +45,20 @@ function getHeadElements(url) {
     { type: 'meta', props: { property: 'og:description', content: meta.description } },
     canonicalUrl
       ? { type: 'meta', props: { property: 'og:url', content: canonicalUrl } }
+      : null,
+    // These are text-only pages with no per-article hero image, unlike
+    // /blog/ and /wealth/ - fall back to the site-wide app logo, same
+    // getLegalAbsoluteUrl() used for canonical/og:url above so it's an
+    // absolute URL, not the relative /assets/... path the base template's
+    // own generic og:image already carries (which the dedup plugin below
+    // strips as the duplicate). Guarded the same way canonicalUrl is - if
+    // VITE_SITE_URL is ever unset, omit the element entirely rather than
+    // emit a <meta property="og:image"> with no content attribute.
+    logoUrl
+      ? { type: 'meta', props: { property: 'og:image', content: logoUrl } }
+      : null,
+    logoUrl
+      ? { type: 'meta', props: { property: 'og:image:alt', content: meta.title } }
       : null,
   ].filter(Boolean);
 
