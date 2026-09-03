@@ -10,6 +10,7 @@ import { getBlogRoutes } from './prerender/blog-routes.js';
 import { getSitemapLastmod } from './prerender/blog-sitemap.js';
 import { getWealthRoutes } from './prerender/wealth-routes.js';
 import { getWealthSitemapLastmod } from './prerender/wealth-sitemap.js';
+import { getLegalRoutes } from './prerender/legal-routes.js';
 
 function escapeHtmlAttr(str: string): string {
   return str
@@ -101,6 +102,7 @@ process.env.VITE_APP_LOGO_URL ??= process.env.OVERVIEW_LOGO_URL ?? '/assets/aman
 export default defineConfig(({ command }) => {
   const blogPrerenderRoutes = command === 'build' ? getBlogRoutes() : [];
   const wealthPrerenderRoutes = command === 'build' ? getWealthRoutes() : [];
+  const legalPrerenderRoutes = command === 'build' ? getLegalRoutes() : [];
 
   return {
     plugins: [
@@ -114,13 +116,14 @@ export default defineConfig(({ command }) => {
         lastmod: { ...getSitemapLastmod(), ...getWealthSitemapLastmod() },
         readable: true,
         generateRobotsTxt: true,
-        // These public pages have no prerendered HTML (only blog/wealth posts
-        // do), so the plugin can't auto-discover them by scanning dist/
-        // output — list them explicitly so they're at least in the sitemap.
+        // These public pages have no prerendered HTML (unlike blog/wealth
+        // posts, and now privacy/about/affiliate-disclosure, which the
+        // plugin auto-discovers by scanning dist/ output) — list them
+        // explicitly so they're at least in the sitemap. /about and
+        // /privacy were removed from here once they became genuinely
+        // prerendered, to avoid duplicate sitemap entries.
         dynamicRoutes: [
-          '/about',
           '/pricing',
-          '/privacy',
           '/terms',
           '/refund',
           '/contact',
@@ -137,7 +140,7 @@ export default defineConfig(({ command }) => {
       // pick up the other's chunk depending on bundle key order - confirmed
       // by testing that way first: /blog/'s pages came out completely empty.
       // See prerender/index.js for the full explanation.
-      ...(blogPrerenderRoutes.length > 0 || wealthPrerenderRoutes.length > 0
+      ...(blogPrerenderRoutes.length > 0 || wealthPrerenderRoutes.length > 0 || legalPrerenderRoutes.length > 0
         ? [
             ...vitePrerenderPlugin({
               renderTarget: '#root',
@@ -145,9 +148,16 @@ export default defineConfig(({ command }) => {
               additionalPrerenderRoutes: [
                 ...blogPrerenderRoutes,
                 ...wealthPrerenderRoutes,
+                ...legalPrerenderRoutes,
               ],
             }),
-            stripDuplicatePrerenderMetaPlugin(['dist/blog', 'dist/wealth']),
+            stripDuplicatePrerenderMetaPlugin([
+              'dist/blog',
+              'dist/wealth',
+              'dist/privacy',
+              'dist/about',
+              'dist/affiliate-disclosure',
+            ]),
           ]
         : []),
     ],

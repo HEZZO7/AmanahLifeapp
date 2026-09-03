@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Globe } from 'lucide-react';
 import { getWealthPost, getWealthRoute } from '@/lib/wealth';
+import LanguageSwitcherLink from '@/components/LanguageSwitcherLink';
 
 type LanguageSwitcherProps = {
   currentSlug: string;
@@ -29,15 +28,7 @@ const LanguageSwitcher = ({ currentSlug }: LanguageSwitcherProps) => {
 
   const label = isArabic ? switcherLabels.toEnglish : switcherLabels.toArabic;
 
-  return (
-    <Link
-      to={getWealthRoute(counterpartSlug)}
-      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/50 hover:text-primary"
-    >
-      <Globe className="h-3.5 w-3.5" />
-      {label}
-    </Link>
-  );
+  return <LanguageSwitcherLink href={getWealthRoute(counterpartSlug)} label={label} />;
 };
 
 export default LanguageSwitcher;

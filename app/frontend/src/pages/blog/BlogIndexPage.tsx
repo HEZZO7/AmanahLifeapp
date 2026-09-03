@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { getBlogPostsByLang, getBlogRoute } from '@/lib/blog';
 import { ArrowLeft, ArrowRight, BookOpen, Calendar } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Footer from '@/components/Footer';
 
 const blogTranslations = {
   blog: { ar: 'المدونة', en: 'Blog' },
@@ -115,6 +116,8 @@ const BlogIndexPage = () => {
           )}
         </div>
       </section>
+
+      <Footer />
     </main>
   );
 };

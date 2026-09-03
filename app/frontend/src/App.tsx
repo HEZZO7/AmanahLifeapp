@@ -49,6 +49,7 @@ import ReceiptScanner from './pages/ReceiptScanner';
 import BlogRoutes from './blog-routes';
 import WealthRoutes from './wealth-routes';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PrivacyPolicyAr from './pages/PrivacyPolicyAr';
 import TermsOfService from './pages/TermsOfService';
 import RefundPolicy from './pages/RefundPolicy';
 import ContactSupport from './pages/ContactSupport';
@@ -56,6 +57,9 @@ import PricingPage from './pages/PricingPage';
 import LandingPage from './pages/LandingPage';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About';
+import AboutAr from './pages/AboutAr';
+import AffiliateDisclosure from './pages/AffiliateDisclosure';
+import AffiliateDisclosureAr from './pages/AffiliateDisclosureAr';
 import DeleteAccount from './pages/DeleteAccount';
 
 const queryClient = new QueryClient();
@@ -107,6 +111,7 @@ const AppRoutes = () => (
     <Route path="/savings-challenges" element={<SmartSavingsChallenges />} />
     <Route path="/receipt-scanner" element={<ReceiptScanner />} />
     <Route path="/privacy" element={<PrivacyPolicy />} />
+    <Route path="/privacy/ar" element={<PrivacyPolicyAr />} />
     <Route path="/terms" element={<TermsOfService />} />
     <Route path="/refund" element={<RefundPolicy />} />
     <Route path="/contact" element={<ContactSupport />} />
@@ -114,6 +119,9 @@ const AppRoutes = () => (
     <Route path="/landing" element={<LandingPage />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/about" element={<About />} />
+    <Route path="/about/ar" element={<AboutAr />} />
+    <Route path="/affiliate-disclosure" element={<AffiliateDisclosure />} />
+    <Route path="/affiliate-disclosure/ar" element={<AffiliateDisclosureAr />} />
     <Route path="/delete-account" element={<DeleteAccount />} />
     <Route path="/blog/*" element={<BlogRoutes />} />
     <Route path="/wealth/*" element={<WealthRoutes />} />

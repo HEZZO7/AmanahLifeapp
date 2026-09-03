@@ -13,6 +13,7 @@ import Streaks from '@/components/Streaks';
 import DuaOfTheDay from '@/components/DuaOfTheDay';
 import MotivationalQuote from '@/components/MotivationalQuote';
 import OfflineIndicator from '@/components/OfflineIndicator';
+import Footer from '@/components/Footer';
 import { gregorianToHijri, formatHijri, formatGregorian } from '@/lib/hijriDate';
 import { getCategories } from '@/lib/dashboardNav';
 
@@ -467,6 +468,7 @@ export default function HomePage() {
         )}
       </main>
 
+      <Footer />
       <BottomNav />
     </div>
   );

@@ -1,16 +1,21 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AppLogo from '@/components/AppLogo';
 
 export default function Footer() {
   const { language, isRTL } = useLanguage();
   const isAr = language === 'ar';
-  const navigate = useNavigate();
 
+  // /privacy, /about, and /affiliate-disclosure have separate EN/AR routes
+  // (e.g. /privacy/ar) rather than one URL that toggles by language
+  // preference, so the link target itself depends on the current language -
+  // not just the label.
   const links = [
-    { label: isAr ? 'سياسة الخصوصية' : 'Privacy Policy', path: '/privacy' },
+    { label: isAr ? 'من نحن' : 'About', path: isAr ? '/about/ar' : '/about' },
+    { label: isAr ? 'سياسة الخصوصية' : 'Privacy Policy', path: isAr ? '/privacy/ar' : '/privacy' },
     { label: isAr ? 'شروط الخدمة' : 'Terms of Service', path: '/terms' },
     { label: isAr ? 'سياسة الاسترداد' : 'Refund Policy', path: '/refund' },
+    { label: isAr ? 'إفصاح الأفيليت' : 'Affiliate Disclosure', path: isAr ? '/affiliate-disclosure/ar' : '/affiliate-disclosure' },
     { label: isAr ? 'الدعم والتواصل' : 'Contact & Support', path: '/contact' },
     { label: isAr ? 'الأسعار' : 'Pricing', path: '/pricing' },
   ];
@@ -31,13 +36,13 @@ export default function Footer() {
           {/* Links */}
           <nav className="flex flex-wrap items-center justify-center gap-4">
             {links.map((link) => (
-              <button
+              <Link
                 key={link.path}
-                onClick={() => navigate(link.path)}
+                to={link.path}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {link.label}
-              </button>
+              </Link>
             ))}
           </nav>
 

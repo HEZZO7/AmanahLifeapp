@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Footer from '@/components/Footer';
 
 type BlogArticleLayoutProps = {
   title: string;
@@ -54,6 +55,8 @@ const BlogArticleLayout = ({
 
         <div className="mt-10 prose prose-slate dark:prose-invert max-w-none">{children}</div>
       </article>
+
+      <Footer />
     </main>
   );
 };

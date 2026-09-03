@@ -5,22 +5,22 @@ import LanguageSwitcher from '@/components/legal/LanguageSwitcher';
 import Footer from '@/components/Footer';
 import { getLegalPageMeta } from '@/lib/legalPages';
 
-const meta = getLegalPageMeta('/about')!;
+const meta = getLegalPageMeta('/about/ar')!;
 
 const t = {
-  title: 'About AmanahLife',
-  desc: 'AmanahLife is a personal life planning and daily log app built for users worldwide. It helps individuals and families plan goals, track habits, manage their daily routines, and grow personally — all in one place. Available globally with full multi-currency support including USD.',
-  operated: 'Developed and operated by LinkoraNet LLC, a US-registered company.',
-  founderHeading: 'Meet the Founder',
-  founderName: 'Huzaifa Al Ezzo',
-  founderTitle: 'Founder & CEO, LinkoraNet LLC',
-  founderBio: 'Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor\'s in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner — a tool that walks alongside people on their journey toward a more intentional and fulfilling life.',
-  companyHeading: 'The Company',
-  companyText: 'AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.',
-  copyright: '© 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.',
+  title: 'عن أمانة لايف',
+  desc: 'أمانة لايف تطبيق تخطيط الحياة الشخصية والسجل اليومي مصمم للمستخدمين حول العالم. يساعد الأفراد والعائلات على تخطيط الأهداف وتتبع العادات وإدارة روتينهم اليومي والنمو شخصياً — كل ذلك في مكان واحد. متاح عالمياً مع دعم كامل للعملات المتعددة بما في ذلك الدولار الأمريكي.',
+  operated: 'تم تطويره وتشغيله بواسطة شركة LinkoraNet LLC، شركة مسجلة في الولايات المتحدة.',
+  founderHeading: 'تعرف على المؤسس',
+  founderName: 'حذيفة العزو',
+  founderTitle: 'المؤسس والرئيس التنفيذي، LinkoraNet LLC',
+  founderBio: 'حذيفة العزو متخصص ثنائي اللغة يمتلك أكثر من عشر سنوات من الخبرة في الإدارة والموارد البشرية والتعليم والبحث العلمي. يحمل ماجستير في الإدارة العامة وبكالوريوس في اللغة الإنجليزية والترجمة، وقد أسس أمانة لايف انطلاقاً من رغبة حقيقية في مساعدة الناس على تنظيم حياتهم وتتبع تقدمهم والنمو بهدف. رؤيته أن يكون أمانة لايف شريكاً حقيقياً في الحياة — أداة ترافق الإنسان في رحلته نحو حياة أكثر وعياً وتحقيقاً.',
+  companyHeading: 'عن الشركة',
+  companyText: 'أمانة لايف منتج تابع لشركة LinkoraNet LLC، شركة ذات مسؤولية محدودة مسجلة في ولاية وايومنغ، الولايات المتحدة الأمريكية. تطور LinkoraNet LLC منتجات رقمية وتطبيقات SaaS تخدم المستخدمين حول العالم.',
+  copyright: '© 2026 أمانة لايف، منتج تابع لشركة LinkoraNet LLC. جميع الحقوق محفوظة.',
 };
 
-const About = () => {
+const AboutAr = () => {
   const navigate = useNavigate();
 
   useSEO({
@@ -31,7 +31,7 @@ const About = () => {
         '@context': 'https://schema.org',
         '@type': 'Organization',
         name: 'LinkoraNet LLC',
-        url: 'https://app.amanahlife.com/about',
+        url: 'https://app.amanahlife.com/about/ar',
         description: 'LinkoraNet LLC develops digital products and SaaS applications serving users worldwide, including AmanahLife.',
         founder: { '@type': 'Person', name: 'Huzaifa Al Ezzo', jobTitle: 'Founder & CEO' },
       },
@@ -46,15 +46,15 @@ const About = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background" dir="ltr">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-muted transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 rotate-180" />
           </button>
           <h1 className="text-lg font-bold flex-1">{t.title}</h1>
-          <LanguageSwitcher currentPath="/about" />
+          <LanguageSwitcher currentPath="/about/ar" />
         </div>
       </div>
 
@@ -73,7 +73,7 @@ const About = () => {
             <div className="flex flex-col items-center text-center">
               <img
                 src="/assets/huzaifa-founder.jpg"
-                alt="Huzaifa Al Ezzo"
+                alt="حذيفة العزو"
                 className="w-40 h-40 rounded-full object-cover border-2 border-amber-500"
               />
               <h4 className="mt-4 font-bold text-lg">{t.founderName}</h4>
@@ -103,4 +103,4 @@ const About = () => {
   );
 };
 
-export default About;
+export default AboutAr;

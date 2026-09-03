@@ -21,8 +21,15 @@
 // on their own chunks.
 import { prerender as prerenderBlog } from './blog.js';
 import { prerender as prerenderWealth } from './wealth.js';
+import { prerender as prerenderLegal } from './legal.js';
+import { getLegalRoutes } from './legal-routes.js';
+
+const legalPaths = new Set(getLegalRoutes());
 
 export async function prerender(args) {
+  if (legalPaths.has(args.url)) {
+    return prerenderLegal(args);
+  }
   if (args.url.startsWith('/wealth')) {
     return prerenderWealth(args);
   }

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { getWealthPostsByLang, getWealthRoute } from '@/lib/wealth';
 import { ArrowLeft, ArrowRight, Wallet, Calendar } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import Footer from '@/components/Footer';
 
 const wealthTranslations = {
   wealth: { ar: 'أمانة ويلث', en: 'AmanahWealth' },
@@ -115,6 +116,8 @@ const WealthIndexPage = () => {
           )}
         </div>
       </section>
+
+      <Footer />
     </main>
   );
 };
