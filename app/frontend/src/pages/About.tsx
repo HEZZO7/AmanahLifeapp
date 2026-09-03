@@ -11,10 +11,6 @@ const t = {
   title: 'About AmanahLife',
   desc: 'AmanahLife is a personal life planning and daily log app built for users worldwide. It helps individuals and families plan goals, track habits, manage their daily routines, and grow personally — all in one place. Available globally with full multi-currency support including USD.',
   operated: 'Developed and operated by LinkoraNet LLC, a US-registered company.',
-  founderHeading: 'Meet the Founder',
-  founderName: 'Huzaifa Al Ezzo',
-  founderTitle: 'Founder & CEO, LinkoraNet LLC',
-  founderBio: 'Huzaifa Al Ezzo is a bilingual professional with over ten years of experience in administration, human resources, education, and research. Holding a Master of Public Administration and a Bachelor\'s in English Language and Translation, he built AmanahLife out of a genuine desire to help people organize their lives, track their progress, and grow with purpose. His vision is to make AmanahLife a trusted life partner — a tool that walks alongside people on their journey toward a more intentional and fulfilling life.',
   companyHeading: 'The Company',
   companyText: 'AmanahLife is a product of LinkoraNet LLC, a limited liability company registered in the State of Wyoming, United States. LinkoraNet LLC develops digital products and SaaS applications serving users worldwide.',
   copyright: '© 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.',
@@ -33,14 +29,6 @@ const About = () => {
         name: 'LinkoraNet LLC',
         url: 'https://app.amanahlife.com/about',
         description: 'LinkoraNet LLC develops digital products and SaaS applications serving users worldwide, including AmanahLife.',
-        founder: { '@type': 'Person', name: 'Huzaifa Al Ezzo', jobTitle: 'Founder & CEO' },
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'Person',
-        name: 'Huzaifa Al Ezzo',
-        jobTitle: 'Founder & CEO, LinkoraNet LLC',
-        worksFor: { '@type': 'Organization', name: 'LinkoraNet LLC' },
       },
     ],
   });
@@ -64,26 +52,6 @@ const About = () => {
           <h2 className="text-2xl font-bold text-primary">{t.title}</h2>
           <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto">{t.desc}</p>
           <p className="text-sm text-muted-foreground/80 italic">{t.operated}</p>
-        </section>
-
-        {/* Founder Section */}
-        <section className="space-y-6">
-          <h3 className="text-xl font-bold text-center">{t.founderHeading}</h3>
-          <div className="grid md:grid-cols-[200px_1fr] gap-8 items-start">
-            <div className="flex flex-col items-center text-center">
-              <img
-                src="/assets/huzaifa-founder.jpg"
-                alt="Huzaifa Al Ezzo"
-                className="w-40 h-40 rounded-full object-cover border-2 border-amber-500"
-              />
-              <h4 className="mt-4 font-bold text-lg">{t.founderName}</h4>
-              <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold">{t.founderTitle}</p>
-
-            </div>
-            <div>
-              <p className="text-muted-foreground leading-relaxed text-[0.95rem]">{t.founderBio}</p>
-            </div>
-          </div>
         </section>
 
         {/* Company Section */}

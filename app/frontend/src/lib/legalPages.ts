@@ -36,14 +36,14 @@ export const LEGAL_PAGES: LegalPageMeta[] = [
   {
     path: '/about',
     lang: 'en',
-    title: 'About AmanahLife — Meet the Founder & Company',
-    description: 'AmanahLife is a personal life planning app by LinkoraNet LLC. Learn about founder Huzaifa Al Ezzo and the company behind the app.',
+    title: 'About AmanahLife',
+    description: 'Learn about AmanahLife, a personal life planning app by LinkoraNet LLC, and the company behind it.',
   },
   {
     path: '/about/ar',
     lang: 'ar',
-    title: 'عن أمانة لايف — تعرف على المؤسس والشركة',
-    description: 'أمانة لايف تطبيق لتخطيط الحياة اليومي، طورته شركة LinkoraNet LLC. تعرف على مؤسسها حذيفة العزو ورؤية الشركة.',
+    title: 'عن أمانة لايف',
+    description: 'تعرف على أمانة لايف، تطبيق تخطيط الحياة اليومي من شركة LinkoraNet LLC، والشركة القائمة عليه.',
   },
   {
     path: '/affiliate-disclosure',
