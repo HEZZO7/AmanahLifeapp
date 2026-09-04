@@ -463,6 +463,13 @@ export default function HomePage() {
               {aiCoachItem && (
                 <QuickAction key={aiCoachItem.path} icon={aiCoachItem.icon} title={aiCoachItem.title} description={aiCoachItem.description} onClick={() => navigate(aiCoachItem.path)} />
               )}
+              <QuickAction
+                key="/wealth"
+                icon="💹"
+                title={language === 'ar' ? 'أمانة ويلث' : 'AmanahWealth'}
+                description={language === 'ar' ? 'استثمار ذكي متوافق شرعًا' : 'Smart halal investing'}
+                onClick={() => navigate(language === 'ar' ? '/wealth/ar' : '/wealth')}
+              />
             </div>
           </>
         )}

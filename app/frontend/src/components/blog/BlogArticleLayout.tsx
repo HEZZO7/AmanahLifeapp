@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 type BlogArticleLayoutProps = {
   title: string;
   description?: string;
+  lang?: 'ar' | 'en';
   children: React.ReactNode;
 };
 
@@ -17,9 +18,16 @@ const layoutTranslations = {
 const BlogArticleLayout = ({
   title,
   description,
+  lang,
   children,
 }: BlogArticleLayoutProps) => {
-  const { language, isRTL } = useLanguage();
+  // lang is the article's own fixed content language (from its frontmatter).
+  // It must win over the global useLanguage() toggle - see the comment in
+  // MarkdownArticle.tsx for why the toggle alone is wrong here (breaks during
+  // static prerendering, always resolving to isRTL: false).
+  const { language: contextLanguage, isRTL: contextIsRTL } = useLanguage();
+  const language = lang ?? contextLanguage;
+  const isRTL = lang ? lang === 'ar' : contextIsRTL;
   const lt = (key: keyof typeof layoutTranslations) => layoutTranslations[key][language];
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 

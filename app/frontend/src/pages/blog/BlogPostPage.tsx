@@ -47,6 +47,7 @@ const BlogPostPage = () => {
   const { language } = useLanguage();
   const slug = getSlugFromPathname(location.pathname);
   const post = slug === '*' ? null : getBlogPost(slug);
+  const postLang = post?.frontmatter.lang === 'ar' ? 'ar' : 'en';
 
   useEffect(() => {
     if (!post) {
@@ -143,8 +144,8 @@ const BlogPostPage = () => {
   }
 
   return (
-    <BlogArticleLayout title={post.title} description={post.description}>
-      <MarkdownArticle markdown={post.markdown} />
+    <BlogArticleLayout title={post.title} description={post.description} lang={postLang}>
+      <MarkdownArticle markdown={post.markdown} lang={postLang} />
     </BlogArticleLayout>
   );
 };

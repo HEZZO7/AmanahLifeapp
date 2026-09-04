@@ -3,10 +3,19 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 type MarkdownArticleProps = {
   markdown: string;
+  lang?: 'ar' | 'en';
 };
 
-const MarkdownArticle = ({ markdown }: MarkdownArticleProps) => {
-  const { isRTL } = useLanguage();
+const MarkdownArticle = ({ markdown, lang }: MarkdownArticleProps) => {
+  // lang is the article's own fixed content language (from its frontmatter),
+  // known at prerender time via the URL/slug. It must take priority over the
+  // global useLanguage() toggle, which is context-based and defaults to
+  // isRTL: false during static prerendering (no LanguageProvider wraps
+  // renderToString) - without this, every /wealth/ar/ and /blog/ar/ article
+  // was baked into the static HTML as dir="ltr" regardless of its real
+  // content language.
+  const { isRTL: contextIsRTL } = useLanguage();
+  const isRTL = lang ? lang === 'ar' : contextIsRTL;
 
   return (
     <div

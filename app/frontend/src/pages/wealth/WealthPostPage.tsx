@@ -47,6 +47,7 @@ const WealthPostPage = () => {
   const { language } = useLanguage();
   const slug = getSlugFromPathname(location.pathname);
   const post = slug === '*' ? null : getWealthPost(slug);
+  const postLang = post?.frontmatter.lang === 'ar' ? 'ar' : 'en';
 
   useEffect(() => {
     if (!post) {
@@ -143,8 +144,8 @@ const WealthPostPage = () => {
   }
 
   return (
-    <WealthArticleLayout title={post.title} description={post.description} slug={slug}>
-      <MarkdownArticle markdown={post.markdown} />
+    <WealthArticleLayout title={post.title} description={post.description} slug={slug} lang={postLang}>
+      <MarkdownArticle markdown={post.markdown} lang={postLang} />
     </WealthArticleLayout>
   );
 };
