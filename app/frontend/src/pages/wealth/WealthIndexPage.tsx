@@ -58,11 +58,11 @@ const WealthIndexPage = () => {
                 className="group rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300"
               >
                 {post.frontmatter.hero_image && (
-                  <div className="aspect-video overflow-hidden">
+                  <div className="aspect-video overflow-hidden bg-[#FAF8F3]">
                     <img
                       src={post.frontmatter.hero_image as string}
                       alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
                   </div>

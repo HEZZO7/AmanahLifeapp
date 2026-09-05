@@ -1,6 +1,5 @@
 import type { Config } from 'tailwindcss';
 import tailwindcssAnimate from 'tailwindcss-animate';
-import tailwindcssAspectRatio from '@tailwindcss/aspect-ratio';
 import tailwindcssTypography from '@tailwindcss/typography';
 
 export default {
@@ -122,5 +121,5 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate, tailwindcssAspectRatio, tailwindcssTypography],
+  plugins: [tailwindcssAnimate, tailwindcssTypography],
 } satisfies Config;
