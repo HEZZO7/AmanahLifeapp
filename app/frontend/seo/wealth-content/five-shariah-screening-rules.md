@@ -3,8 +3,8 @@ title: "5 Sharia Screening Rules That Flag Over-Leveraged Companies"
 description: "Five financial screening rules rooted in AAOIFI Standard No. 21 that expose high-risk companies — useful for any investor, not just those seeking religious compliance."
 keywords: "shariah stock screening rules"
 lang: "en"
-hero_image: "/assets/wealth/diagram-screening-funnel.png"
-og_image: "/assets/wealth/diagram-screening-funnel.png"
+hero_image: "/assets/wealth/diagram-screening-funnel-v2.png"
+og_image: "/assets/wealth/diagram-screening-funnel-social.png"
 og_image_alt: "Funnel diagram showing five sharia screening rules narrowing down to a compliant verdict"
 ---
 

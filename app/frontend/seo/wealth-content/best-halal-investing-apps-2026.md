@@ -3,8 +3,8 @@ title: "Best Halal Investing Apps and Platforms in 2026: A Complete Comparison"
 description: "There's no single 'best' app for everyone — a comparison guide showing which tool fits which type of investor, from screening tools to fully managed portfolios."
 keywords: "best halal investing apps"
 lang: "en"
-hero_image: "/assets/wealth/diagram-app-categories-en.png"
-og_image: "/assets/wealth/diagram-app-categories-en.png"
+hero_image: "/assets/wealth/diagram-app-categories-en-v2.png"
+og_image: "/assets/wealth/diagram-app-categories-en-social.png"
 og_image_alt: "Visual classification of halal investing tools: screening tools, managed platforms, and alternative markets"
 ---
 

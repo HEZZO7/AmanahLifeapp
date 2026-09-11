@@ -3,8 +3,8 @@ title: "هل الاستثمار في سوق الأسهم حلال؟ الجواب
 description: "الجواب الحاسم مدعومًا برأي جمهور العلماء المعاصرين، مع توضيح صادق للرأي المخالف وأسبابه، ولماذا لا يمكن الحكم على السوق كله بحكم واحد."
 keywords: "هل الاستثمار في الأسهم حلال"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-stock-market-verdict.png"
-og_image: "/assets/wealth/diagram-stock-market-verdict.png"
+hero_image: "/assets/wealth/diagram-stock-market-verdict-v2.png"
+og_image: "/assets/wealth/diagram-stock-market-verdict-social.png"
 og_image_alt: "مخطط يوضح الفرق بين حكم السوق ككل وحكم كل سهم بشكل فردي"
 ---
 

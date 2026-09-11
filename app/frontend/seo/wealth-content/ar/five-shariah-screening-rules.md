@@ -3,8 +3,8 @@ title: "خمس قواعد فحص شرعي تحمي أموالك من شركات 
 description: "خمس قواعد فحص مالي مستمدة من معيار AAOIFI تكشف الشركات عالية المخاطر وتحمي أي مستثمر من الاستدانة المفرطة."
 keywords: "فحص شرعي للأسهم"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-screening-funnel.png"
-og_image: "/assets/wealth/diagram-screening-funnel.png"
+hero_image: "/assets/wealth/diagram-screening-funnel-v2.png"
+og_image: "/assets/wealth/diagram-screening-funnel-social.png"
 og_image_alt: "مخطط قمعي يوضح القواعد الخمس للفحص الشرعي بدءًا من فحص النشاط وصولًا إلى تصنيف الشركة كمتوافقة"
 ---
 

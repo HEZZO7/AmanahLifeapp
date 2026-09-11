@@ -3,8 +3,8 @@ title: "أفضل صناديق المؤشرات الحلال حسب نوع الم
 description: "لا يوجد صندوق واحد يناسب الجميع — دليل يعلّمك كيف تحدد نوعك كمستثمر أولاً، ثم يطابقك بالصندوق الحلال الأنسب فعليًا لهدفك."
 keywords: "أفضل صناديق المؤشرات الحلال"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-fund-matcher.png"
-og_image: "/assets/wealth/diagram-fund-matcher.png"
+hero_image: "/assets/wealth/diagram-fund-matcher-v2.png"
+og_image: "/assets/wealth/diagram-fund-matcher-social.png"
 og_image_alt: "مخطط يطابق كل نوع مستثمر بالصندوق الحلال الأنسب لهدفه"
 ---
 

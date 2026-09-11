@@ -3,8 +3,8 @@ title: "كيف تبدأ الاستثمار الحلال بمئة دولار: خ�
 description: "خطوات فعلية لبدء استثمار حلال متوافق مع الشريعة برأس مال صغير — بدون حشو، بأمثلة واقعية ومصادر موثوقة."
 keywords: "الاستثمار الحلال بمبلغ صغير"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-five-steps.png"
-og_image: "/assets/wealth/diagram-five-steps.png"
+hero_image: "/assets/wealth/diagram-five-steps-v2.png"
+og_image: "/assets/wealth/diagram-five-steps-social.png"
 og_image_alt: "خمس خطوات لبدء الاستثمار الحلال: التحقق الأساسي، الفحص الشرعي، اختيار الوعاء، فتح الوساطة، التطهير المالي"
 ---
 

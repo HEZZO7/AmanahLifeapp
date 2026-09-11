@@ -3,8 +3,8 @@ title: "Pure vs. Mixed Stocks: The Difference That Changes What You Owe"
 description: "Not all Sharia-compliant stocks are the same category — here's the difference between pure and mixed stocks, and why it determines whether you owe a purification payment."
 keywords: "pure vs mixed halal stocks"
 lang: "en"
-hero_image: "/assets/wealth/diagram-pure-vs-mixed-en.png"
-og_image: "/assets/wealth/diagram-pure-vs-mixed-en.png"
+hero_image: "/assets/wealth/diagram-pure-vs-mixed-en-v2.png"
+og_image: "/assets/wealth/diagram-pure-vs-mixed-en-social.png"
 og_image_alt: "Visual comparison of a pure stock with fully compliant income against a mixed stock with a small portion needing purification"
 ---
 

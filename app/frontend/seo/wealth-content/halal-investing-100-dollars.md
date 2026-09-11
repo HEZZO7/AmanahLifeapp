@@ -3,8 +3,8 @@ title: "How to Start Halal Investing With $100 (No Fluff, Just Steps)"
 description: "A practical, no-fluff guide to starting Sharia-compliant investing with a small amount — what to buy, how to screen it, and what to skip."
 keywords: "halal investing with little money"
 lang: "en"
-hero_image: "/assets/wealth/diagram-five-steps-en.png"
-og_image: "/assets/wealth/diagram-five-steps-en.png"
+hero_image: "/assets/wealth/diagram-five-steps-en-v2.png"
+og_image: "/assets/wealth/diagram-five-steps-en-social.png"
 og_image_alt: "Five steps to start halal investing: foundation check, sharia screening, choosing a vehicle, opening a brokerage, purification"
 ---
 

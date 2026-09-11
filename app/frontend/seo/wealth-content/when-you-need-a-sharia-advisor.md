@@ -3,8 +3,8 @@ title: "When You Need a Sharia Financial Advisor (And When an App Is Enough)"
 description: "Not every financial decision needs an individual consultation — here's when a trusted app is genuinely enough, and when nothing replaces a qualified advisor."
 keywords: "sharia financial advisor"
 lang: "en"
-hero_image: "/assets/wealth/diagram-decision-flow-en.png"
-og_image: "/assets/wealth/diagram-decision-flow-en.png"
+hero_image: "/assets/wealth/diagram-decision-flow-en-v2.png"
+og_image: "/assets/wealth/diagram-decision-flow-en-social.png"
 og_image_alt: "Decision flow diagram showing when a trusted app is enough versus when you need an individual consultation"
 ---
 

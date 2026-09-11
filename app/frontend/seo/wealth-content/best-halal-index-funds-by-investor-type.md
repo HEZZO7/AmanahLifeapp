@@ -3,8 +3,8 @@ title: "Best Halal Index Funds by Investor Type: Growth, Income, or Conservative
 description: "There's no one-size-fits-all fund — a guide that teaches you to identify your investor type first, then matches you with the halal fund that actually fits your goal."
 keywords: "best halal index funds"
 lang: "en"
-hero_image: "/assets/wealth/diagram-fund-matcher-en.png"
-og_image: "/assets/wealth/diagram-fund-matcher-en.png"
+hero_image: "/assets/wealth/diagram-fund-matcher-en-v2.png"
+og_image: "/assets/wealth/diagram-fund-matcher-en-social.png"
 og_image_alt: "Diagram matching each investor type to the most suitable halal fund for their goal"
 ---
 

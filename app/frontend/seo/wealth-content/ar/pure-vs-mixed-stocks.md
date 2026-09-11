@@ -3,8 +3,8 @@ title: "الفرق بين السهم النقي والسهم المختلط وك
 description: "ليست كل الأسهم المتوافقة شرعيًا متساوية — تعرّف على الفرق بين السهم النقي والمختلط، ولماذا يغيّر هذا الفرق ما يجب فعله بأرباحك."
 keywords: "السهم النقي والمختلط"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-pure-vs-mixed.png"
-og_image: "/assets/wealth/diagram-pure-vs-mixed.png"
+hero_image: "/assets/wealth/diagram-pure-vs-mixed-v2.png"
+og_image: "/assets/wealth/diagram-pure-vs-mixed-social.png"
 og_image_alt: "مقارنة بصرية بين السهم النقي بدخل متوافق كامل والسهم المختلط بنسبة صغيرة تحتاج للتنقية"
 ---
 

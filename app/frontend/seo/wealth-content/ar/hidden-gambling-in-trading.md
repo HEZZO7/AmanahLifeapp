@@ -3,8 +3,8 @@ title: "لماذا يتجنب الاستثمار الحلال المقامرة �
 description: "التداول اليومي والهامش والبيع على المكشوف والخيارات ممارسات شائعة تقترب من المقامرة (الميسر) دون أن يشعر أغلب المتداولين بذلك. إليك الحدود الفاصلة."
 keywords: "المقامرة في التداول"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-gambling-spectrum-ar.png"
-og_image: "/assets/wealth/diagram-gambling-spectrum-ar.png"
+hero_image: "/assets/wealth/diagram-gambling-spectrum-ar-v2.png"
+og_image: "/assets/wealth/diagram-gambling-spectrum-ar-social.png"
 og_image_alt: "طيف يوضح انتقال ممارسات التداول من الاستثمار طويل الأجل إلى ما يقترب من المقامرة"
 ---
 

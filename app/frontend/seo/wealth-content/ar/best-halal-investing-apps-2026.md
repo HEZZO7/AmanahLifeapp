@@ -3,8 +3,8 @@ title: "أفضل تطبيقات ومنصات الاستثمار الحلال ف�
 description: "لا يوجد تطبيق واحد 'أفضل' للجميع — دليل مقارنة يوضح أي أداة تناسب أي نوع مستثمر، من أدوات الفحص إلى المحافظ المُدارة تلقائيًا."
 keywords: "أفضل تطبيقات الاستثمار الحلال"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-app-categories.png"
-og_image: "/assets/wealth/diagram-app-categories.png"
+hero_image: "/assets/wealth/diagram-app-categories-v2.png"
+og_image: "/assets/wealth/diagram-app-categories-social.png"
 og_image_alt: "تصنيف بصري لأدوات الاستثمار الحلال: أدوات الفحص، المنصات المُدارة، والأسواق البديلة"
 ---
 

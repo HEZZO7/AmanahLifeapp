@@ -3,8 +3,8 @@ title: "متى تحتاج مستشارًا شرعيًا ماليًا ومتى ي
 description: "ليست كل قراراتك المالية تحتاج استشارة فردية — إليك متى يكفيك تطبيق موثوق، ومتى لا بديل عن مستشار شرعي مختص."
 keywords: "مستشار شرعي مالي"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-decision-flow-ar.png"
-og_image: "/assets/wealth/diagram-decision-flow-ar.png"
+hero_image: "/assets/wealth/diagram-decision-flow-ar-v2.png"
+og_image: "/assets/wealth/diagram-decision-flow-ar-social.png"
 og_image_alt: "مخطط قرار يوضح متى يكفي تطبيق موثوق ومتى تحتاج استشارة فردية"
 ---
 

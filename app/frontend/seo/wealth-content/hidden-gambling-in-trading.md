@@ -3,8 +3,8 @@ title: "The Hidden Gambling in Trading Most Traders Never Notice"
 description: "Margin, short selling, options, and heavy day trading are common practices that edge toward gambling (maysir) without most traders realizing it. Here's exactly where the line sits."
 keywords: "gambling in trading practices"
 lang: "en"
-hero_image: "/assets/wealth/diagram-gambling-spectrum-en.png"
-og_image: "/assets/wealth/diagram-gambling-spectrum-en.png"
+hero_image: "/assets/wealth/diagram-gambling-spectrum-en-v2.png"
+og_image: "/assets/wealth/diagram-gambling-spectrum-en-social.png"
 og_image_alt: "Spectrum showing trading practices moving from long-term investing toward gambling-like speculation"
 ---
 

@@ -3,8 +3,8 @@ title: "Digital Gold and Stablecoins: Smart Investment or Sharia Gray Area?"
 description: "Not every digital gold token or stablecoin gets the same ruling — a practical guide to classifying these assets yourself before investing."
 keywords: "digital gold stablecoins halal"
 lang: "en"
-hero_image: "/assets/wealth/diagram-crypto-classification-en.png"
-og_image: "/assets/wealth/diagram-crypto-classification-en.png"
+hero_image: "/assets/wealth/diagram-crypto-classification-en-v2.png"
+og_image: "/assets/wealth/diagram-crypto-classification-en-social.png"
 og_image_alt: "Classification tree of digital assets: backed digital gold, the three stablecoin types, and decentralized coins"
 ---
 

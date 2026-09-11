@@ -3,8 +3,8 @@ title: "How to Calculate Zakat on Stocks, Step by Step (With a Full Worked Examp
 description: "A practical guide to calculating zakat on stocks using two AAOIFI-recognized methods, with a real numeric example showing the difference between traders and long-term investors."
 keywords: "how to calculate zakat on stocks"
 lang: "en"
-hero_image: "/assets/wealth/diagram-zakat-methods-en.png"
-og_image: "/assets/wealth/diagram-zakat-methods-en.png"
+hero_image: "/assets/wealth/diagram-zakat-methods-en-v2.png"
+og_image: "/assets/wealth/diagram-zakat-methods-en-social.png"
 og_image_alt: "Visual comparison of the two zakat calculation methods for stocks: trader method vs long-term investor method"
 ---
 

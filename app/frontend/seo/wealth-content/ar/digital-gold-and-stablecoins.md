@@ -3,8 +3,8 @@ title: "الذهب الرقمي والعملات المستقرة: هل هي ا�
 description: "ليس كل ذهب رقمي أو عملة مستقرة حكمه واحد شرعًا — دليل عملي لتصنيف هذه الأصول قبل الاستثمار فيها."
 keywords: "الذهب الرقمي والعملات المستقرة حلال"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-crypto-classification-ar.png"
-og_image: "/assets/wealth/diagram-crypto-classification-ar.png"
+hero_image: "/assets/wealth/diagram-crypto-classification-ar-v2.png"
+og_image: "/assets/wealth/diagram-crypto-classification-ar-social.png"
 og_image_alt: "شجرة تصنيف الأصول الرقمية: الذهب الرقمي المدعوم، أنواع العملات المستقرة الثلاثة، والعملات اللامركزية"
 ---
 

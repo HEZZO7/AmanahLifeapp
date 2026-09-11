@@ -3,8 +3,8 @@ title: "Is Investing in the Stock Market Halal? The Complete Answer"
 description: "The decisive answer backed by the majority of contemporary scholars, an honest look at the dissenting view and why it holds it, and why the market as a whole can't be judged with one verdict."
 keywords: "is investing in stocks halal"
 lang: "en"
-hero_image: "/assets/wealth/diagram-stock-market-verdict-en.png"
-og_image: "/assets/wealth/diagram-stock-market-verdict-en.png"
+hero_image: "/assets/wealth/diagram-stock-market-verdict-en-v2.png"
+og_image: "/assets/wealth/diagram-stock-market-verdict-en-social.png"
 og_image_alt: "Diagram showing the difference between judging the market as a whole versus judging each stock individually"
 ---
 

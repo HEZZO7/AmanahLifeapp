@@ -3,8 +3,8 @@ title: "كيف تحسب زكاة أسهمك خطوة بخطوة (بمثال رق
 description: "دليل عملي لحساب زكاة الأسهم بطريقتين معتمدتين (AAOIFI)، مع مثال رقمي حقيقي يوضح الفرق بين المتداول والمستثمر طويل الأجل."
 keywords: "كيف تحسب زكاة الأسهم"
 lang: "ar"
-hero_image: "/assets/wealth/diagram-zakat-methods.png"
-og_image: "/assets/wealth/diagram-zakat-methods.png"
+hero_image: "/assets/wealth/diagram-zakat-methods-v2.png"
+og_image: "/assets/wealth/diagram-zakat-methods-social.png"
 og_image_alt: "مقارنة بصرية بين طريقتي حساب زكاة الأسهم: طريقة المتداول وطريقة المستثمر طويل الأجل"
 ---
 
