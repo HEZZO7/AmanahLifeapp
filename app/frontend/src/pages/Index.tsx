@@ -468,7 +468,7 @@ export default function HomePage() {
                 icon="💹"
                 title={language === 'ar' ? 'أمانة ويلث' : 'AmanahWealth'}
                 description={language === 'ar' ? 'استثمار ذكي متوافق شرعًا' : 'Smart halal investing'}
-                onClick={() => navigate(language === 'ar' ? '/wealth/ar' : '/wealth')}
+                onClick={() => navigate('/wealth')}
               />
             </div>
           </>
