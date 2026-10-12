@@ -12,7 +12,10 @@ import { supabase } from '@/lib/supabase';
 // actual device viewport, so do that instead of a client-side route change
 // for this one post-auth transition.
 function goToDashboard() {
-  window.location.replace('/');
+  const destination = sessionStorage.getItem('amanahlife_auth_return') === '/subscription'
+    ? '/subscription' : '/';
+  sessionStorage.removeItem('amanahlife_auth_return');
+  window.location.replace(destination);
 }
 
 export default function AuthCallback() {

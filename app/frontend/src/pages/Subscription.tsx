@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -43,6 +44,7 @@ const PLANS = [
 ];
 
 export default function Subscription() {
+  const navigate = useNavigate();
   const { language } = useLanguage();
   const { timeFormat } = useTimeFormat();
   const isAr = language === 'ar';
@@ -120,16 +122,18 @@ export default function Subscription() {
     setBilling(billingCycle);
   }, [billingCycle]);
 
+  const goToSubscriptionLogin = () => {
+    sessionStorage.setItem('amanahlife_auth_return', '/subscription');
+    navigate('/login?next=%2Fsubscription');
+  };
+
   const handleUpgrade = async (tier: 'balanced' | 'family') => {
     setCheckoutLoading(tier);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        setMessage({
-          type: 'canceled',
-          text: isAr ? 'يرجى تسجيل الدخول أولاً' : 'Please sign in first',
-        });
         setCheckoutLoading(null);
+        goToSubscriptionLogin();
         return;
       }
 
@@ -254,6 +258,11 @@ export default function Subscription() {
   }, [isAr, currentTier]);
 
   const handleStartTrial = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      goToSubscriptionLogin();
+      return;
+    }
     setTrialLoading(true);
     try {
       const { error } = await startTrial();
