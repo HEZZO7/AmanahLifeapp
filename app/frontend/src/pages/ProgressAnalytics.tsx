@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNavigate } from 'react-router-dom';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import {
@@ -38,7 +37,6 @@ interface Task {
 
 export default function ProgressAnalytics() {
   const { language, isRTL } = useLanguage();
-  const navigate = useNavigate();
 
   const goals: Goal[] = useMemo(() => {
     try {
