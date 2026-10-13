@@ -37,4 +37,13 @@ export default [
       'react-refresh/only-export-components': 'off',
     },
   },
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      // TypeScript handles type names and permits type/value declarations.
+      ...tsPlugin.configs['eslint-recommended'].overrides[0].rules,
+      '@typescript-eslint/no-redeclare': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
+  },
 ];

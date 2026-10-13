@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 
 const APP_VERSION = '2.0.0';
-const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 
 // Tables that contain user data
 const USER_TABLES = [
