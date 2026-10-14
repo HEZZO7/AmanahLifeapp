@@ -47,10 +47,15 @@ select public.fixture_expect_denied(
    values (auth.uid(), now() + interval ''1 year'',true)');
 select public.fixture_expect_denied('truncate public.app_11941c8fec_subscriptions');
 
+-- Materialize the side-effecting RPC once: BETWEEN can expand its expression twice.
+with response as materialized (
+  select public.app_11941c8fec_start_trial() as data
+)
 select public.fixture_assert(
-  (public.app_11941c8fec_start_trial()->>'trial_started_at')::timestamptz
+  (data->>'trial_started_at')::timestamptz
     between transaction_timestamp() and clock_timestamp(),
-  'Trial does not use server time');
+  'Trial does not use server time')
+from response;
 select public.fixture_assert(
   (select tier='free' and trial_used and lemonsqueezy_subscription_id is null
    from public.app_11941c8fec_subscriptions where user_id=auth.uid()),
