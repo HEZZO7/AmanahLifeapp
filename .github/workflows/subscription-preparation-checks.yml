@@ -62,3 +62,5 @@ jobs:
           -f tests/subscription-security-fixture.sql
           -f supabase/migrations/202610140001_subscription_authority.sql
           -f tests/subscription-security.sql
+      - name: Concurrent trial attempts
+        run: bash tests/concurrent-trial.sh
