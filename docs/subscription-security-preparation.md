@@ -2,6 +2,13 @@
 
 This PR is stacked on PR #1, targeting fix/auth-subscription. Do not merge or deploy.
 
+## Updated evidence
+
+The full seven-check CSV has now been reviewed. See
+[subscription-security-csv-review.md](subscription-security-csv-review.md) for findings,
+the staged migration, tests and remaining blockers. The sections below describe
+the earlier preparation and must not be mistaken for the current evidence status.
+
 ## Verified and missing evidence
 
 GitHub source was reviewed at d60e5ae. Source variant mappings are balanced

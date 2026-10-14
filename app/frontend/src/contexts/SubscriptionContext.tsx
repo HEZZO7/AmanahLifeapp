@@ -160,25 +160,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const startTrial = async (): Promise<{ error: string | null }> => {
     if (!user) return { error: 'not_signed_in' };
     try {
-      // Check the server fresh - not whatever's currently in local state -
-      // so a stale render can't grant a second trial.
-      const { data: existing } = await supabase
-        .from('app_11941c8fec_subscriptions')
-        .select('trial_used')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existing?.trial_used) {
-        setTrialUsed(true);
-        return { error: 'trial_already_used' };
-      }
-
-      const startedAt = new Date().toISOString();
-      const { error } = await supabase
-        .from('app_11941c8fec_subscriptions')
-        .upsert({ user_id: user.id, trial_started_at: startedAt, trial_used: true }, { onConflict: 'user_id' });
-
+      // The database derives identity and time and atomically enforces one trial.
+      const { data, error } = await supabase.rpc('app_11941c8fec_start_trial');
       if (error) return { error: error.message };
+      if (data?.error) {
+        if (data.error === 'trial_already_used') setTrialUsed(true);
+        return { error: data.error };
+      }
+      const startedAt = data?.trial_started_at;
+      if (typeof startedAt !== 'string' || !Number.isFinite(Date.parse(startedAt))) {
+        return { error: 'invalid_trial_response' };
+      }
 
       localStorage.setItem(TRIAL_KEY, startedAt);
       setTrialUsed(true);

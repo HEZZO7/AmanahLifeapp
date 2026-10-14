@@ -21,9 +21,44 @@ jobs:
           node-version: '22'
       - name: Auth return tests
         run: node --experimental-strip-types tests/auth-return.test.mjs
+      - name: Webhook signature tests
+        run: node --experimental-strip-types tests/webhook-signature.test.mjs
       - name: Install dependencies
         run: npm install
       - name: Lint
         run: npm run lint
       - name: Build
         run: npm run build
+
+  database-security:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+      PGOPTIONS: '-c amanahlife.security_fixture=isolated'
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audited schema baseline and migration
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/subscription-security-fixture.sql
+          -f supabase/migrations/202610140001_subscription_authority.sql
+          -f tests/subscription-security.sql

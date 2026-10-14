@@ -1,3 +1,4 @@
+import { verifySignature } from '../_shared/verifyWebhookSignature.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer";
 
@@ -39,32 +40,6 @@ async function alertOnFailure(subject: string, details: Record<string, unknown>)
     // Never let the alert path itself break or mask the original error.
     console.error(JSON.stringify({ error: "alertOnFailure itself failed", details: alertError instanceof Error ? alertError.message : String(alertError) }));
   }
-}
-
-async function verifySignature(rawBody: string, signature: string, secret: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
-  const computedHex = Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  // Constant-time comparison. The previous `computedHex === signature`
-  // short-circuits at the first mismatched character, leaking timing
-  // information an attacker could exploit to forge a valid signature one
-  // byte at a time. Always walk the full string and XOR every character.
-  if (computedHex.length !== signature.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < computedHex.length; i++) {
-    mismatch |= computedHex.charCodeAt(i) ^ signature.charCodeAt(i);
-  }
-  return mismatch === 0;
 }
 
 // Maps a Lemon Squeezy variant_id (what was actually paid for) to the tier

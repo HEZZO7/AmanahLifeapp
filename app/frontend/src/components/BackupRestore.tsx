@@ -13,7 +13,6 @@ const USER_TABLES = [
   'app_11941c8fec_notification_preferences',
   'app_11941c8fec_email_digest',
   'app_11941c8fec_search_history',
-  'app_11941c8fec_subscriptions',
 ];
 
 // Local storage keys to backup
@@ -176,6 +175,9 @@ export default function BackupRestore() {
       // Restore Supabase data
       if (backup.supabaseData) {
         for (const [table, rows] of Object.entries(backup.supabaseData)) {
+          // Older or modified backups must not restore payment/entitlement state.
+          // The export allowlist also limits import; unknown tables are ignored.
+          if (!USER_TABLES.includes(table)) continue;
           if (!Array.isArray(rows) || rows.length === 0) continue;
 
           // Delete existing data for this user
