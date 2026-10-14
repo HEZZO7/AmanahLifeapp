@@ -1,3 +1,4 @@
+import { hasFamilyEntitlement } from '../_shared/familyEntitlement.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer";
 
@@ -79,12 +80,13 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing or invalid email" }, 400, corsHeaders);
     }
 
-    const { data: sub } = await supabase
+    const { data: sub, error: subError } = await supabase
       .from("app_11941c8fec_subscriptions")
-      .select("tier")
+      .select("tier, status, current_period_end, trial_started_at")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (sub?.tier !== "family") {
+    if (subError) return json({ error: "subscription_lookup_failed" }, 503, corsHeaders);
+    if (!hasFamilyEntitlement(sub)) {
       return json({ error: "family_plan_required" }, 403, corsHeaders);
     }
 
@@ -168,11 +170,23 @@ Deno.serve(async (req: Request) => {
 
     const { data: family } = await supabase
       .from(FAMILIES)
-      .select("id, name")
+      .select("id, name, owner_user_id")
       .eq("join_code", joinCode.trim().toUpperCase())
       .maybeSingle();
     if (!family) {
       return json({ error: "invalid_code" }, 200, corsHeaders);
+    }
+
+    // A code is not an entitlement. Validate the family's owner's trusted row,
+    // not a user_id/subscription supplied by the joining client.
+    const { data: ownerSub, error: ownerSubError } = await supabase
+      .from("app_11941c8fec_subscriptions")
+      .select("tier, status, current_period_end, trial_started_at")
+      .eq("user_id", family.owner_user_id)
+      .maybeSingle();
+    if (ownerSubError) return json({ error: "subscription_lookup_failed" }, 503, corsHeaders);
+    if (!hasFamilyEntitlement(ownerSub)) {
+      return json({ error: "family_plan_required" }, 403, corsHeaders);
     }
 
     const { data: existing } = await supabase
