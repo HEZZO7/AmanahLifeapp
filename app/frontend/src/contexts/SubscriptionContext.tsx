@@ -7,31 +7,13 @@ type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'expired' | 'paus
 type BillingCycle = 'monthly' | 'yearly';
 type PaymentProvider = 'lemonsqueezy' | 'paddle';
 
-// Statuses that still grant access to a paid tier. 'past_due' is included
-// deliberately — a payment retry is in flight, and cutting off a paying
-// customer mid-retry is hostile. 'canceled', 'expired', and 'paused' are not
-// entitling: without this, a canceled/expired row whose `tier` column still
-// says 'family' would keep granting family access forever, since nothing
-// else in this file ever reads `status`.
-const ENTITLING_STATUSES: ReadonlySet<SubscriptionStatus> = new Set(['active', 'past_due']);
-
-// Local cache of the trial start date, used only to render an instant,
-// optimistic value while fetchSubscription's network call is in flight.
-// The server's `trial_started_at`/`trial_used` columns (subscriptions
-// table) are the actual source of truth - see RN's SubscriptionContext.tsx
-// (supabase/migrations/20260720000000_add_trial_columns.sql) for the same
-// pattern this ports. Trial state used to live ONLY in this localStorage
-// key, which meant clearing site data reset the trial indefinitely; that's
-// now impossible since startTrial() checks the server before granting
-// anything.
-const TRIAL_KEY = 'amanah-trial-start';
 const TRIAL_DURATION_DAYS = 7;
 
 function computeTrialState(trialStartedAt: string | null): { isTrialActive: boolean; trialDaysRemaining: number } {
   if (!trialStartedAt) return { isTrialActive: false, trialDaysRemaining: 0 };
   const diffDays = Math.floor((Date.now() - new Date(trialStartedAt).getTime()) / (1000 * 60 * 60 * 24));
   const remaining = TRIAL_DURATION_DAYS - diffDays;
-  return { isTrialActive: remaining > 0, trialDaysRemaining: Math.max(0, remaining) };
+  return { isTrialActive: remaining > 0 && diffDays >= 0, trialDaysRemaining: Math.max(0, remaining) };
 }
 
 interface SubscriptionContextType {
@@ -61,23 +43,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('lemonsqueezy');
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const [paidUntil, setPaidUntil] = useState<string | null>(null);
+  const [paidFrom, setPaidFrom] = useState<string | null>(null);
+  const [revoked, setRevoked] = useState(false);
+  const [hasBinding, setHasBinding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isTrialActive, setIsTrialActive] = useState(false);
   const [trialDaysRemaining, setTrialDaysRemaining] = useState(0);
   const [trialUsed, setTrialUsed] = useState(false);
 
-  // Fast, optimistic read from the local cache so the UI has a sensible
-  // value immediately on load - corrected by fetchSubscription's server
-  // read the moment the network responds.
-  useEffect(() => {
-    const cached = localStorage.getItem(TRIAL_KEY);
-    const computed = computeTrialState(cached);
-    setIsTrialActive(computed.isTrialActive);
-    setTrialDaysRemaining(computed.trialDaysRemaining);
-  }, []);
-
   const fetchSubscription = useCallback(async () => {
     if (!user) {
+      setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
@@ -92,6 +69,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
+    setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
     try {
       // Fetch by user_id only (not filtered to status='active') so a
       // canceled/expired/paused row is still seen and can correctly reset
@@ -125,19 +103,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setPaymentProvider(fetchedProvider);
         setCurrentPeriodEnd(data.current_period_end ?? null);
         setTrialUsed(!!data.trial_used);
-        const computed = computeTrialState(data.trial_started_at ?? null);
+        setPaidUntil(data.paid_access_until ?? null);
+        setPaidFrom(data.paid_access_from ?? null);
+        setRevoked(!!data.entitlement_revoked_at);
+        setHasBinding(!!data.lemonsqueezy_subscription_id);
+        const computed = computeTrialState(data.entitlement_revoked_at ? null : data.trial_started_at ?? null);
         setIsTrialActive(computed.isTrialActive);
         setTrialDaysRemaining(computed.trialDaysRemaining);
-        // Server is authoritative - keep the local cache in sync with it
-        // purely so the next page load has an instant value to show.
-        if (data.trial_started_at) localStorage.setItem(TRIAL_KEY, data.trial_started_at);
-        else localStorage.removeItem(TRIAL_KEY);
         localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: fetchedTier, billing: fetchedBilling, provider: fetchedProvider }));
       }
     } catch {
-      // Network failed - free tier fallback for tier/status, but leave
-      // whatever the optimistic local-cache effect already computed for
-      // trial state rather than resetting it to inactive while offline.
+      // A network failure is not entitlement evidence. Database/server checks remain authoritative.
+      setIsTrialActive(false); setTrialDaysRemaining(0);
       setTier('free');
       setStatus('active');
       setBillingCycle('monthly');
@@ -157,6 +134,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchSubscription]);
 
+  useEffect(() => {
+    // Refresh on returning from a hosted checkout/portal, and expire time-bound UI access.
+    const refresh = () => { void fetchSubscription(); };
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [fetchSubscription]);
+
   const startTrial = async (): Promise<{ error: string | null }> => {
     if (!user) return { error: 'not_signed_in' };
     try {
@@ -172,7 +157,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return { error: 'invalid_trial_response' };
       }
 
-      localStorage.setItem(TRIAL_KEY, startedAt);
       setTrialUsed(true);
       setIsTrialActive(true);
       setTrialDaysRemaining(TRIAL_DURATION_DAYS);
@@ -182,32 +166,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // What the user has actually paid for, or 'free' if nothing currently
-  // entitles them. A canceled/expired/paused subscription falls back to free
-  // regardless of what `tier` still says, until a payment webhook updates the
-  // row — otherwise a lapsed row whose tier column still reads 'family' would
-  // grant family access forever.
-  const isEntitled = ENTITLING_STATUSES.has(status);
-  const purchasedTier: SubscriptionTier = isEntitled ? tier : 'free';
-
-  // The 7-day free trial grants FULL family access — both Balanced Life and
-  // Family Plan features — not merely 'balanced'.
-  //
-  // This is deliberately keyed on isTrialActive alone, NOT on
-  // `tier === 'free' && isTrialActive` as it was previously. With the old
-  // condition, buying Balanced Life *during* a trial immediately revoked the
-  // family-level access the trial had granted: the moment the webhook wrote
-  // tier='balanced', the trial branch stopped matching and the user was
-  // downgraded mid-trial for the crime of purchasing early. That was mostly
-  // invisible while the trial only granted 'balanced' (buying balanced was a
-  // no-op), but becomes a visible downgrade now that the trial grants family.
-  //
-  // Treat trial access as a floor instead: while the trial runs the user gets
-  // family regardless of what they have bought, and when it expires they drop
-  // to whatever they are genuinely entitled to — 'free' for a pure trial user,
-  // 'balanced' for someone who bought Balanced Life, 'family' for a real
-  // family subscriber.
-  const effectiveTier: SubscriptionTier = isTrialActive ? 'family' : purchasedTier;
+  // Display follows verified paid bounds; status or a legacy tier alone never proves payment.
+  const paid = !revoked && hasBinding && ['active', 'past_due', 'canceled'].includes(status)
+    && !!paidFrom && Date.parse(paidFrom) <= Date.now()
+    && !!paidUntil && Date.parse(paidUntil) > Date.now()
+    && (status !== 'canceled' || !currentPeriodEnd || Date.parse(currentPeriodEnd) > Date.now());
+  const effectiveTier: SubscriptionTier = isTrialActive && !revoked ? 'family' : paid ? tier : 'free';
 
   return (
     <SubscriptionContext.Provider value={{

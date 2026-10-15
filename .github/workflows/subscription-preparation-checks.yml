@@ -25,6 +25,8 @@ jobs:
         run: node --experimental-strip-types tests/webhook-signature.test.mjs
       - name: Family entitlement tests
         run: node --experimental-strip-types tests/family-entitlement.test.mjs
+      - name: Isolated checkout and webhook lifecycle requests
+        run: node --experimental-strip-types tests/lemon-payments.test.mjs
       - name: Install dependencies
         run: npm install
       - name: Lint
@@ -80,3 +82,9 @@ jobs:
           -f tests/family-authority-security.sql
       - name: Concurrent authorized family joins
         run: bash tests/concurrent-family-join.sh
+      - name: Trusted payment RPC lifecycle, bindings, idempotency and account authorization
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/migrations/202610150004_trusted_lemon_payments.sql
+          -f tests/lemon-payments-security.sql
+

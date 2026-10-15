@@ -8,7 +8,7 @@ import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } fr
 import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
-import { LEMONSQUEEZY_CHECKOUT_ENDPOINT as CHECKOUT_ENDPOINT, buildCheckoutUrl } from '@/lib/lemonSqueezyCheckout';
+import { LEMONSQUEEZY_CHECKOUT_ENDPOINT as CHECKOUT_ENDPOINT, createAppCheckout } from '@/lib/lemonSqueezyCheckout';
 
 const PLANS = [
   {
@@ -85,34 +85,17 @@ export default function Subscription() {
     return () => { cancelled = true; };
   }, []);
 
-  // Handle URL params for success/canceled.
-  //
-  // KNOWN GAP since moving checkout initiation to Lemon Squeezy's hosted
-  // buy-links: this only fires if the browser actually lands back on
-  // /subscription?success=true, but static buy-links have no per-user
-  // redirect_url query param - that's API-only (part of product_options on
-  // the Create-a-Checkout endpoint), confirmed via Lemon Squeezy's own docs
-  // and a 3-year-old open (unresolved) feature request asking for exactly
-  // this on buy-links. Without a fixed confirmation-redirect URL configured
-  // in each product's own Lemon Squeezy dashboard settings, a customer who
-  // pays via one of these buy-links will see Lemon Squeezy's own receipt
-  // page, not this banner, and has to navigate back to the app manually.
-  // This does NOT affect whether they actually get access - the webhook
-  // still grants it - only whether they see this specific on-page message.
+  // A receipt/redirect is not proof of an activated subscription.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'true') {
-      setMessage({
-        type: 'success',
-        text: isAr ? 'تم تفعيل اشتراكك بنجاح!' : 'Your subscription has been activated successfully!',
-      });
-      refetch();
+    if (params.get('checkout') === 'returned' || params.get('success') === 'true') {
+      setMessage({ type: 'success', text: isAr
+        ? 'عدت من صفحة الدفع. سنحدّث حالة اشتراكك بعد تأكيد الدفع من الخادم.'
+        : 'Returned from checkout. Your plan updates after the server confirms payment.' });
+      void refetch();
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('canceled') === 'true') {
-      setMessage({
-        type: 'canceled',
-        text: isAr ? 'تم إلغاء عملية الدفع' : 'Payment was canceled',
-      });
+      setMessage({ type: 'canceled', text: isAr ? 'تم إلغاء عملية الدفع' : 'Payment was canceled' });
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [isAr, refetch]);
@@ -137,47 +120,7 @@ export default function Subscription() {
         return;
       }
 
-      // A trial-used account is routed through the API-based checkout
-      // instead of the static buy-link, because only the API can set
-      // checkout_options.skip_trial - genuinely suppressing Lemon Squeezy's
-      // own native trial offer, rather than just disclosing it. Everyone
-      // else goes straight to the buy-link, skipping the extra round trip
-      // since skip_trial would be a no-op for a first-time user anyway.
-      // (The Edge Function independently re-derives trial_used from the
-      // database - this branch is purely an optimization, not the source of
-      // enforcement.)
-      if (trialUsed) {
-        const response = await fetch(CHECKOUT_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            tier,
-            billing,
-            successUrl: `${window.location.origin}/subscription?success=true`,
-          }),
-        });
-        const data = await response.json();
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          setMessage({
-            type: 'canceled',
-            text: isAr ? 'حدث خطأ أثناء إنشاء جلسة الدفع' : 'Error creating checkout session',
-          });
-          setCheckoutLoading(null);
-        }
-        return;
-      }
-
-      // setCheckoutLoading is left set rather than cleared in a finally: the
-      // page is navigating away, so there is nothing left here to reset it
-      // for, and clearing it first would flash the button back to its
-      // normal state for a frame before the browser actually leaves.
-      const url = buildCheckoutUrl(tier, billing, { id: session.user.id, email: session.user.email });
-      window.location.href = url;
+      window.location.href = await createAppCheckout(session.access_token, `${tier}_${billing}`);
     } catch {
       setMessage({
         type: 'canceled',
