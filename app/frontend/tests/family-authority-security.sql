@@ -95,7 +95,7 @@ select public.fixture_assert(
 
 -- RLS must deny mutation across all FOUR financial tables after coverage ends.
 select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
-do $
+do $$
 declare table_name text; changed int;
 begin
  foreach table_name in array array['app_11941c8fec_family_expenses','app_11941c8fec_family_income',
@@ -107,7 +107,7 @@ begin
   get diagnostics changed=row_count;
   if changed<>0 then raise exception 'Expired DELETE bypass: %',table_name; end if;
  end loop;
-end $;
+end $$;
 
 -- Existing members retain read/export but cannot mutate ANY protected finance table.
 select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
@@ -179,8 +179,8 @@ where user_id='22222222-2222-4222-8222-222222222222';
 create sequence public.fixture_code_sequence;
 create or replace function public.app_11941c8fec_generate_join_code()
 returns text language sql volatile set search_path=''
-as $ select case when nextval('public.fixture_code_sequence')=1
- then 'LEGACY88' else 'RETRY888' end $;
+as $$ select case when nextval('public.fixture_code_sequence')=1
+ then 'LEGACY88' else 'RETRY888' end $$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
 insert into public.app_11941c8fec_families(id,owner_user_id)
@@ -191,8 +191,8 @@ select public.fixture_assert(
 reset role;
 create or replace function public.app_11941c8fec_generate_join_code()
 returns text language sql volatile set search_path=''
-as $ select 'LEGACY88'::text $;
-do $
+as $$ select 'LEGACY88'::text $;
+do $$
 begin
  begin
   insert into public.app_11941c8fec_families(owner_user_id)
@@ -202,7 +202,7 @@ begin
   raise;
  end;
  raise exception 'Collision exhaustion was not bounded';
-end $;
+end $$;
 select public.fixture_assert(
  (select count(*)=3 from public.app_11941c8fec_families),
  'Failed collision attempt inserted family rows');
