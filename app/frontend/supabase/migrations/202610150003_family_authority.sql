@@ -101,6 +101,12 @@ returns trigger language plpgsql security definer set search_path=''
 as $$
 declare owner_id uuid;
 begin
+ -- Preserve ON DELETE SET NULL account cleanup even for an expired family.
+ -- Client UPDATE(user_id) is revoked; the referenced auth row must really be gone.
+ if tg_op='UPDATE' and new.user_id is null and old.user_id is not null
+    and not exists(select 1 from auth.users u where u.id=old.user_id) then
+  return new;
+ end if;
  select f.owner_user_id into owner_id from public.app_11941c8fec_families f
  where f.id=new.family_id for share;
  perform 1 from public.app_11941c8fec_subscriptions s where s.user_id=owner_id for share;
@@ -118,6 +124,27 @@ end $$;
 create trigger app_11941c8fec_family_member_entitlement
  before insert or update on public.app_11941c8fec_family_members
  for each row execute function public.app_11941c8fec_guard_family_member();
+
+-- Serialize protected financial writes with trusted entitlement updates.
+create function public.app_11941c8fec_guard_family_finance()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+declare family_id_value uuid; owner_id uuid;
+begin
+ -- Trusted account-cleanup/admin paths must retain FK/cascade functionality.
+ if auth.uid() is null or auth.role()='service_role' then
+  if tg_op='DELETE' then return old; else return new; end if;
+ end if;
+ if tg_op='DELETE' then family_id_value:=old.family_id;
+ else family_id_value:=new.family_id; end if;
+ select f.owner_user_id into owner_id from public.app_11941c8fec_families f
+ where f.id=family_id_value for share;
+ perform 1 from public.app_11941c8fec_subscriptions s where s.user_id=owner_id for share;
+ if not public.app_11941c8fec_account_family_entitled(owner_id) then
+  raise exception 'family_plan_required' using errcode='42501';
+ end if;
+ if tg_op='DELETE' then return old; else return new; end if;
+end $$;
 
 -- Original RPC name/signature is preserved for authorized native/legacy callers.
 create or replace function public.app_11941c8fec_join_family_with_code(p_code text)
@@ -212,6 +239,9 @@ begin
   execute format('grant select,insert,delete on public.%I to authenticated',table_name);
   if table_name not in ('app_11941c8fec_families','app_11941c8fec_family_members') then
    execute format('grant update on public.%I to authenticated',table_name);
+   execute format('create trigger app_11941c8fec_finance_entitlement
+    before insert or update or delete on public.%I
+    for each row execute function public.app_11941c8fec_guard_family_finance()',table_name);
    prefix:=replace(table_name,'app_11941c8fec_','');
    execute format('drop policy %I on public.%I',prefix||'_all_if_member',table_name);
    execute format('create policy %I on public.%I for select to authenticated using
@@ -232,6 +262,7 @@ revoke all on function public.app_11941c8fec_account_family_entitled(uuid),
  public.app_11941c8fec_family_can_write(uuid),
  public.app_11941c8fec_guard_family_creation(),
  public.app_11941c8fec_guard_family_member(),
+ public.app_11941c8fec_guard_family_finance(),
  public.app_11941c8fec_generate_join_code(),
  public.app_11941c8fec_join_family_with_code(text),
  public.app_11941c8fec_accept_family_invite(text,text,text,text)

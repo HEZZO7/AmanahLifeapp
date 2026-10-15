@@ -46,6 +46,11 @@ values('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 update public.app_11941c8fec_family_budget_settings set monthly_budget=100
 where family_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
+insert into public.app_11941c8fec_family_budget_categories(family_id,name)
+values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Food');
+insert into public.app_11941c8fec_family_income(family_id,source,amount,amount_base)
+values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Fixture income',10,10);
+
 -- Owner cannot forge canonical ownership metadata or rewrite family tokens.
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
 select public.fixture_expect_denied(
@@ -55,6 +60,9 @@ select public.fixture_expect_denied(
  'insert into public.app_11941c8fec_family_members(family_id,user_id,display_name,member_role)
  values(''cccccccc-cccc-4ccc-8ccc-cccccccccccc'',
  ''66666666-6666-4666-8666-666666666666'',''Forged owner'',''owner'')');
+insert into public.app_11941c8fec_family_members(family_id,user_id,display_name,member_role)
+values('cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+'66666666-6666-4666-8666-666666666666','Account cleanup fixture','member');
 insert into public.app_11941c8fec_families(id,owner_user_id,join_code)
 values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',auth.uid(),'CLIENT-CODE');
 select public.fixture_assert(
@@ -84,6 +92,22 @@ set local role authenticated;
 select public.fixture_assert(
  not public.app_11941c8fec_family_can_write('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
  'Retry date granted unpaid access');
+
+-- RLS must deny mutation across all FOUR financial tables after coverage ends.
+select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
+do $
+declare table_name text; changed int;
+begin
+ foreach table_name in array array['app_11941c8fec_family_expenses','app_11941c8fec_family_income',
+ 'app_11941c8fec_family_budget_settings','app_11941c8fec_family_budget_categories'] loop
+  execute format('update public.%I set family_id=family_id',table_name);
+  get diagnostics changed=row_count;
+  if changed<>0 then raise exception 'Expired UPDATE bypass: %',table_name; end if;
+  execute format('delete from public.%I',table_name);
+  get diagnostics changed=row_count;
+  if changed<>0 then raise exception 'Expired DELETE bypass: %',table_name; end if;
+ end loop;
+end $;
 
 -- Existing members retain read/export but cannot mutate ANY protected finance table.
 select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
@@ -116,6 +140,14 @@ delete from public.app_11941c8fec_families where id='cccccccc-cccc-4ccc-8ccc-ccc
 select public.fixture_assert(
  (select count(*)=1 from public.app_11941c8fec_families
  where id='cccccccc-cccc-4ccc-8ccc-cccccccccccc'),'Expired owner deleted family');
+
+-- Expiry cannot break the FK cleanup of a separately deleted account.
+reset role;
+delete from auth.users where id='66666666-6666-4666-8666-666666666666';
+select public.fixture_assert(
+ (select user_id is null from public.app_11941c8fec_family_members
+ where family_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+ and display_name='Account cleanup fixture'),'Expired entitlement blocked account deletion');
 
 -- Immediate revocation overrides even a still-valid trial or paid period.
 reset role;
