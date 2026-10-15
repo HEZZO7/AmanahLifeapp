@@ -3,6 +3,35 @@
 -- from legacy current_period_end/renews_at or client-created entitlement rows.
 begin;
 
+do $$
+declare table_name text;
+begin
+ if (select count(*) from pg_policies where schemaname='public'
+ and tablename in ('app_11941c8fec_families','app_11941c8fec_family_members',
+ 'app_11941c8fec_family_budget_settings','app_11941c8fec_family_budget_categories',
+ 'app_11941c8fec_family_income','app_11941c8fec_family_expenses')) <> 12
+ or exists(select 1 from pg_policies where schemaname='public'
+ and tablename in ('app_11941c8fec_families','app_11941c8fec_family_members',
+ 'app_11941c8fec_family_budget_settings','app_11941c8fec_family_budget_categories',
+ 'app_11941c8fec_family_income','app_11941c8fec_family_expenses')
+ and policyname not in ('families_insert_own','families_select_if_member',
+ 'families_update_if_owner','families_delete_if_owner',
+ 'family_members_select_if_member','family_members_insert_if_owner',
+ 'family_members_update_if_owner','family_members_delete_if_owner_or_self',
+ 'family_budget_settings_all_if_member','family_budget_categories_all_if_member',
+ 'family_income_all_if_member','family_expenses_all_if_member')) then
+  raise exception 'Family policy drift: obtain new read-only evidence first';
+ end if;
+ if (select count(*) from pg_trigger
+ where tgrelid='public.app_11941c8fec_families'::regclass and not tgisinternal)<>2
+ or exists(select 1 from pg_trigger
+ where tgrelid='public.app_11941c8fec_families'::regclass and not tgisinternal
+ and (tgname not in ('app_11941c8fec_families_add_owner','app_11941c8fec_families_set_join_code')
+      or tgenabled<>'O')) then
+  raise exception 'Family trigger drift: obtain new read-only evidence first';
+ end if;
+end $$;
+
 alter table public.app_11941c8fec_subscriptions
  add column paid_access_until timestamptz,
  add column entitlement_revoked_at timestamptz;
@@ -193,6 +222,14 @@ end $$;
 
 -- Leave is a DELETE of one's own membership. Existing identity-based SELECT
 -- policies remain unchanged for retained read/export access after expiry.
+drop policy families_select_if_member on public.app_11941c8fec_families;
+create policy families_select_if_member on public.app_11941c8fec_families
+ for select to authenticated using(owner_user_id=auth.uid()
+ or public.app_11941c8fec_is_family_member(id));
+drop policy family_members_select_if_member on public.app_11941c8fec_family_members;
+create policy family_members_select_if_member on public.app_11941c8fec_family_members
+ for select to authenticated using(public.app_11941c8fec_is_family_member(family_id));
+
 drop policy families_insert_own on public.app_11941c8fec_families;
 create policy families_insert_own on public.app_11941c8fec_families
  for insert to authenticated with check(auth.uid()=owner_user_id

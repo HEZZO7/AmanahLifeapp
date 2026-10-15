@@ -94,3 +94,16 @@ The migrations are transactional. After commit retain restrictive grants and
 read access; disable writes temporarily if rollback is needed, use a reviewed
 forward correction and never drop customers/data or restore blanket PUBLIC
 grants. Restoring old application code is unsafe if it bypasses the new RPC path.
+
+
+Latest verification: all twenty Node tests (8 auth-return, 4 signature, 8 family
+policy), lint/build and the isolated PostgreSQL policy/concurrency/collision suite
+passed at 87bc97587e359d0ee2fe06e5a5cfd19c61ba8511. Subsequent preflight changes
+require the final CI run as well. No live Supabase evidence was gathered by writes.
+
+Review readiness: the family changes are reviewable, but PR #2 is NOT ready for
+final merge/deployment review until trusted payment activation/refund/recovery,
+store/variant/test-live settings, old-row reconciliation, native callers and
+gateway attempt limits are resolved. Removed members retaining an old shared
+code can rejoin an entitled family; per-person invitation/revocation semantics
+require a separate approved policy (no silent code rotation in this patch).
