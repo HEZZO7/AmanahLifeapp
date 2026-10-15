@@ -2,6 +2,10 @@
 
 Continues PR #2 from `a71070e`. No production configuration was accessed or changed. Refund policy is approved; production operations remain prohibited. No real checkout, payment, refund, deployment or production SQL was executed. Automated provider responses are fixtures, not evidence that production works.
 
+## Current owner restriction: production store remains untouched
+
+The owner prohibits switching the existing AmanahLife store between Test and Live, and prohibits modifying its products, images, prices, checkout or webhook settings. [subscription-safe-isolation.md](subscription-safe-isolation.md) supersedes any earlier suggestion to use the existing store for sandbox tests. Only disconnected tests are currently authorized. A distinct test store/project remains a conditional option requiring account-specific evidence and separate setup approval; no new resource, key, deployment or financial transaction has been authorized. Production sequence sections below remain proposals for a later explicit decision, not current execution instructions.
+
 ## What changes
 
 - Both app Upgrade and promotional checkout use an authenticated server endpoint. Browser inputs are an allowlisted offer key and optional existing discount code. Supplying user ID, tier, variant, status, mode, redirect or trial flags is rejected. Supabase `getUser(token)` and confirmed email establish identity.

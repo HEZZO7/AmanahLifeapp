@@ -20,13 +20,13 @@ jobs:
         with:
           node-version: '22'
       - name: Auth return tests
-        run: node --experimental-strip-types tests/auth-return.test.mjs
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/auth-return.test.mjs
       - name: Webhook signature tests
-        run: node --experimental-strip-types tests/webhook-signature.test.mjs
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/webhook-signature.test.mjs
       - name: Family entitlement tests
-        run: node --experimental-strip-types tests/family-entitlement.test.mjs
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/family-entitlement.test.mjs
       - name: Isolated checkout and webhook lifecycle requests
-        run: node --experimental-strip-types tests/lemon-payments.test.mjs
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/lemon-payments.test.mjs
       - name: Install dependencies
         run: npm install
       - uses: denoland/setup-deno@v2
