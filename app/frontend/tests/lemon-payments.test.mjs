@@ -313,3 +313,30 @@ test('failed recovery remains retryable; periodic sweep carries its pagination c
   assert.equal(f.calls.find(x=>x.name.endsWith('_finish_delivery')).args.p_ok,false);
   assert.deepEqual(await reconcileBindings(c,f.d),{completed:0,failed:1,nextCursor:'10'});
 });
+test('trial conversion requires a positive paid invoice; app trial usage skips another checkout trial', async () => {
+  const nativeTrial=reconcile(c,sub({status:'on_trial'}),[],order({total:0}),{},false,now);
+  assert.equal(nativeTrial.paid_access_until,null);
+  const converted=reconcile(c,sub(),[invoice()],order(),{...nativeTrial,trial_used:true},false,now);
+  assert.equal(converted.paid_access_from,new Date(now).toISOString());
+  assert.equal(converted.paid_access_until,end);assert.equal(converted.effective_tier,'family');
+  const f=fixture();f.setState({revision:0,trial_used:true});
+  assert.equal((await checkout(checkoutRequest({offer:'family_monthly'}),c,f.d)).status,200);
+  assert.equal(f.payload().data.attributes.checkout_options.skip_trial,true);
+});
+test('provider changes during canonical reads retry without committing the inconsistent snapshot', async () => {
+  const f=fixture();let reads=0;const original=f.d.fetch;
+  f.d.fetch=async(url,init)=>{
+    if(new URL(url).pathname.endsWith('/subscriptions/10')) {
+      reads++;
+      // Second subscription read detects a renewal that happened while invoices were read.
+      if(reads===2) {
+        f.setSub(sub({renews_at:later,updated_at:new Date(now).toISOString()}));
+        f.setInvoices([invoice({billing_reason:'renewal',created_at:new Date(now).toISOString()},'31'),invoice()]);
+      }
+    }
+    return original(url,init);
+  };
+  assert.equal((await synchronize(c,f.d,{subscription:'10',event:'periodic_reconciliation'})).applied,true);
+  assert.equal(reads,4);assert.equal(f.calls.filter(x=>x.name.endsWith('_commit_snapshot')).length,1);
+  assert.equal(f.state().paid_access_until,later);
+});

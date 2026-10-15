@@ -1,3 +1,5 @@
+> Update: [subscription-lifecycle-review.md](subscription-lifecycle-review.md) documents migration 005, conservative observed payment bounds, deferred plan changes, resubscription history and recovery preparation. Existing-store isolation restrictions remain in force.
+
 # التحقق من جاهزية الاشتراكات — خطة مراجعة دون نشر
 
 مرجع الكود: `81948e04e8a3ce9eb9e522e4119ca2ffe2c709b8` في المسودة #2. هذه الوثيقة لا تمنح إذنًا للنشر أو لتشغيل migrations أو لتعديل الإنتاج أو لإجراء أي دفع حقيقي. خطوات التنفيذ الآتية مؤجلة؛ نعرض للمالك إجراءً واحدًا في كل رسالة وننتظر تأكيده.

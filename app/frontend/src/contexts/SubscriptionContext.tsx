@@ -21,10 +21,9 @@ interface SubscriptionContextType {
   status: SubscriptionStatus;
   billingCycle: BillingCycle;
   paymentProvider: PaymentProvider;
-  // ISO date string, or null. Populated by the Lemon Squeezy webhook from
-  // the real ends_at/renews_at fields on its subscription object (never
-  // fabricated - see that function's comments). Null for free/trial users
-  // and, for now, for Paddle, whose webhook doesn't populate this column yet.
+  // Conservative access end selected from confirmed private payment evidence.
+  // This is not an expected renewal date or a claim about invoice service dates.
+  // Null when no currently valid proof exists, including unverified legacy rows.
   currentPeriodEnd: string | null;
   hasSubscription: boolean;
   loading: boolean;
@@ -74,10 +73,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      // Fetch by user_id only (not filtered to status='active') so a
-      // canceled/expired/paused row is still seen and can correctly reset
-      // the tier to free below, instead of silently returning no row and
-      // leaving whatever tier was last fetched stuck in state.
+      // The authenticated RPC derives identity and current entitlement on the server.
+      // Raw legacy tier/status values are never sufficient evidence of payment.
       const { data, error } = await supabase.rpc('app_11941c8fec_current_subscription');
 
       if (error || !data) {

@@ -1,3 +1,5 @@
+> Update: [subscription-lifecycle-review.md](subscription-lifecycle-review.md) documents migration 005, conservative observed payment bounds, deferred plan changes, resubscription history and recovery preparation. Existing-store isolation restrictions remain in force.
+
 # خطة العزل بعد منع تبديل وضع متجر الإنتاج
 
 هذه الخطة تستبدل أي توجيه سابق لفحص/تبديل وضع متجر AmanahLife بغرض الاختبار. مرجع كود الدفع: `81948e0`، ومرجع التدقيق السابق: `233e421`. المسودة #2 لا تزال غير مدمجة. لا يوجد إذن للنشر، حتى على بيئة اختبار، أو لإنشاء متجر/مشروع/مفتاح جديد.

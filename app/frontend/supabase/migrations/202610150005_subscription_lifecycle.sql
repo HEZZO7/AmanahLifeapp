@@ -1,5 +1,6 @@
 -- DRAFT ONLY. Apply after 0001..0004, only in an explicitly approved environment.
--- No enabled environment, backfilled payment certification, job or destructive data operation.
+-- No environment is enabled, no raw legacy row is certified, and no job is scheduled.
+-- Only correlated prior private payment evidence is preserved; no customer data is deleted.
 begin;
 alter table public.app_11941c8fec_payment_periods
   add column confirmed_at timestamptz,

@@ -1,3 +1,5 @@
+> Update: [subscription-lifecycle-review.md](subscription-lifecycle-review.md) documents migration 005, conservative observed payment bounds, deferred plan changes, resubscription history and recovery preparation. Existing-store isolation restrictions remain in force.
+
 # Trusted Lemon Squeezy flow — draft preparation, not a deployment authorization
 
 Continues PR #2 from `a71070e`. No production configuration was accessed or changed. Refund policy is approved; production operations remain prohibited. No real checkout, payment, refund, deployment or production SQL was executed. Automated provider responses are fixtures, not evidence that production works.
