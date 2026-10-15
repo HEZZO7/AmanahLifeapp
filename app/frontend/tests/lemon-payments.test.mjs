@@ -144,3 +144,18 @@ test('verified initial order can activate before initial invoice becomes availab
   const state = reconcile(c, sub(), [], order(), {});
   assert.equal(state.paid_access_until, end); assert.equal(state.invoice_id, 'order:20');
 });
+test('first subscription binds only a ready, matching server intent; old subscriptions cannot consume it', async () => {
+  const f = fixture();
+  f.setState({ user_id: 'account-A', revision: 0, store_id: '1', product_id: '3', variant_id: '2', intent_created_at: new Date(now - 2 * 86400000).toISOString() });
+  const meta = { custom_data: { app_id: '11941c8fec', intent: 'a'.repeat(64), user_id: 'attacker' } };
+  assert.equal((await webhook(await signed('subscription_created', sub(), meta), c, f.d)).status, 200);
+  assert.equal(f.calls.find(x => x.name.endsWith('_apply')).args.p_user, 'account-A');
+  const wrong = fixture(); wrong.setState({ user_id: 'account-A', revision: 0, store_id: '1', product_id: '3', variant_id: '999', intent_created_at: start });
+  assert.equal((await webhook(await signed('subscription_created', sub(), meta), c, wrong.d)).status, 409);
+  assert.equal(wrong.calls.some(x => x.name.endsWith('_apply')), false);
+  const old = fixture(); old.setState({ user_id: 'account-A', revision: 0, store_id: '1', product_id: '3', variant_id: '2', intent_created_at: new Date(now).toISOString() });
+  assert.equal((await webhook(await signed('subscription_created', sub(), meta), c, old.d)).status, 409);
+});
+test('stale invoice history cannot reset the current paid period or clear a refund', () => {
+  assert.throws(() => reconcile(c, sub(), [invoice({ created_at: new Date(now - 3 * 86400000).toISOString() })], order(), { ...previous, entitlement_revoked_at: start }));
+});

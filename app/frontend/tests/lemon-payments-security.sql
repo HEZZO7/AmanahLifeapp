@@ -34,6 +34,9 @@ set local role service_role;
 select public.fixture_expect_denied($q$ select public.app_11941c8fec_payment_create_intent('live','33333333-3333-4333-8333-333333333333',repeat('a',64),'1','3','2','family','monthly') $q$);
 select public.app_11941c8fec_payment_create_intent('test','33333333-3333-4333-8333-333333333333',repeat('a',64),'1','3','2','family','monthly');
 select public.app_11941c8fec_payment_ready_intent('test',repeat('a',64),'checkout-fixture');
+select public.app_11941c8fec_payment_create_intent('test','11111111-1111-4111-8111-111111111111',repeat('b',64),'1','3','2','family','monthly');
+select public.app_11941c8fec_payment_ready_intent('test',repeat('b',64),'other-checkout-fixture');
+select public.fixture_expect_denied($q$ select public.fixture_payment_apply(1,0,public.fixture_payment_state(),repeat('b',64)) $q$);
 select public.fixture_assert((public.app_11941c8fec_payment_snapshot('test','10',null,repeat('a',64),null)->>'user_id')='33333333-3333-4333-8333-333333333333','Opaque intent binding missing');
 select public.fixture_expect_denied($q$ select public.fixture_payment_apply(1,0,public.fixture_payment_state(),repeat('a',64),'999') $q$);
 select public.fixture_payment_apply(1,0,public.fixture_payment_state());
@@ -47,8 +50,6 @@ select public.fixture_assert((select tier='family' and trial_used and trial_star
 
 -- A second user's opaque intent cannot be used to replace the established subscription account.
 set local role service_role;
-select public.app_11941c8fec_payment_create_intent('test','11111111-1111-4111-8111-111111111111',repeat('b',64),'1','3','2','family','monthly');
-select public.app_11941c8fec_payment_ready_intent('test',repeat('b',64),'other-checkout-fixture');
 select public.fixture_assert((public.app_11941c8fec_payment_snapshot('test','10',null,repeat('b',64),null)->>'user_id')='33333333-3333-4333-8333-333333333333','Metadata reassigned existing binding');
 -- Cancellation retains the actual verified end, not an arbitrary future retry.
 select public.fixture_payment_apply(4,1,public.fixture_payment_state('canceled') || jsonb_build_object('ends_at',statement_timestamp()+interval '29 days'));

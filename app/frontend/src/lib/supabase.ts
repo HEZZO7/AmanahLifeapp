@@ -5,7 +5,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const configuredUrl = import.meta.env.VITE_SUPABASE_URL;
 const configuredKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-if (import.meta.env.VITE_AMANAHLIFE_PAYMENT_MODE === 'test' && (!configuredUrl || !configuredKey || configuredUrl === supabaseUrl)) {
+if (import.meta.env.VITE_AMANAHLIFE_PAYMENT_MODE === 'test' && (!configuredUrl || !configuredKey || new URL(configuredUrl).origin === supabaseUrl)) {
   throw new Error('Test payments require a separate Supabase test project and public key');
 }
 export const supabase = createClient(configuredUrl || supabaseUrl, configuredKey || supabaseAnonKey);

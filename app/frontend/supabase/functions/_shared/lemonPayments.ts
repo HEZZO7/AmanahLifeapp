@@ -176,8 +176,10 @@ export async function webhook(req: Request, c: Config, d: Dependencies): Promise
       const sid = subscription || id(state.subscription_id);
       const s = object((await provider(d, c, `subscriptions/${sid}`)).data, 'subscriptions', sid);
       scope(s, c);
-      const currentOffer = offerFor(c, s);
-      const changedOffer = !!state.subscription_id && String(state.variant_id) !== currentOffer.variant;
+      const currentOffer = state.subscription_id
+        ? Object.values(c.offers).find(o => o.variant === String(s.attributes.variant_id) && o.product === String(s.attributes.product_id))
+        : offerFor(c, s);
+      const changedOffer = !!state.subscription_id && (!currentOffer || String(state.variant_id) !== currentOffer.variant);
       const offer = changedOffer ? Object.values(c.offers).find(o => o.variant === String(state.variant_id)) : currentOffer;
       if (!offer) throw new PaymentError('Original paid offer missing from approved catalog');
       const customer = id(s.attributes.customer_id);
