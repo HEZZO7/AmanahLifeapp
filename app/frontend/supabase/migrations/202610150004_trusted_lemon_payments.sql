@@ -73,6 +73,24 @@ begin
   end if;
 end $$;
 
+-- Paid family access now requires both the verified access window and its private ledger binding.
+-- Keep the same signature/dependencies/ACL and the independently server-issued seven-day trial.
+create or replace function public.app_11941c8fec_account_family_entitled(p_user_id uuid)
+returns boolean language sql stable security definer set search_path='' as $$
+  select exists (
+    select 1 from public.app_11941c8fec_subscriptions s
+    where s.user_id=p_user_id and s.entitlement_revoked_at is null and (
+      (s.trial_started_at<=statement_timestamp() and s.trial_started_at>statement_timestamp()-interval '7 days')
+      or (s.tier='family' and s.status in ('active','past_due','canceled')
+        and s.paid_access_from<=statement_timestamp() and s.paid_access_until>statement_timestamp()
+        and (s.status<>'canceled' or s.current_period_end is null or s.current_period_end>statement_timestamp())
+        and exists(select 1 from public.app_11941c8fec_payment_accounts a
+          join public.app_11941c8fec_payment_environment e on e.mode=a.mode
+          where a.user_id=s.user_id and a.subscription_id=s.lemonsqueezy_subscription_id
+            and a.tier='family' and a.invoice_id is not null)))
+  )
+$$;
+
 create function public.app_11941c8fec_payment_create_intent(p_mode text,p_user uuid,p_hash text,p_store text,p_product text,p_variant text,p_tier text,p_billing text)
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare a public.app_11941c8fec_payment_accounts;

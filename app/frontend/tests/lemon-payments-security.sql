@@ -48,6 +48,9 @@ select public.fixture_assert((select revision=1 from public.app_11941c8fec_payme
 select public.fixture_assert((select tier='family' and trial_used and trial_started_at is not null and paid_access_until>statement_timestamp()
   from public.app_11941c8fec_subscriptions where user_id='33333333-3333-4333-8333-333333333333'),'Activation changed trial or lost payment bounds');
 
+-- Expire ONLY the independent synthetic app trial after checking it was preserved.
+update public.app_11941c8fec_subscriptions set trial_started_at=statement_timestamp()-interval '8 days' where user_id='33333333-3333-4333-8333-333333333333';
+
 -- A second user's opaque intent cannot be used to replace the established subscription account.
 set local role service_role;
 select public.fixture_assert((public.app_11941c8fec_payment_snapshot('test','10',null,repeat('b',64),null)->>'user_id')='33333333-3333-4333-8333-333333333333','Metadata reassigned existing binding');

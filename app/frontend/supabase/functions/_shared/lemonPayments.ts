@@ -155,7 +155,7 @@ export async function webhook(req: Request, c: Config, d: Dependencies): Promise
     const type = invoiceEvents.has(event) ? 'subscription-invoices' : subscriptionEvents.has(event) ? 'subscriptions' : 'orders';
     const delivered = object(b.data, type);
     scope(delivered, c);
-    const custom = meta.custom_data && record(meta.custom_data);
+    const custom = meta.custom_data == null ? null : record(meta.custom_data);
     const nonce = custom?.app_id === '11941c8fec' && typeof custom.intent === 'string' && /^[a-f0-9]{64}$/.test(custom.intent) ? custom.intent : null;
     const hash = nonce ? await sha256(nonce) : null;
     const subscription = type === 'subscriptions' ? id(delivered.id) : type === 'subscription-invoices' ? id(delivered.attributes.subscription_id) : null;
