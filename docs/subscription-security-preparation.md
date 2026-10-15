@@ -1,3 +1,8 @@
+> Current status: see [family-policy-final-evidence.md](family-policy-final-evidence.md).
+> The completed family evidence and approved read-only/past_due policy supersede
+> earlier missing-evidence and automatic past_due assumptions below.
+> Payment integration remains blocked; no production operation is authorized.
+
 # Subscription security preparation (draft; integration blocked)
 
 This PR is stacked on PR #1, targeting fix/auth-subscription. Do not merge or deploy.

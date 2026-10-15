@@ -191,7 +191,7 @@ select public.fixture_assert(
 reset role;
 create or replace function public.app_11941c8fec_generate_join_code()
 returns text language sql volatile set search_path=''
-as $$ select 'LEGACY88'::text $;
+as $$ select 'LEGACY88'::text $$;
 do $$
 begin
  begin
