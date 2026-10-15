@@ -26,6 +26,7 @@ interface SubscriptionContextType {
   // fabricated - see that function's comments). Null for free/trial users
   // and, for now, for Paddle, whose webhook doesn't populate this column yet.
   currentPeriodEnd: string | null;
+  hasSubscription: boolean;
   loading: boolean;
   isTrialActive: boolean;
   trialDaysRemaining: number;
@@ -43,6 +44,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('lemonsqueezy');
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const [hasSubscription,setHasSubscription] = useState(false);
   const [recordUser, setRecordUser] = useState<string | null>(null);
   const [paidUntil, setPaidUntil] = useState<string | null>(null);
   const [paidFrom, setPaidFrom] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const fetchSubscription = useCallback(async () => {
     if (!user) {
-      setRecordUser(null);
+      setRecordUser(null); setHasSubscription(false);
       setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
       setTier('free');
       setStatus('active');
@@ -76,14 +78,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       // canceled/expired/paused row is still seen and can correctly reset
       // the tier to free below, instead of silently returning no row and
       // leaving whatever tier was last fetched stuck in state.
-      const { data, error } = await supabase
-        .from('app_11941c8fec_subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('app_11941c8fec_current_subscription');
 
       if (error || !data) {
-        setRecordUser(null); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
+        setRecordUser(null); setHasSubscription(false); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
         // No subscription record found - default to free
         setTier('free');
         setStatus('active');
@@ -96,6 +94,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'lemonsqueezy' }));
       } else {
         setRecordUser(user.id);
+        setHasSubscription(data.has_private_binding === true);
         const fetchedTier = (data.tier as SubscriptionTier) || 'free';
         const fetchedStatus = (data.status as SubscriptionStatus) || 'active';
         const fetchedBilling = (data.billing_cycle as BillingCycle) || 'monthly';
@@ -116,7 +115,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: fetchedTier, billing: fetchedBilling, provider: fetchedProvider }));
       }
     } catch {
-      setRecordUser(null); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
+      setRecordUser(null); setHasSubscription(false); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
       // A network failure is not entitlement evidence. Database/server checks remain authoritative.
       setIsTrialActive(false); setTrialDaysRemaining(0);
       setTier('free');
@@ -186,6 +185,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       billingCycle,
       paymentProvider,
       currentPeriodEnd,
+      hasSubscription: scoped && hasSubscription,
       loading,
       isTrialActive: scoped && isTrialActive && !revoked,
       trialDaysRemaining,
@@ -204,6 +204,7 @@ const defaultSubscription: SubscriptionContextType = {
   billingCycle: 'monthly',
   paymentProvider: 'lemonsqueezy',
   currentPeriodEnd: null,
+  hasSubscription: false,
   loading: false,
   isTrialActive: false,
   trialDaysRemaining: 0,

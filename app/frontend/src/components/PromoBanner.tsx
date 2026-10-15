@@ -85,7 +85,8 @@ export default function PromoBanner() {
         return;
       }
 
-      window.location.href = await createAppCheckout(session.access_token, 'balanced_monthly', COUPON_CODE);
+      const result = await createAppCheckout(session.access_token, 'balanced_monthly', COUPON_CODE);
+      if (result.url) window.location.href = result.url;
     } catch {
       // Silently fail
     } finally {

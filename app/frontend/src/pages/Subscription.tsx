@@ -48,7 +48,7 @@ export default function Subscription() {
   const { language } = useLanguage();
   const { timeFormat } = useTimeFormat();
   const isAr = language === 'ar';
-  const { tier: currentTier, status: currentStatus, billingCycle, currentPeriodEnd, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
+  const { tier: currentTier, billingCycle, currentPeriodEnd, hasSubscription, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -120,7 +120,14 @@ export default function Subscription() {
         return;
       }
 
-      window.location.href = await createAppCheckout(session.access_token, `${tier}_${billing}`);
+      const result = await createAppCheckout(session.access_token, `${tier}_${billing}`);
+      if (result.url) window.location.href = result.url;
+      else {
+        setMessage({ type: 'success', text: result.reviewRequired
+          ? (isAr ? 'تم حفظ طلب التغيير للمراجعة. باقتك الحالية لم تتغير.' : 'Change saved for review. Your current plan is unchanged.')
+          : (isAr ? 'تم طلب تغيير الباقة عند التجديد التالي المثبت الدفع. مزايا الفترة الحالية مستمرة حتى نهايتها.' : 'Plan change requested for the next confirmed paid renewal. Current paid benefits remain until their end.') });
+        setCheckoutLoading(null);
+      }
     } catch {
       setMessage({
         type: 'canceled',
@@ -133,18 +140,6 @@ export default function Subscription() {
   const handleManageSubscription = useCallback(async () => {
     setPortalLoading(true);
     try {
-      // If user is on free tier, no subscription to manage
-      if (currentTier === 'free') {
-        setMessage({
-          type: 'canceled',
-          text: isAr
-            ? 'ليس لديك اشتراك نشط حالياً. اختر خطة للاشتراك.'
-            : 'You don\'t have an active subscription. Choose a plan to subscribe.',
-        });
-        setPortalLoading(false);
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setMessage({
@@ -198,7 +193,7 @@ export default function Subscription() {
     } finally {
       setPortalLoading(false);
     }
-  }, [isAr, currentTier]);
+  }, [isAr]);
 
   const handleStartTrial = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -347,9 +342,7 @@ export default function Subscription() {
                   it, never a guessed date. */}
               {!isTrialActive && currentPeriodEnd && (
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {currentStatus === 'canceled'
-                    ? (isAr ? 'ينتهي الوصول في ' : 'Access ends ')
-                    : (isAr ? 'يتجدد في ' : 'Renews ')}
+                  {isAr ? 'الوصول المدفوع المثبت حتى ' : 'Verified paid access until '}
                   {new Date(currentPeriodEnd).toLocaleDateString(isAr ? 'ar' : 'en', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               )}
@@ -358,7 +351,7 @@ export default function Subscription() {
         </div>
 
         {/* Manage Subscription */}
-        {currentTier !== 'free' && !isTrialActive && (
+        {hasSubscription && (
           <div className="bg-card rounded-2xl p-4 border border-border">
             <h3 className="text-sm text-muted-foreground mb-2">
               {isAr ? 'إدارة الاشتراك' : 'Manage Subscription'}
@@ -414,7 +407,7 @@ export default function Subscription() {
           {/* Plan Cards */}
           <div className="space-y-3">
             {PLANS.map((plan) => {
-              const isCurrent = currentTier === plan.id;
+              const isCurrent = !isTrialActive && currentTier === plan.id && billing === billingCycle;
               const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
               const isLoading = checkoutLoading === plan.id;
               return (

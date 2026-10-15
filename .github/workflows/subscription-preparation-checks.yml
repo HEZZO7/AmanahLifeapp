@@ -100,4 +100,10 @@ jobs:
           -f tests/lemon-payments-security.sql
       - name: Concurrent duplicate payment events apply exactly once
         run: bash tests/concurrent-payment-events.sh
+      - name: Observed payments, paid plan boundaries and replacement history
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/lifecycle-seed.sql
+          -f supabase/migrations/202610150005_subscription_lifecycle.sql
+          -f tests/subscription-lifecycle-security.sql
 
