@@ -241,10 +241,6 @@ export function reconcile(c: Config, s: ObjectData, invoices: ObjectData[], orde
     const p = record(value);
     return { proof_id: String(p.proof_id), kind: String(p.kind), start: date(p.start), end: date(p.end), revoked_at: p.revoked_at ? date(p.revoked_at) : null, review: p.review === true };
   }) : [];
-  // Compatibility for an in-process snapshot fixture; real DB snapshots always supply the period ledger.
-  if (!Array.isArray(previous.periods) && previous.invoice_id && previous.paid_access_from && previous.paid_access_until) {
-    periods.push({ proof_id: String(previous.invoice_id), kind: String(previous.invoice_id).startsWith('order:') ? 'initial' : billable.find(i => i.id === previous.invoice_id)?.attributes.billing_reason === 'initial' ? 'initial' : 'renewal', start: date(previous.paid_access_from), end: date(previous.paid_access_until), revoked_at: previous.entitlement_revoked_at ? date(previous.entitlement_revoked_at) : null, review: false });
-  }
   const initialInvoices = invoices.filter(i => i.attributes.billing_reason === 'initial');
   const initialFullRefund = order.attributes.refunded === true || ['refunded', 'fraudulent'].includes(String(order.attributes.status))
     || initialInvoices.some(i => i.attributes.refunded === true || i.attributes.status === 'refunded');

@@ -12,7 +12,7 @@ const c = { mode: 'test', apiKey: 'isolated-test-key', secret: 'isolated-test-se
 const sub = (attrs = {}) => ({ type: 'subscriptions', id: '10', attributes: { test_mode: true, store_id: 1, customer_id: 6, product_id: 3, variant_id: 2, order_id: 20, status: 'active', created_at: start, updated_at: start, renews_at: end, ends_at: null, ...attrs } });
 const invoice = (attrs = {}, invoiceId = '30') => ({ type: 'subscription-invoices', id: invoiceId, attributes: { test_mode: true, store_id: 1, customer_id: 6, subscription_id: 10, billing_reason: 'initial', status: 'paid', total: 1299, created_at: start, updated_at: start, refunded: false, ...attrs } });
 const order = (attrs = {}) => ({ type: 'orders', id: '20', attributes: { test_mode: true, store_id: 1, customer_id: 6, status: 'paid', total: 1299, refunded: false, ...attrs } });
-const previous = { user_id: 'account-A', revision: 0, subscription_id: '10', customer_id: '6', variant_id: '2', product_id: '3', tier: 'family', billing: 'monthly', paid_access_from: start, paid_access_until: end, invoice_id: '30', entitlement_revoked_at: null };
+const previous = { user_id: 'account-A', revision: 0, subscription_id: '10', customer_id: '6', variant_id: '2', product_id: '3', tier: 'family', billing: 'monthly', paid_access_from: start, paid_access_until: end, invoice_id: '30', entitlement_revoked_at: null, periods: [{ proof_id: '30', kind: 'initial', start, end, revoked_at: null, review: false }] };
 function fixture() {
   const calls = []; let state = { ...previous }; let apiSub = sub(); let invoices = [invoice()]; let apiOrder = order();
   const seen = new Set(); let revision = 0; let checkoutPayload;

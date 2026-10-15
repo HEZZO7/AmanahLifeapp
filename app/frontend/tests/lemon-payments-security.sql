@@ -87,4 +87,11 @@ do $$ begin
 end $$;
 select public.fixture_assert((select revoked_at is not null from public.app_11941c8fec_payment_periods where subscription_id='10' and proof_id='43'),'Refund evidence erased');
 select public.fixture_assert((select count(*)=2 from public.app_11941c8fec_payment_periods where subscription_id='10'),'Per-invoice history was not retained');
+set local role service_role;
+select public.fixture_payment_apply(9,5,public.fixture_payment_state('active','44'));
+select public.fixture_payment_apply(10,6,public.fixture_payment_state('active','44') || jsonb_build_object('periods',
+ (public.fixture_payment_state('active','44')->'periods') || (public.fixture_payment_state('active','43',true)->'periods')));
+select public.fixture_assert(public.app_11941c8fec_account_family_entitled('33333333-3333-4333-8333-333333333333'),'Delayed old invoice refund erased newer verified payment');
+reset role;
+select public.fixture_assert((select invoice_id='44' and revision=7 from public.app_11941c8fec_payment_accounts where subscription_id='10'),'Old refund replaced current paid proof');
 rollback;
