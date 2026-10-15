@@ -30,8 +30,24 @@ create table public.app_11941c8fec_payment_bindings (
 -- Preserve already-private bindings, not arbitrary legacy subscription rows. Do NOT certify dates.
 insert into public.app_11941c8fec_payment_bindings(mode,subscription_id,user_id,customer_id,order_id,product_id,variant_id,tier,billing,last_state)
 select a.mode,a.subscription_id,a.user_id,a.customer_id,a.order_id,a.product_id,a.variant_id,a.tier,a.billing,
-  jsonb_build_object('provider_updated_at',a.provider_updated_at,'invoice_id',a.invoice_id,'review_required',true)
-from public.app_11941c8fec_payment_accounts a where a.subscription_id is not null;
+  jsonb_build_object('provider_updated_at',a.provider_updated_at,'invoice_id',a.invoice_id,'review_required',true,
+    'provider_status',case when s.payment_provider='lemonsqueezy' and s.lemonsqueezy_subscription_id=a.subscription_id then
+      case s.status when 'canceled' then 'cancelled' when 'trialing' then 'on_trial' else s.status end else null end)
+from public.app_11941c8fec_payment_accounts a left join public.app_11941c8fec_subscriptions s on s.user_id=a.user_id where a.subscription_id is not null;
+-- Preserve genuine PRIVATE payment evidence without interpreting a creation timestamp as service.
+-- Only a correlated applied provider event may supply its original database observation time.
+-- Raw legacy subscription rows, or proof rows lacking a correlated journal, remain uncertified.
+update public.app_11941c8fec_payment_periods p set confirmed_at=q.observed_at,end_source='prior_verified_paid_end',
+ tier=q.tier,billing=q.billing,product_id=q.product_id,variant_id=q.variant_id
+from (select pp.mode,pp.subscription_id,pp.proof_id,min(e.received_at) observed_at,a.tier,a.billing,a.product_id,a.variant_id
+ from public.app_11941c8fec_payment_periods pp
+ join public.app_11941c8fec_payment_accounts a on a.user_id=pp.user_id and a.mode=pp.mode and a.subscription_id=pp.subscription_id
+ join public.app_11941c8fec_payment_events e on e.mode=pp.mode and e.outcome='applied' and e.received_at<pp.access_end
+   and ((e.event_name in ('subscription_payment_success','subscription_payment_recovered') and e.object_id=pp.proof_id)
+     or (e.event_name in ('subscription_created','subscription_updated') and e.object_id=pp.subscription_id and a.invoice_id=pp.proof_id)
+     or (e.event_name='order_created' and e.object_id=a.order_id and pp.proof_id='order:'||a.order_id))
+ group by pp.mode,pp.subscription_id,pp.proof_id,a.tier,a.billing,a.product_id,a.variant_id) q
+where p.mode=q.mode and p.subscription_id=q.subscription_id and p.proof_id=q.proof_id;
 
 create table public.app_11941c8fec_payment_plan_changes (
   id uuid primary key default gen_random_uuid(),
@@ -49,9 +65,67 @@ create table public.app_11941c8fec_payment_plan_changes (
 );
 create unique index payment_one_pending_plan on public.app_11941c8fec_payment_plan_changes(mode,subscription_id)
   where status in ('requested','confirmed','review');
+create table public.app_11941c8fec_payment_deliveries (
+ mode text not null check(mode in ('test','live')),event_key text not null check(event_key ~ '^[a-f0-9]{64}$'),
+ event_name text not null,object_id text not null,subscription_id text,order_id text,intent_hash text check(intent_hash ~ '^[a-f0-9]{64}$'),
+ status text not null default 'pending' check(status in ('pending','leased','done','review')),
+ attempts integer not null default 0,available_at timestamptz not null default statement_timestamp(),
+ lease uuid,lease_until timestamptz,received_at timestamptz not null default statement_timestamp(),primary key(mode,event_key)
+);
+alter table public.app_11941c8fec_payment_deliveries enable row level security;
+revoke all on public.app_11941c8fec_payment_deliveries from public,anon,authenticated,service_role;
 alter table public.app_11941c8fec_payment_bindings enable row level security;
 alter table public.app_11941c8fec_payment_plan_changes enable row level security;
 revoke all on public.app_11941c8fec_payment_bindings,public.app_11941c8fec_payment_plan_changes from public,anon,authenticated,service_role;
+
+create function public.app_11941c8fec_payment_receive_delivery(p_mode text,p_key text,p_event text,p_object text,p_subscription text,p_order text,p_intent_hash text)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ perform public.app_11941c8fec_payment_require_mode(p_mode);
+ insert into public.app_11941c8fec_payment_deliveries(mode,event_key,event_name,object_id,subscription_id,order_id,intent_hash)
+ values(p_mode,p_key,p_event,p_object,p_subscription,p_order,p_intent_hash) on conflict(mode,event_key) do nothing;
+ return jsonb_build_object('stored',true);
+end $$;
+create function public.app_11941c8fec_payment_complete_delivery(p_mode text,p_key text)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ perform public.app_11941c8fec_payment_require_mode(p_mode);
+ update public.app_11941c8fec_payment_deliveries set status='done',lease=null,lease_until=null where mode=p_mode and event_key=p_key;
+ return jsonb_build_object('completed',found);
+end $$;
+create function public.app_11941c8fec_payment_claim_deliveries(p_mode text,p_limit integer)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare items jsonb;
+begin
+ perform public.app_11941c8fec_payment_require_mode(p_mode);
+ if p_limit is null or p_limit<1 or p_limit>25 then raise exception 'Bounded recovery limit required' using errcode='22023'; end if;
+ with picked as (select mode,event_key from public.app_11941c8fec_payment_deliveries
+   where mode=p_mode and available_at<=statement_timestamp() and (status='pending' or (status='leased' and lease_until<statement_timestamp()))
+   order by received_at,event_key for update skip locked limit p_limit),
+ claimed as (update public.app_11941c8fec_payment_deliveries d set status='leased',lease=gen_random_uuid(),lease_until=statement_timestamp()+interval '2 minutes',attempts=d.attempts+1
+   from picked p where d.mode=p.mode and d.event_key=p.event_key returning d.*)
+ select coalesce(jsonb_agg(to_jsonb(claimed)),'[]'::jsonb) into items from claimed;
+ return jsonb_build_object('items',items);
+end $$;
+create function public.app_11941c8fec_payment_finish_delivery(p_mode text,p_key text,p_lease uuid,p_ok boolean)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ perform public.app_11941c8fec_payment_require_mode(p_mode);
+ update public.app_11941c8fec_payment_deliveries set status=case when p_ok then 'done' when attempts>=12 then 'review' else 'pending' end,
+   available_at=statement_timestamp()+make_interval(secs=>least(900,5*power(2,least(attempts,8)))::integer),lease=null,lease_until=null
+   where mode=p_mode and event_key=p_key and status='leased' and lease=p_lease;
+ return jsonb_build_object('finished',found);
+end $$;
+create function public.app_11941c8fec_payment_reconcile_targets(p_mode text,p_after text,p_limit integer)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare items jsonb; last_id text;
+begin
+ perform public.app_11941c8fec_payment_require_mode(p_mode);
+ if p_limit is null or p_limit<1 or p_limit>100 then raise exception 'Bounded target limit required' using errcode='22023'; end if;
+ select coalesce(jsonb_agg(jsonb_build_object('subscription_id',subscription_id) order by subscription_id),'[]'::jsonb),max(subscription_id) into items,last_id
+ from (select subscription_id from public.app_11941c8fec_payment_bindings where mode=p_mode and (p_after is null or subscription_id>p_after) order by subscription_id limit p_limit) q;
+ return jsonb_build_object('items',items,'next_cursor',case when exists(select 1 from public.app_11941c8fec_payment_bindings where mode=p_mode and subscription_id>last_id) then last_id else null end);
+end $$;
 
 create or replace function public.app_11941c8fec_payment_snapshot(p_mode text,p_subscription text,p_order text,p_intent_hash text,p_user uuid)
 returns jsonb language plpgsql security definer set search_path='' as $$

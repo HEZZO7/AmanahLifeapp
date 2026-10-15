@@ -3,8 +3,9 @@
 begin;
 do $$ begin if current_setting('amanahlife.security_fixture',true) is distinct from 'isolated' then raise exception 'Isolated fixture required'; end if; end $$;
 select public.fixture_assert((select count(*)=1 from public.app_11941c8fec_payment_bindings where subscription_id='110'),'Private binding history lost');
-select public.fixture_assert((select confirmed_at is null and service_period_start is null from public.app_11941c8fec_payment_periods where subscription_id='110' and proof_id='130'),'Legacy created date was auto-certified');
-select public.fixture_assert(not public.app_11941c8fec_account_family_entitled('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'Legacy derived date grants paid access');
+select public.fixture_assert((select confirmed_at>access_start and service_period_start is null from public.app_11941c8fec_payment_periods where subscription_id='110' and proof_id='130'),'Private journal observation was replaced by a created date');
+select public.fixture_assert(public.app_11941c8fec_account_family_entitled('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'Verified private paid access was lost during migration');
+select public.fixture_assert(not public.app_11941c8fec_account_family_entitled('88888888-8888-4888-8888-888888888888'),'Raw legacy tier certified as paid');
 select public.fixture_assert(not has_function_privilege('service_role','public.app_11941c8fec_payment_apply(text,text,text,text,uuid,bigint,text,text,text,text,text,text,text,text,text,jsonb)','EXECUTE'),'Legacy mutation RPC still callable');
 
 create function public.fixture_lifecycle_state(p_sid text,p_invoice text,p_tier text default 'family',p_status text default 'active',p_refund boolean default false)
@@ -38,6 +39,8 @@ select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 select public.fixture_expect_denied($q$ select public.fixture_lifecycle_commit(101,1,'110','130') $q$);
 select public.fixture_expect_denied($q$ select public.app_11941c8fec_payment_reserve_checkout('test',auth.uid(),repeat('f',64),'1','3','2','family','monthly',0,null) $q$);
 select public.fixture_expect_denied($q$ truncate public.app_11941c8fec_payment_bindings $q$);
+select public.fixture_expect_denied($q$ select public.app_11941c8fec_payment_claim_deliveries('test',25) $q$);
+select public.fixture_expect_denied($q$ select public.app_11941c8fec_payment_reconcile_targets('test',null,25) $q$);
 reset role;
 set local role service_role;
 select public.fixture_lifecycle_commit(101,1,'110','130');
@@ -77,7 +80,23 @@ select public.fixture_lifecycle_commit(105,6,'111','140');
 select public.fixture_assert((public.fixture_lifecycle_commit(106,7,'110','131','balanced',public.fixture_lifecycle_state('110','131','balanced','expired',true))->>'archived')::boolean,'Old subscription event was projected over its replacement');
 select public.fixture_assert(public.app_11941c8fec_account_family_entitled('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'Old refund revoked newer valid subscription');
 select public.fixture_assert((public.fixture_lifecycle_commit(106,7,'110','131','balanced',public.fixture_lifecycle_state('110','131','balanced','expired',true))->>'duplicate')::boolean,'Old event replay not deduplicated');
+-- Durable minimized inbox: duplication, lease ownership, retry and poison-event review.
+select public.app_11941c8fec_payment_receive_delivery('test',repeat('a',64),'subscription_updated','111','111',null,null);
+select public.app_11941c8fec_payment_receive_delivery('test',repeat('a',64),'subscription_updated','111','111',null,null);
+select (public.app_11941c8fec_payment_claim_deliveries('test',1)->'items'->0->>'lease') delivery_lease \gset
+select public.fixture_assert(not (public.app_11941c8fec_payment_finish_delivery('test',repeat('a',64),'00000000-0000-4000-8000-000000000000',true)->>'finished')::boolean,'A stale lease acknowledged another worker');
+select public.app_11941c8fec_payment_finish_delivery('test',repeat('a',64),:'delivery_lease',false);
+select public.fixture_assert(jsonb_array_length(public.app_11941c8fec_payment_claim_deliveries('test',1)->'items')=0,'Retry ignored backoff');
+select public.fixture_assert(jsonb_array_length(public.app_11941c8fec_payment_reconcile_targets('test',null,1)->'items')=1,'Reconciliation target batch incorrect');
+select public.fixture_assert(public.app_11941c8fec_payment_reconcile_targets('test',null,1)->>'next_cursor'='110','Reconciliation cursor skipped a binding');
 reset role;
+select public.fixture_assert((select count(*)=1 from public.app_11941c8fec_payment_deliveries where event_key=repeat('a',64)),'Duplicate delivery rows');
+update public.app_11941c8fec_payment_deliveries set attempts=11,available_at=statement_timestamp()-interval '1 second' where event_key=repeat('a',64);
+set local role service_role;
+select (public.app_11941c8fec_payment_claim_deliveries('test',1)->'items'->0->>'lease') poison_lease \gset
+select public.app_11941c8fec_payment_finish_delivery('test',repeat('a',64),:'poison_lease',false);
+reset role;
+select public.fixture_assert((select status='review' and attempts=12 from public.app_11941c8fec_payment_deliveries where event_key=repeat('a',64)),'Poison delivery did not enter bounded manual review');
 select public.fixture_assert((select subscription_id='111' and revision=8 from public.app_11941c8fec_payment_accounts where user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'Current binding pointer/regression revision incorrect');
 select public.fixture_assert((select count(*)=2 from public.app_11941c8fec_payment_bindings where user_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),'Previous binding was destroyed');
 select public.fixture_assert(not exists(select 1 from public.app_11941c8fec_payment_periods where service_period_start is not null or service_period_end is not null),'A fabricated service-period boundary was stored');

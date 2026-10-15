@@ -2,7 +2,7 @@
 // PostgreSQL RPC integration is exercised separately against a fresh CI PostgreSQL service.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkout, webhook, reconcile, configuration, sha256, synchronize } from '../supabase/functions/_shared/lemonPayments.ts';
+import { checkout, webhook, reconcile, configuration, sha256, synchronize, recoverDeliveries, reconcileBindings } from '../supabase/functions/_shared/lemonPayments.ts';
 
 const now = Date.now();
 const start = new Date(now - 86400000).toISOString();
@@ -278,4 +278,38 @@ test('an ambiguous failed provider plan call is not repeated automatically', asy
   f.d.rpc=async(name,args)=>name.endsWith('_request_plan')?{data:{created:false,id:'plan-fixture',status:'requested'},error:null}:oldRpc(name,args);
   const again=await checkout(checkoutRequest({offer:'family_monthly'}),c,f.d);
   assert.equal((await again.json()).reviewRequired,true);
+});
+test('native-trial/setup-fee/zero or metered plan prices never trigger automatic mutations', async () => {
+  for(const override of [{trial_interval_unit:'day',trial_interval_quantity:7},{setup_fee_enabled:true},{unit_price:0},{usage_aggregation:'sum'}]) {
+    const f=balancedFixture();const original=f.d.fetch;
+    f.d.fetch=async(url,init)=>{const r=await original(url,init);if(new URL(url).pathname.endsWith('/prices')){const b=await r.json();Object.assign(b.data[0].attributes,override);return Response.json(b);}return r;};
+    const r=await checkout(checkoutRequest({offer:'family_monthly'}),c,f.d);
+    assert.equal((await r.json()).reviewRequired,true);assert.equal(f.apiCalls.some(x=>x.method==='PATCH'),false);
+  }
+});
+test('verified delivery context survives API failure without storing raw identity or secret material', async () => {
+  const f=fixture();f.d.fetch=async()=>new Response('',{status:503});
+  const result=await webhook(await signed('subscription_created',sub(),{custom_data:{app_id:'11941c8fec',intent:'a'.repeat(64),user_id:'attacker'}}),c,f.d);
+  assert.equal(result.status,503);
+  const receipt=f.calls.find(x=>x.name.endsWith('_receive_delivery')).args;
+  assert.equal(receipt.p_intent_hash,await sha256('a'.repeat(64))); assert.equal(receipt.p_subscription,'10');
+  assert.equal(JSON.stringify(receipt).includes('attacker'),false);assert.equal(JSON.stringify(receipt).includes('a'.repeat(64)),false);
+  assert.equal(f.calls.some(x=>x.name.endsWith('_complete_delivery')),false);
+});
+test('recovery uses a canonical key and acknowledges only its claimed lease', async () => {
+  const f=fixture();const original=f.d.rpc;
+  f.d.rpc=async(name,args)=>name.endsWith('_claim_deliveries')?{data:{items:[{event_key:'delivery-key',subscription_id:'10',lease:'lease-1'}]},error:null}:original(name,args);
+  assert.deepEqual(await recoverDeliveries(c,f.d),{completed:1,failed:0});
+  const finish=f.calls.find(x=>x.name.endsWith('_finish_delivery')).args;
+  assert.equal(finish.p_lease,'lease-1');assert.equal(finish.p_ok,true);
+  assert.notEqual(f.calls.find(x=>x.name.endsWith('_commit_snapshot')).args.p_key,'delivery-key');
+});
+test('failed recovery remains retryable; periodic sweep carries its pagination cursor', async () => {
+  const f=fixture();const original=f.d.rpc;
+  f.d.fetch=async()=>new Response('',{status:503});
+  f.d.rpc=async(name,args)=>name.endsWith('_claim_deliveries')?{data:{items:[{event_key:'delivery-key',subscription_id:'10',lease:'lease-2'}]},error:null}
+    :name.endsWith('_reconcile_targets')?{data:{items:[{subscription_id:'10'}],next_cursor:'10'},error:null}:original(name,args);
+  assert.deepEqual(await recoverDeliveries(c,f.d),{completed:0,failed:1});
+  assert.equal(f.calls.find(x=>x.name.endsWith('_finish_delivery')).args.p_ok,false);
+  assert.deepEqual(await reconcileBindings(c,f.d),{completed:0,failed:1,nextCursor:'10'});
 });

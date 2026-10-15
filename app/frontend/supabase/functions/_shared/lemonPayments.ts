@@ -176,7 +176,12 @@ export async function webhook(req: Request, c: Config, d: Dependencies): Promise
     const subscription = type === 'subscriptions' ? id(delivered.id) : type === 'subscription-invoices' ? id(delivered.attributes.subscription_id) : null;
     const order = type === 'orders' ? id(delivered.id) : null;
     const digest = await sha256(raw);
-    return response(await synchronize(c, d, { subscription, order, intentHash: hash, digest, event, delivered }));
+    // Durable, minimized verified context survives provider retries. Never persist raw nonce,
+    // signature, email, checkout URL or unverified input. Scheduler activation is separate.
+    await rpc(d,'receive_delivery',{p_mode:c.mode,p_key:digest,p_event:event,p_object:delivered.id,p_subscription:subscription,p_order:order,p_intent_hash:hash});
+    const result=await synchronize(c,d,{subscription,order,intentHash:hash,digest,event,delivered});
+    await rpc(d,'complete_delivery',{p_mode:c.mode,p_key:digest});
+    return response(result);
   } catch (e) { return response({ error: e instanceof PaymentError ? e.message : 'Webhook retry required' }, e instanceof PaymentError ? e.status : 503); }
 }
 
@@ -251,6 +256,32 @@ export async function synchronize(c: Config, d: Dependencies, input: SyncInput):
 function subscriptionVersion(s: ObjectData) {
   const a=s.attributes;
   return [a.store_id,a.customer_id,a.order_id,a.product_id,a.variant_id,a.updated_at,a.status,a.renews_at,a.ends_at];
+}
+// Library-only workers. No anonymous endpoint, cron schedule or live credentials are installed.
+export async function recoverDeliveries(c:Config,d:Dependencies,limit=25):Promise<{completed:number;failed:number}> {
+  const batch=await rpc(d,'claim_deliveries',{p_mode:c.mode,p_limit:limit});
+  if(!Array.isArray(batch.items)) throw new PaymentError('Invalid recovery batch');
+  let completed=0,failed=0;
+  for(const value of batch.items) {
+    const job=record(value);
+    try {
+      await synchronize(c,d,{subscription:job.subscription_id?String(job.subscription_id):null,order:job.order_id?String(job.order_id):null,intentHash:job.intent_hash?String(job.intent_hash):null,event:'delivery_reconciliation'});
+      await rpc(d,'finish_delivery',{p_mode:c.mode,p_key:job.event_key,p_lease:job.lease,p_ok:true});completed++;
+    } catch {
+      await rpc(d,'finish_delivery',{p_mode:c.mode,p_key:job.event_key,p_lease:job.lease,p_ok:false});failed++;
+    }
+  }
+  return {completed,failed};
+}
+export async function reconcileBindings(c:Config,d:Dependencies,after:string|null=null,limit=25):Promise<{nextCursor:string|null;completed:number;failed:number}> {
+  const batch=await rpc(d,'reconcile_targets',{p_mode:c.mode,p_after:after,p_limit:limit});
+  if(!Array.isArray(batch.items)) throw new PaymentError('Invalid binding batch');
+  let completed=0,failed=0;
+  for(const value of batch.items) {
+    const target=record(value);
+    try {await synchronize(c,d,{subscription:id(target.subscription_id),event:'periodic_reconciliation'});completed++;} catch {failed++;}
+  }
+  return {completed,failed,nextCursor:typeof batch.next_cursor==='string'?batch.next_cursor:null};
 }
 async function schedulePlan(c: Config, d: Dependencies, user: string, state: Record<string, unknown>, offer: Offer, targetPrice:Record<string,unknown>, headers: Record<string,string>): Promise<Response> {
   // Interval switches/trials/PayPal may charge immediately or need a different portal flow.
