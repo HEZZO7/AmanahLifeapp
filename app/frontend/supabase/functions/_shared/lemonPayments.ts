@@ -55,7 +55,7 @@ export function configuration(get: (key: string) => string | undefined, mode: Mo
   if (new Set(Object.values(offers).map(o => o.variant)).size !== 4) throw new PaymentError('Variant mapping overlaps');
   const origin = new URL(need('APP_ORIGIN')).origin;
   if (!origin.startsWith('https://')) throw new PaymentError('HTTPS application origin required');
-  return { mode, offers, origin, store: id(need('STORE_ID')), apiKey: need('API_KEY'), secret: need('WEBHOOK_SECRET'), refundPolicy: get(`AMANAHLIFE_LS_${mode.toUpperCase()}_REFUND_POLICY`) || 'unconfirmed' };
+  return { mode, offers, origin, store: id(need('STORE_ID')), apiKey: need('API_KEY'), secret: need('WEBHOOK_SECRET'), refundPolicy: 'review_keep_current' };
 }
 async function rpc(d: Dependencies, name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await d.rpc(prefix + name, args);
@@ -236,28 +236,53 @@ export function reconcile(c: Config, s: ObjectData, invoices: ObjectData[], orde
   if (latest && previous.paid_access_from && Date.parse(date(invoice!.created_at)) < Date.parse(String(previous.paid_access_from))) {
     throw new PaymentError('Provider returned an older invoice history');
   }
-  const partial = invoices.some(i => i.attributes.status === 'partial_refund') || order.attributes.status === 'partial_refund';
-  // Initial order refunds affect the initial period, not an independently paid later renewal.
-  const refund = invoice?.status === 'refunded' || invoice?.refunded === true || (invoice?.billing_reason === 'initial' && (order.attributes.refunded === true || ['refunded', 'fraudulent'].includes(String(order.attributes.status)))) || (partial && c.refundPolicy === 'revoke_all');
-  if (partial && !refund && a.status !== 'expired' && !['review_keep_current', 'revoke_all'].includes(c.refundPolicy)) throw new PaymentError('Refund policy requires approval');
-  let from = previous.paid_access_from || null;
-  let until = previous.paid_access_until || null;
-  let proof = previous.invoice_id || null;
-  let revoked = previous.entitlement_revoked_at || null;
-  const end = a.status === 'cancelled' ? a.ends_at : a.status === 'active' ? a.renews_at : null;
-  // No native-trial, failed/pending/proration/zero-value invoice, or future retry date proves a paid cycle.
-  if (!refund && !partial && !changedOffer && invoice?.status === 'paid' && invoice.refunded !== true && Number(invoice.total) > 0 && end) {
-    const start = date(invoice.created_at);
-    const finish = date(end);
-    if (Date.parse(start) >= Date.parse(finish) || Date.parse(start) > Date.now() + 60000) throw new PaymentError('Ambiguous paid access window');
-    if (proof !== latest.id) {
-      // Invoice creation is a conservative access-start bound, NOT an invented provider billing_period_start.
-      from = start; until = finish; proof = latest.id; revoked = null;
-    } else if (until && Date.parse(finish) < Date.parse(String(until))) until = finish;
+  type Period = { proof_id: string; kind: string; start: string; end: string; revoked_at: string | null; review: boolean };
+  const periods: Period[] = Array.isArray(previous.periods) ? previous.periods.map(value => {
+    const p = record(value);
+    return { proof_id: String(p.proof_id), kind: String(p.kind), start: date(p.start), end: date(p.end), revoked_at: p.revoked_at ? date(p.revoked_at) : null, review: p.review === true };
+  }) : [];
+  // Compatibility for an in-process snapshot fixture; real DB snapshots always supply the period ledger.
+  if (!Array.isArray(previous.periods) && previous.invoice_id && previous.paid_access_from && previous.paid_access_until) {
+    periods.push({ proof_id: String(previous.invoice_id), kind: String(previous.invoice_id).startsWith('order:') ? 'initial' : billable.find(i => i.id === previous.invoice_id)?.attributes.billing_reason === 'initial' ? 'initial' : 'renewal', start: date(previous.paid_access_from), end: date(previous.paid_access_until), revoked_at: previous.entitlement_revoked_at ? date(previous.entitlement_revoked_at) : null, review: false });
   }
-  if (refund) revoked = invoice?.refunded_at ? date(invoice.refunded_at) : version;
-  if (a.status === 'expired') revoked = a.ends_at ? date(a.ends_at) : version;
-  // Cancellation limits paid access but does not erase independently verified payment evidence.
-  if (a.status === 'cancelled' && a.ends_at && until && Date.parse(date(a.ends_at)) < Date.parse(String(until))) until = date(a.ends_at);
-  return { status, provider_status: a.status, provider_updated_at: version, paid_access_from: from, paid_access_until: until, invoice_id: proof, entitlement_revoked_at: revoked, ends_at: a.ends_at ? date(a.ends_at) : null, review_required: partial || changedOffer };
+  const initialInvoices = invoices.filter(i => i.attributes.billing_reason === 'initial');
+  const initialFullRefund = order.attributes.refunded === true || ['refunded', 'fraudulent'].includes(String(order.attributes.status))
+    || initialInvoices.some(i => i.attributes.refunded === true || i.attributes.status === 'refunded');
+  let review = changedOffer || invoices.some(i => i.attributes.status === 'partial_refund') || order.attributes.status === 'partial_refund';
+  for (const p of periods) {
+    const source = invoices.find(i => i.id === p.proof_id)?.attributes;
+    const fullyRefunded = source?.refunded === true || source?.status === 'refunded' || (p.kind === 'initial' && initialFullRefund);
+    if (fullyRefunded && !p.revoked_at) p.revoked_at = source?.refunded_at ? date(source.refunded_at) : order.attributes.refunded_at && p.kind === 'initial' ? date(order.attributes.refunded_at) : version;
+    if (source?.status === 'partial_refund' || (p.kind === 'initial' && order.attributes.status === 'partial_refund')) p.review = true;
+    if (a.status === 'cancelled' && a.ends_at && Date.parse(date(a.ends_at)) < Date.parse(p.end)) p.end = date(a.ends_at);
+    if (a.status === 'expired') p.revoked_at ||= a.ends_at ? date(a.ends_at) : version;
+  }
+  const end = a.status === 'cancelled' ? a.ends_at : a.status === 'active' ? a.renews_at : null;
+  const currentPartial = invoice?.status === 'partial_refund' || (invoice?.billing_reason === 'initial' && order.attributes.status === 'partial_refund');
+  const currentRefund = invoice?.status === 'refunded' || invoice?.refunded === true || (invoice?.billing_reason === 'initial' && initialFullRefund);
+  // An unrelated old partial refund cannot block a later independently paid renewal.
+  if (!currentRefund && !currentPartial && !changedOffer && invoice?.status === 'paid' && Number(invoice.total) > 0 && end) {
+    const start = date(invoice.created_at); const finish = date(end);
+    if (Date.parse(start) >= Date.parse(finish) || Date.parse(start) > Date.now() + 60000) throw new PaymentError('Ambiguous paid access window');
+    const known = periods.find(p => p.proof_id === latest!.id);
+    if (known) {
+      if (Date.parse(finish) < Date.parse(known.end)) known.end = finish;
+      // Never clear a refund or extend the same proof on a delayed/replayed success.
+    } else {
+      const sameInitial = invoice.billing_reason === 'initial' && periods.find(p => p.kind === 'initial');
+      periods.push({ proof_id: latest!.id, kind: String(invoice.billing_reason), start,
+        end: sameInitial && Date.parse(sameInitial.end) < Date.parse(finish) ? sameInitial.end : finish,
+        revoked_at: sameInitial ? sameInitial.revoked_at : null, review: false });
+    }
+  }
+  const live = periods.filter(p => !p.revoked_at && Date.parse(p.start) <= Date.now() && Date.parse(p.end) > Date.now())
+    .sort((x,y) => Date.parse(y.end)-Date.parse(x.end));
+  const chosen = live[0] || [...periods].sort((x,y) => Date.parse(y.start)-Date.parse(x.start))[0];
+  const expired = a.status === 'expired';
+  const revoked = expired ? (a.ends_at ? date(a.ends_at) : version) : live.length ? null : chosen?.revoked_at || (currentRefund ? version : previous.entitlement_revoked_at || null);
+  review ||= periods.some(p => p.review);
+  return { status, provider_status: a.status, provider_updated_at: version,
+    paid_access_from: chosen?.start || null, paid_access_until: chosen?.end || null,
+    invoice_id: chosen?.proof_id || null, entitlement_revoked_at: revoked,
+    ends_at: a.ends_at ? date(a.ends_at) : null, review_required: review, periods };
 }

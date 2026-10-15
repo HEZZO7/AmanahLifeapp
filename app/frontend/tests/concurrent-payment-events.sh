@@ -18,7 +18,9 @@ select public.app_11941c8fec_payment_apply('test',repeat('9',64),'subscription_p
  '99999999-9999-4999-8999-999999999999',0,repeat('c',64),'90','91','92','1','3','2','family','monthly',
  jsonb_build_object('status','active','provider_updated_at',statement_timestamp(),'invoice_id','93',
  'paid_access_from',statement_timestamp()-interval '1 day','paid_access_until',statement_timestamp()+interval '29 days',
- 'entitlement_revoked_at',null,'ends_at',null,'review_required',false));
+ 'entitlement_revoked_at',null,'ends_at',null,'review_required',false,
+ 'periods',jsonb_build_array(jsonb_build_object('proof_id','93','kind','initial',
+ 'start',statement_timestamp()-interval '1 day','end',statement_timestamp()+interval '29 days','revoked_at',null,'review',false))));
 SQL
 psql -v ON_ERROR_STOP=1 -At -f "$payment_tmp/event.sql" > "$payment_tmp/one" &
 payment_one=$!

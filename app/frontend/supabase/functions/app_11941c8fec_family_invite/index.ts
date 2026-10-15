@@ -1,4 +1,3 @@
-import { hasFamilyEntitlement } from '../_shared/familyEntitlement.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer";
 
@@ -71,15 +70,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing or invalid email" }, 400, corsHeaders);
     }
 
-    const { data: sub, error: subError } = await supabase
-      .from("app_11941c8fec_subscriptions")
-      .select("tier, status, current_period_end, trial_started_at, paid_access_until, entitlement_revoked_at, lemonsqueezy_subscription_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (subError) return json({ error: "subscription_lookup_failed" }, 503, corsHeaders);
-    if (!hasFamilyEntitlement(sub)) {
-      return json({ error: "family_plan_required" }, 403, corsHeaders);
-    }
+    // Use the same private invoice/period proof as family RLS, not a tier/status shortcut.
+    const { data: entitled, error: entitlementError } = await supabase.rpc(
+      'app_11941c8fec_account_family_entitled', { p_user_id: user.id }
+    );
+    if (entitlementError) return json({ error: 'subscription_lookup_failed' }, 503, corsHeaders);
+    if (entitled !== true) return json({ error: 'family_plan_required' }, 403, corsHeaders);
 
     let { data: family } = await supabase
       .from(FAMILIES)
@@ -180,3 +176,4 @@ Deno.serve(async (req: Request) => {
 
   return json({ error: "Unknown action" }, 400, corsHeaders);
 });
+

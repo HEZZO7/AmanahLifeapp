@@ -14,10 +14,15 @@ select public.fixture_assert(not exists(select 1 from pg_proc p join pg_namespac
   lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
   where n.nspname='public' and p.proname like 'app\_11941c8fec\_payment\_%' escape '\' and a.grantee=0), 'PUBLIC can execute payment functions');
 
-create function public.fixture_payment_state(p_status text default 'active',p_invoice text default '42',p_revoked boolean default false)
+create function public.fixture_payment_state(p_status text default 'active',p_invoice text default '42',p_revoked boolean default false,p_expired boolean default false)
 returns jsonb language sql as $$ select jsonb_build_object('status',p_status,'provider_updated_at',statement_timestamp(),
- 'invoice_id',p_invoice,'paid_access_from',statement_timestamp()-interval '1 day','paid_access_until',statement_timestamp()+interval '29 days',
- 'entitlement_revoked_at',case when p_revoked then statement_timestamp() else null end,'ends_at',null,'review_required',false) $$;
+ 'invoice_id',p_invoice,'paid_access_from',date_trunc('day',statement_timestamp())-interval '1 day',
+ 'paid_access_until',case when p_expired then statement_timestamp()-interval '1 hour' else date_trunc('day',statement_timestamp())+interval '29 days' end,
+ 'entitlement_revoked_at',case when p_revoked then statement_timestamp() else null end,'ends_at',null,'review_required',false,
+ 'periods',jsonb_build_array(jsonb_build_object('proof_id',p_invoice,'kind',case when p_invoice='42' then 'initial' else 'renewal' end,
+ 'start',date_trunc('day',statement_timestamp())-interval '1 day',
+ 'end',case when p_expired then statement_timestamp()-interval '1 hour' else date_trunc('day',statement_timestamp())+interval '29 days' end,
+ 'revoked_at',case when p_revoked then statement_timestamp() else null end,'review',false))) $$;
 create function public.fixture_payment_apply(p_key int,p_revision bigint,p_state jsonb,p_hash text default repeat('a',64),p_variant text default '2')
 returns jsonb language sql security invoker as $$ select public.app_11941c8fec_payment_apply('test',lpad(p_key::text,64,'0'),
  'subscription_payment_success','42','33333333-3333-4333-8333-333333333333',p_revision,p_hash,'10','6','20','1','3',p_variant,'family','monthly',p_state) $$;
@@ -57,7 +62,7 @@ select public.fixture_assert((public.app_11941c8fec_payment_snapshot('test','10'
 -- Cancellation retains the actual verified end, not an arbitrary future retry.
 select public.fixture_payment_apply(4,1,public.fixture_payment_state('canceled') || jsonb_build_object('ends_at',statement_timestamp()+interval '29 days'));
 select public.fixture_assert(public.app_11941c8fec_account_family_entitled('33333333-3333-4333-8333-333333333333'),'Cancellation cut off paid period');
-select public.fixture_payment_apply(5,2,public.fixture_payment_state('past_due') || jsonb_build_object('paid_access_until',statement_timestamp()-interval '1 hour','paid_access_from',statement_timestamp()-interval '31 days'));
+select public.fixture_payment_apply(5,2,public.fixture_payment_state('past_due','42',false,true));
 reset role;
 -- Remove the independent unexpired app trial in the test fixture ONLY, so it cannot mask unpaid access.
 update public.app_11941c8fec_subscriptions set trial_started_at=statement_timestamp()-interval '8 days' where user_id='33333333-3333-4333-8333-333333333333';
@@ -70,4 +75,16 @@ select public.fixture_assert(not public.app_11941c8fec_account_family_entitled('
 reset role;
 select public.fixture_assert((select count(*)=1 from public.app_11941c8fec_payment_accounts where subscription_id='10'),'Subscription bound more than once');
 select public.fixture_assert((select count(*)=2 from public.app_11941c8fec_payment_intents),'Unexpected data deletion');
+-- Per-period revocation is sticky even for trusted service calls: a delayed success cannot erase it.
+do $$ begin
+  begin
+    perform public.fixture_payment_apply(8,5,public.fixture_payment_state('active','43',false));
+  exception when raise_exception then
+    if sqlerrm='Payment projection differs from immutable period proof' then return; end if;
+    raise;
+  end;
+  raise exception 'A delayed success cleared invoice revocation';
+end $$;
+select public.fixture_assert((select revoked_at is not null from public.app_11941c8fec_payment_periods where subscription_id='10' and proof_id='43'),'Refund evidence erased');
+select public.fixture_assert((select count(*)=2 from public.app_11941c8fec_payment_periods where subscription_id='10'),'Per-invoice history was not retained');
 rollback;

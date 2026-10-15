@@ -56,9 +56,22 @@ create table public.app_11941c8fec_payment_events (
   received_at timestamptz not null default statement_timestamp(),
   primary key(mode,event_key)
 );
+create table public.app_11941c8fec_payment_periods (
+  mode text not null check(mode in ('test','live')),
+  subscription_id text not null,
+  proof_id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null check(kind in ('initial','renewal')),
+  access_start timestamptz not null,
+  access_end timestamptz not null,
+  revoked_at timestamptz,
+  review_required boolean not null default false,
+  primary key(mode,subscription_id,proof_id),
+  check(access_start<access_end)
+);
 
 do $$ declare t text; begin
-  foreach t in array array['payment_environment','payment_accounts','payment_intents','payment_events'] loop
+  foreach t in array array['payment_environment','payment_accounts','payment_intents','payment_events','payment_periods'] loop
     execute format('alter table public.app_11941c8fec_%I enable row level security',t);
     execute format('revoke all on public.app_11941c8fec_%I from public,anon,authenticated,service_role',t);
     -- No direct API writes: mutations occur in the narrow service RPCs below.
@@ -87,7 +100,11 @@ returns boolean language sql stable security definer set search_path='' as $$
         and exists(select 1 from public.app_11941c8fec_payment_accounts a
           join public.app_11941c8fec_payment_environment e on e.mode=a.mode
           where a.user_id=s.user_id and a.subscription_id=s.lemonsqueezy_subscription_id
-            and a.tier='family' and a.invoice_id is not null)))
+            and a.tier='family' and a.invoice_id is not null
+            and exists(select 1 from public.app_11941c8fec_payment_periods pp
+              where pp.mode=a.mode and pp.subscription_id=a.subscription_id and pp.proof_id=a.invoice_id
+                and pp.user_id=s.user_id and pp.revoked_at is null
+                and pp.access_start<=statement_timestamp() and pp.access_end>statement_timestamp()))))
   )
 $$;
 
@@ -140,7 +157,10 @@ begin
     'store_id',i.store_id,'product_id',coalesce(a.product_id,i.product_id),'variant_id',coalesce(a.variant_id,i.variant_id),
     'tier',a.tier,'billing',a.billing,'intent_created_at',i.created_at,'provider_updated_at',a.provider_updated_at,
     'invoice_id',a.invoice_id,'paid_access_from',s.paid_access_from,'paid_access_until',s.paid_access_until,
-    'entitlement_revoked_at',s.entitlement_revoked_at,'trial_used',coalesce(s.trial_used,false));
+    'entitlement_revoked_at',s.entitlement_revoked_at,'trial_used',coalesce(s.trial_used,false),
+    'periods',coalesce((select jsonb_agg(jsonb_build_object('proof_id',pp.proof_id,'kind',pp.kind,
+      'start',pp.access_start,'end',pp.access_end,'revoked_at',pp.revoked_at,'review',pp.review_required) order by pp.access_start)
+      from public.app_11941c8fec_payment_periods pp where pp.mode=p_mode and pp.user_id=a.user_id and pp.subscription_id=a.subscription_id),'[]'::jsonb));
 end $$;
 
 create function public.app_11941c8fec_payment_unbound(p_mode text,p_key text,p_event text,p_object text,p_reason text)
@@ -155,7 +175,7 @@ end $$;
 create function public.app_11941c8fec_payment_apply(p_mode text,p_key text,p_event text,p_object text,p_user uuid,p_revision bigint,p_intent_hash text,
  p_subscription text,p_customer text,p_order text,p_store text,p_product text,p_variant text,p_tier text,p_billing text,p_state jsonb)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare a public.app_11941c8fec_payment_accounts; i public.app_11941c8fec_payment_intents; e text;
+declare a public.app_11941c8fec_payment_accounts; i public.app_11941c8fec_payment_intents; e text; v jsonb; pp public.app_11941c8fec_payment_periods;
 begin
   perform public.app_11941c8fec_payment_require_mode(p_mode);
   select * into strict a from public.app_11941c8fec_payment_accounts where user_id=p_user and mode=p_mode for update;
@@ -182,6 +202,22 @@ begin
     ((p_state->>'invoice_id') is null or (p_state->>'paid_access_from')::timestamptz is null or
      (p_state->>'paid_access_from')::timestamptz >= (p_state->>'paid_access_until')::timestamptz) then
     raise exception 'Paid period needs invoice evidence';
+  end if;
+  for v in select value from jsonb_array_elements(coalesce(p_state->'periods','[]'::jsonb)) loop
+    insert into public.app_11941c8fec_payment_periods(mode,subscription_id,proof_id,user_id,kind,access_start,access_end,revoked_at,review_required)
+    values(p_mode,p_subscription,v->>'proof_id',p_user,v->>'kind',(v->>'start')::timestamptz,(v->>'end')::timestamptz,
+      (v->>'revoked_at')::timestamptz,coalesce((v->>'review')::boolean,false))
+    on conflict(mode,subscription_id,proof_id) do update set
+      access_end=least(public.app_11941c8fec_payment_periods.access_end,excluded.access_end),
+      revoked_at=coalesce(public.app_11941c8fec_payment_periods.revoked_at,excluded.revoked_at),
+      review_required=public.app_11941c8fec_payment_periods.review_required or excluded.review_required;
+  end loop;
+  if p_state->>'invoice_id' is not null then
+    select * into strict pp from public.app_11941c8fec_payment_periods where mode=p_mode and subscription_id=p_subscription and proof_id=p_state->>'invoice_id' and user_id=p_user;
+    if pp.access_start is distinct from (p_state->>'paid_access_from')::timestamptz or pp.access_end is distinct from (p_state->>'paid_access_until')::timestamptz
+      or (pp.revoked_at is not null and (p_state->>'entitlement_revoked_at') is null) then
+      raise exception 'Payment projection differs from immutable period proof';
+    end if;
   end if;
   -- Preserve trial state, account ID, historical provider IDs and all customer data.
   insert into public.app_11941c8fec_subscriptions(user_id,tier,billing_cycle,status,payment_provider,lemonsqueezy_customer_id,lemonsqueezy_subscription_id,

@@ -159,3 +159,22 @@ test('first subscription binds only a ready, matching server intent; old subscri
 test('stale invoice history cannot reset the current paid period or clear a refund', () => {
   assert.throws(() => reconcile(c, sub(), [invoice({ created_at: new Date(now - 3 * 86400000).toISOString() })], order(), { ...previous, entitlement_revoked_at: start }));
 });
+test('full refund of latest period retains another independently verified live period', () => {
+  const otherStart = new Date(now - 2 * 86400000).toISOString();
+  const periods = [
+    { proof_id: '29', kind: 'renewal', start: otherStart, end, revoked_at: null, review: false },
+    { proof_id: '30', kind: 'renewal', start, end: later, revoked_at: null, review: false },
+  ];
+  const state = reconcile(c, sub(), [invoice({ billing_reason: 'renewal', status: 'refunded', refunded: true, refunded_at: start }), invoice({ billing_reason: 'renewal', created_at: otherStart }, '29')], order(), { ...previous, periods });
+  assert.equal(state.invoice_id, '29'); assert.equal(state.paid_access_until, end); assert.equal(state.entitlement_revoked_at, null);
+  assert.ok(state.periods.find(p => p.proof_id === '30').revoked_at);
+});
+test('old partial refund flags only that period and cannot block a later paid renewal', () => {
+  const renewal = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString() }, '31');
+  const state = reconcile(c, sub({ renews_at: later }), [renewal, invoice({ status: 'partial_refund' })], order(), previous);
+  assert.equal(state.invoice_id, '31'); assert.equal(state.paid_access_until, later); assert.equal(state.entitlement_revoked_at, null); assert.equal(state.review_required, true);
+});
+test('partial refund does not change or extend its already verified window', () => {
+  const state = reconcile(c, sub({ renews_at: later }), [invoice({ status: 'partial_refund' })], order(), previous);
+  assert.equal(state.paid_access_from, start); assert.equal(state.paid_access_until, end); assert.equal(state.entitlement_revoked_at, null);
+});
