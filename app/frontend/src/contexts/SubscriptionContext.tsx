@@ -43,6 +43,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider>('lemonsqueezy');
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const [recordUser, setRecordUser] = useState<string | null>(null);
   const [paidUntil, setPaidUntil] = useState<string | null>(null);
   const [paidFrom, setPaidFrom] = useState<string | null>(null);
   const [revoked, setRevoked] = useState(false);
@@ -54,6 +55,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const fetchSubscription = useCallback(async () => {
     if (!user) {
+      setRecordUser(null);
       setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
       setTier('free');
       setStatus('active');
@@ -69,7 +71,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
     try {
       // Fetch by user_id only (not filtered to status='active') so a
       // canceled/expired/paused row is still seen and can correctly reset
@@ -82,6 +83,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error || !data) {
+        setRecordUser(null); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
         // No subscription record found - default to free
         setTier('free');
         setStatus('active');
@@ -93,6 +95,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setTrialUsed(false);
         localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: 'free', billing: 'monthly', provider: 'lemonsqueezy' }));
       } else {
+        setRecordUser(user.id);
         const fetchedTier = (data.tier as SubscriptionTier) || 'free';
         const fetchedStatus = (data.status as SubscriptionStatus) || 'active';
         const fetchedBilling = (data.billing_cycle as BillingCycle) || 'monthly';
@@ -113,6 +116,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('amanahlife_subscription', JSON.stringify({ tier: fetchedTier, billing: fetchedBilling, provider: fetchedProvider }));
       }
     } catch {
+      setRecordUser(null); setPaidUntil(null); setPaidFrom(null); setHasBinding(false); setRevoked(false);
       // A network failure is not entitlement evidence. Database/server checks remain authoritative.
       setIsTrialActive(false); setTrialDaysRemaining(0);
       setTier('free');
@@ -157,6 +161,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return { error: 'invalid_trial_response' };
       }
 
+      setRecordUser(user.id);
       setTrialUsed(true);
       setIsTrialActive(true);
       setTrialDaysRemaining(TRIAL_DURATION_DAYS);
@@ -167,11 +172,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   };
 
   // Display follows verified paid bounds; status or a legacy tier alone never proves payment.
-  const paid = !revoked && hasBinding && ['active', 'past_due', 'canceled'].includes(status)
+  const scoped = !!user && recordUser === user.id;
+  const paid = scoped && !revoked && hasBinding && ['active', 'past_due', 'canceled'].includes(status)
     && !!paidFrom && Date.parse(paidFrom) <= Date.now()
     && !!paidUntil && Date.parse(paidUntil) > Date.now()
     && (status !== 'canceled' || !currentPeriodEnd || Date.parse(currentPeriodEnd) > Date.now());
-  const effectiveTier: SubscriptionTier = isTrialActive && !revoked ? 'family' : paid ? tier : 'free';
+  const effectiveTier: SubscriptionTier = scoped && isTrialActive && !revoked ? 'family' : paid ? tier : 'free';
 
   return (
     <SubscriptionContext.Provider value={{
@@ -181,7 +187,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       paymentProvider,
       currentPeriodEnd,
       loading,
-      isTrialActive,
+      isTrialActive: scoped && isTrialActive && !revoked,
       trialDaysRemaining,
       trialUsed,
       startTrial,

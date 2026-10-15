@@ -6,7 +6,7 @@ do $$ begin
 end $$;
 insert into public.app_11941c8fec_payment_environment(mode) values('test');
 select public.fixture_assert((select paid_access_until is null and paid_access_from is null from public.app_11941c8fec_subscriptions
-  where user_id='22222222-2222-4222-8222-222222222222'), 'Legacy active tier was automatically certified as paid');
+  where user_id='88888888-8888-4888-8888-888888888888'), 'Legacy active tier was automatically certified as paid');
 
 select public.fixture_assert(not has_table_privilege('anon','public.app_11941c8fec_payment_intents','SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'), 'Anonymous payment ledger privileges');
 select public.fixture_assert(not has_table_privilege('authenticated','public.app_11941c8fec_payment_accounts','SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'), 'Authenticated payment ledger privileges');

@@ -118,7 +118,7 @@ export async function checkout(req: Request, c: Config, d: Dependencies): Promis
     if (product.attributes.test_mode !== (c.mode === 'test') || id(product.attributes.store_id) !== c.store) throw new PaymentError('Product configuration mismatch');
     if (b.discountCode !== undefined && (typeof b.discountCode !== 'string' || !/^[A-Z0-9]{3,256}$/.test(b.discountCode))) throw new PaymentError('Invalid discount', 400);
     // Persist the trusted account and plan BEFORE making an external checkout request.
-    const nonce = `${crypto.randomUUID()}${crypto.randomUUID()}`.replaceAll('-', '');
+    const nonce = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
     const hash = await sha256(nonce);
     await rpc(d, 'create_intent', { p_mode: c.mode, p_user: user.id, p_hash: hash, p_store: c.store, p_product: offer.product, p_variant: offer.variant, p_tier: offer.tier, p_billing: offer.billing });
     const payload = { data: { type: 'checkouts', attributes: {
