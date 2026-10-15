@@ -72,3 +72,11 @@ jobs:
           -f tests/family-helper-fixture.sql
           -f supabase/migrations/202610140002_family_helper_execution.sql
           -f tests/family-helper-security.sql
+      - name: Preserve legacy data and enforce approved family policy
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/family-authority-seed.sql
+          -f supabase/migrations/202610150003_family_authority.sql
+          -f tests/family-authority-security.sql
+      - name: Concurrent authorized family joins
+        run: bash tests/concurrent-family-join.sh

@@ -54,14 +54,16 @@ export default function FamilySharedDashboard() {
   const { language, isRTL } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { tier, isTrialActive, loading: subLoading } = useSubscription();
-  const hasAccess = tier === 'family' || isTrialActive;
+  const { loading: subLoading } = useSubscription();
+  // Members keep read/export access after expiry; the database controls writes.
+  const hasAccess = !!user;
+  const [familyCanWrite, setFamilyCanWrite] = useState(false);
+  const [canCreateFamily, setCanCreateFamily] = useState(false);
   const [lockedModalOpen, setLockedModalOpen] = useState(true);
 
   const [familyLoading, setFamilyLoading] = useState(true);
   const [family, setFamily] = useState<FamilyRecord | null>(null);
   const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [myMembership, setMyMembership] = useState<FamilyMember | null>(null);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -83,7 +85,11 @@ export default function FamilySharedDashboard() {
   const loadFamily = useCallback(async () => {
     if (!user) return;
     setFamilyLoading(true);
+    setFamilyCanWrite(false);
+    setCanCreateFamily(false);
     try {
+      const { data: ownEntitlement } = await supabase.rpc('app_11941c8fec_current_user_family_entitled');
+      setCanCreateFamily(ownEntitlement === true);
       const { data: myRows } = await supabase
         .from(MEMBERS_TABLE)
         .select('id, user_id, display_name, member_role, age_group, household_role, family_id')
@@ -92,18 +98,19 @@ export default function FamilySharedDashboard() {
       if (!myRows || myRows.length === 0) {
         setFamily(null);
         setMembers([]);
-        setMyMembership(null);
         return;
       }
 
       const mine = myRows[0];
-      setMyMembership(mine);
 
       const [{ data: familyRow }, { data: roster }] = await Promise.all([
         supabase.from(FAMILIES_TABLE).select('id, name, join_code, owner_user_id').eq('id', mine.family_id).maybeSingle(),
         supabase.from(MEMBERS_TABLE).select('id, user_id, display_name, member_role, age_group, household_role').eq('family_id', mine.family_id),
       ]);
 
+      const { data: writePermission } = await supabase.rpc(
+        'app_11941c8fec_family_can_write', { p_family_id: mine.family_id });
+      setFamilyCanWrite(writePermission === true);
       setFamily(familyRow || null);
       setMembers(roster || []);
     } finally {
@@ -123,7 +130,7 @@ export default function FamilySharedDashboard() {
   };
 
   const handleSendInvite = async () => {
-    if (!inviteEmail.trim() || sendingInvite) return;
+    if (!inviteEmail.trim() || sendingInvite || (family ? !familyCanWrite : !canCreateFamily)) return;
     setSendingInvite(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -213,6 +220,8 @@ export default function FamilySharedDashboard() {
   };
 
   const handleRemoveMember = async (memberId: string) => {
+    const target = members.find(member => member.id === memberId);
+    if (!target || (target.user_id !== user?.id && !familyCanWrite)) return;
     // RLS (family_members_delete_if_owner_or_self) already allows exactly
     // this: the family owner can remove anyone, any member can remove
     // themselves - no edge function needed for this one.
@@ -225,7 +234,7 @@ export default function FamilySharedDashboard() {
   };
 
   const handleAddGoal = () => {
-    if (!goalTitle.trim() || !goalTarget) return;
+    if (!goalTitle.trim() || !goalTarget || !familyCanWrite) return;
     const newGoal: SharedGoal = {
       id: Date.now().toString(),
       title: goalTitle.trim(),
@@ -273,7 +282,7 @@ export default function FamilySharedDashboard() {
     return Math.min(100, Math.round((myStreak * 2) + (goalsProgress * 50)));
   }, [sharedGoals]);
 
-  const isOwner = myMembership?.member_role === 'owner';
+  const isOwner = !!family && family.owner_user_id === user?.id;
   const roleLabel = (m: FamilyMember) => {
     if (m.household_role) return m.household_role;
     return m.member_role === 'owner' ? (language === 'ar' ? 'المسؤول' : 'Admin') : (language === 'ar' ? 'عضو' : 'Member');
@@ -314,7 +323,7 @@ export default function FamilySharedDashboard() {
     <div className="min-h-screen bg-background pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
       <PageHeader icon="👨‍👩‍👧" title={language === 'ar' ? 'لوحة العائلة' : 'Family Dashboard'} />
 
-      {!familyLoading && family && (
+      {!familyLoading && family && isOwner && familyCanWrite && (
         <div className="max-w-4xl mx-auto px-4 pt-4 flex justify-end">
           <Button size="sm" onClick={() => setShowInvite(true)}>
             {language === 'ar' ? '+ دعوة' : '+ Invite'}
@@ -325,6 +334,14 @@ export default function FamilySharedDashboard() {
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {familyLoading && (
           <p className="text-center text-muted-foreground text-sm py-8">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+        )}
+
+        {!familyLoading && family && !familyCanWrite && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {language === 'ar'
+              ? 'بيانات العائلة متاحة للقراءة والتصدير والمغادرة. يلزم استحقاق صالح لإجراء تغييرات.'
+              : 'Family data remains available to read, export, or leave. A valid entitlement is required for changes.'}
+          </p>
         )}
 
         {/* No family yet: create one by inviting, or join an existing one via code */}
@@ -347,7 +364,7 @@ export default function FamilySharedDashboard() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm"
                 />
-                <Button size="sm" onClick={handleSendInvite} disabled={sendingInvite}>
+                <Button size="sm" onClick={handleSendInvite} disabled={sendingInvite || (family ? !familyCanWrite : !canCreateFamily)}>
                   {language === 'ar' ? 'دعوة' : 'Invite'}
                 </Button>
               </div>
@@ -434,7 +451,7 @@ export default function FamilySharedDashboard() {
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground text-sm"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleSendInvite} disabled={sendingInvite}>
+                    <Button size="sm" onClick={handleSendInvite} disabled={sendingInvite || (family ? !familyCanWrite : !canCreateFamily)}>
                       {language === 'ar' ? 'إرسال' : 'Send'}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowInvite(false)}>
@@ -489,7 +506,7 @@ export default function FamilySharedDashboard() {
                         <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
                           {member.member_role === 'owner' ? (language === 'ar' ? 'مسؤول' : 'Owner') : (language === 'ar' ? 'عضو' : 'Member')}
                         </span>
-                        {(isOwner || member.user_id === user?.id) && member.member_role !== 'owner' && (
+                        {((isOwner && familyCanWrite) || member.user_id === user?.id) && member.member_role !== 'owner' && (
                           <button onClick={() => handleRemoveMember(member.id)} className="text-red-400 text-xs hover:text-red-300">
                             {language === 'ar' ? 'إزالة' : 'Remove'}
                           </button>
@@ -563,7 +580,7 @@ export default function FamilySharedDashboard() {
             <h2 className="text-lg font-semibold text-foreground">
               {language === 'ar' ? '🎯 الأهداف المشتركة' : '🎯 Shared Goals'}
             </h2>
-            <Button size="sm" variant="outline" onClick={() => setShowAddGoal(true)}>
+            <Button size="sm" variant="outline" disabled={!familyCanWrite} onClick={() => setShowAddGoal(true)}>
               {language === 'ar' ? '+ هدف' : '+ Goal'}
             </Button>
           </div>
@@ -601,7 +618,7 @@ export default function FamilySharedDashboard() {
                   <option value="hajj">{language === 'ar' ? 'حج/عمرة' : 'Hajj/Umrah'}</option>
                 </select>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAddGoal}>
+                  <Button size="sm" disabled={!familyCanWrite} onClick={handleAddGoal}>
                     {language === 'ar' ? 'إضافة' : 'Add'}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setShowAddGoal(false)}>

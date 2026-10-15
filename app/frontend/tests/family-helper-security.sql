@@ -26,7 +26,37 @@ select public.fixture_assert(
 insert into public.app_11941c8fec_families(id,owner_user_id)
  values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','33333333-3333-4333-8333-333333333333');
 select public.fixture_assert(
- (select join_code='FIXTURE-CODE' from public.app_11941c8fec_families
+ (select join_code ~ '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8} from public.app_11941c8fec_families
+  where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 'Qualified generator call broke');
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+select public.fixture_assert(
+ public.app_11941c8fec_is_family_member('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+ and public.app_11941c8fec_is_family_owner('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+ 'Legitimate owner identity broken');
+select public.fixture_assert(
+ not public.app_11941c8fec_is_family_member('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+ and not public.app_11941c8fec_is_family_owner('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+ 'Cross-family authorization leak');
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select public.fixture_assert(
+ not public.app_11941c8fec_is_family_member('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+ and not public.app_11941c8fec_is_family_owner('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+ 'Nonmember became an owner/member');
+select set_config('request.jwt.claim.sub','',true);
+select public.fixture_assert(
+ not public.app_11941c8fec_is_family_member('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+ and not public.app_11941c8fec_is_family_owner('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+ 'Missing identity accepted');
+
+set local role anon;
+select public.fixture_expect_denied(
+ 'select public.app_11941c8fec_is_family_member(''aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'')');
+select public.fixture_expect_denied(
+ 'select public.app_11941c8fec_is_family_owner(''aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'')');
+rollback;
+ from public.app_11941c8fec_families
   where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 'Qualified generator call broke');
 
 set local role authenticated;
