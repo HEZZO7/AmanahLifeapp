@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3';
 import { handlePreferenceAction } from '../_shared/notificationPreferences.ts';
-import { scopedPreferenceStore } from '../_shared/notificationPreferencesStore.ts';
+import { scopedPreferenceStore, type PreferenceClient } from '../_shared/notificationPreferencesStore.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,7 +55,23 @@ Deno.serve(async (req: Request) => {
       // Preserve the existing database access model until preference-table RLS is audited.
       // The admin client is confined to a fixed-table, fixed-user capability.
       const client = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-      return scopedPreferenceStore(client, verifiedUserId);
+      const storageClient: PreferenceClient = {
+        from: table => ({
+          select: columns => ({
+            eq: (column, value) => ({
+              maybeSingle: async () => {
+                const { data, error } = await client.from(table).select(columns).eq(column, value).maybeSingle();
+                return { data, error };
+              },
+            }),
+          }),
+          upsert: async (row, options) => {
+            const { error } = await client.from(table).upsert(row, options);
+            return { error };
+          },
+        }),
+      };
+      return scopedPreferenceStore(storageClient, verifiedUserId);
     },
   }, corsHeaders);
   if (preferenceResponse) return preferenceResponse;
@@ -224,7 +240,7 @@ Deno.serve(async (req: Request) => {
         .single();
 
       // If user has disabled this type, skip
-      if (prefs && prefs[prefColumn] === false) {
+      if (prefs && (prefs as unknown as Record<string, unknown>)[prefColumn] === false) {
         return new Response(JSON.stringify({ success: true, skipped: true, reason: 'User disabled this notification type' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
