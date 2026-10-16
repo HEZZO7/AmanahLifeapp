@@ -29,6 +29,8 @@ jobs:
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/lemon-payments.test.mjs
       - name: Isolated AI entitlement request tests
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/ai-access.test.mjs
+      - name: Isolated notification preference authorization
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preferences.test.mjs
       - name: Install dependencies
         run: npm install
       - uses: denoland/setup-deno@v2
@@ -48,6 +50,8 @@ jobs:
           supabase/functions/app_11941c8fec_ai_search/index.ts
           supabase/functions/app_11941c8fec_receipt_scan/index.ts
           supabase/functions/app_11941c8fec_savings_tips/index.ts
+      - name: Type-check notification preference entry point
+        run: deno check supabase/functions/app_11941c8fec_push_notify/index.ts
       - name: Lint
         run: npm run lint
       - name: Build
@@ -121,4 +125,7 @@ jobs:
           psql -v ON_ERROR_STOP=1
           -f supabase/migrations/202610160006_ai_entitlement.sql
           -f tests/ai-entitlement-security.sql
+      - name: Validate read-only preference evidence query syntax
+        run: psql -v ON_ERROR_STOP=1 -f ../../docs/notification-preferences-readonly.sql
+
 
