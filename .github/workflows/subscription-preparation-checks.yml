@@ -51,7 +51,7 @@ jobs:
           supabase/functions/app_11941c8fec_receipt_scan/index.ts
           supabase/functions/app_11941c8fec_savings_tips/index.ts
       - name: Type-check notification preference entry point
-        run: deno check supabase/functions/app_11941c8fec_push_notify/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_push_notify/index.ts
       - name: Lint
         run: npm run lint
       - name: Build
