@@ -91,6 +91,13 @@ for(const c of cases) {
     const r=await c.create(f.d)(request(c));assert.equal(r.status,503);assertNoProvider(f);
     assert.equal((await r.text()).includes(sensitive),false);
   });
+  test(`${c.name}: missing provider configuration reveals no internals and makes no call`,async()=>{
+    const f=fixture(c);f.d.key=()=>undefined;
+    const r=await c.create(f.d)(request(c));assert.equal(r.status,c.name==='savings'?200:503);
+    assert.equal(providerCalls(f),0);
+    const output=JSON.stringify([await r.json(),f.logs]);
+    for(const hidden of ['ANTHROPIC_API_KEY','SUPABASE','not configured',sensitive])assert.equal(output.includes(hidden),false);
+  });
 }
 for(const c of cases.filter(x=>['search','receipt'].includes(x.name))) {
   test(`${c.name}: malformed provider content is never copied into error logs/responses`,async()=>{

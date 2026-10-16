@@ -1,6 +1,8 @@
 import { createAiHandler, type AiDependencies } from "../_shared/aiAccess.ts";
 
-// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.\n\n// Phase 4 (critical-audit-2026-07): the "AI Life Coach" screen previously
+// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.
+
+// Phase 4 (critical-audit-2026-07): the "AI Life Coach" screen previously
 // picked a random string out of a fixed, hardcoded array per category -
 // there was no AI involved at all, despite the name and UI implying a real,
 // personalized assistant. This endpoint replaces that with an actual call to

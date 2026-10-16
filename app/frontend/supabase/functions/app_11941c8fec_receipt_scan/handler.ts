@@ -1,6 +1,8 @@
 import { createAiHandler, type AiDependencies } from "../_shared/aiAccess.ts";
 
-// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.\n\n// Phase I (Phase-D decision, 2026-08): Receipt Scanner previously ignored
+// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.
+
+// Phase I (Phase-D decision, 2026-08): Receipt Scanner previously ignored
 // the uploaded photo entirely and returned a random pick from 4 hardcoded
 // mock receipts after a fake 2-second "scanning" delay - it never called
 // any AI or OCR service despite the UI saying "AI analyzing receipt". This

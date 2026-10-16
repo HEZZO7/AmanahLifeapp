@@ -1,5 +1,8 @@
 // Request authorization is shared by all four AI handlers. No browser entitlement is read.
-export type AiLog = { requestId: string; event: string; status?: number };
+export type AiEvent = 'access_unavailable' | 'handler_error' | 'provider_error' | 'provider_exception'
+  | 'parse_error' | 'invalid_shape' | 'coach_reply' | 'search_completed' | 'not_a_receipt'
+  | 'receipt_parsed' | 'invalid_body' | 'fallback_tip' | 'empty_response' | 'tip_completed';
+export type AiLog = { requestId: string; event: AiEvent; status?: number };
 export type AiDependencies = {
   user: (token: string) => Promise<{ id: string } | null>;
   entitled: (token: string) => Promise<unknown>;
@@ -10,7 +13,7 @@ export type AiDependencies = {
 export type AiContext = {
   requestId: string;
   corsHeaders: Record<string, string>;
-  log: (event: string, status?: number) => void;
+  log: (event: AiEvent, status?: number) => void;
 };
 const origins = new Set(['https://app.amanahlife.com', 'https://amanahlife.com']);
 const json = (error: string, status: number, headers: Record<string,string>) =>
@@ -31,7 +34,7 @@ export function createAiHandler(
     const requestId = crypto.randomUUID();
     // Entries contain only a server request ID, a static event and optional numeric status.
     // A failing log sink must not change access or expose the original exception.
-    const log = (event: string, status?: number) => {
+    const log = (event: AiEvent, status?: number) => {
       try { deps.log?.({ requestId, event, ...(status === undefined ? {} : { status }) }); } catch { /* no raw error */ }
     };
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });

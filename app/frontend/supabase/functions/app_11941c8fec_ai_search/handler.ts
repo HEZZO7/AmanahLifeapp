@@ -1,6 +1,8 @@
 import { createAiHandler, type AiDependencies } from "../_shared/aiAccess.ts";
 
-// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.\n\n// Phase J (Phase-D decision, 2026-08): AI Search previously returned a
+// Shared project endpoint: coordinate this protected handler and shared files with the RN repository before any approved deployment. This PR changes only AmanahLifeapp.
+
+// Phase J (Phase-D decision, 2026-08): AI Search previously returned a
 // hardcoded static array of 5 sample results, identical for every query and
 // every user - it never read the query text meaningfully and never touched
 // any real data. This endpoint replaces that with a real call to Claude,

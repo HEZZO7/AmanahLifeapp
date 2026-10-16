@@ -42,6 +42,11 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
 select public.fixture_ai_expect(false,'Legacy tier alone certified a payment');
 reset role;
+update public.app_11941c8fec_subscriptions set status='trialing' where user_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+set local role authenticated;
+select public.fixture_ai_expect(false,'Native provider trial status alone authorized AI');
+reset role;
+update public.app_11941c8fec_subscriptions set status='active' where user_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 -- Test-only setup writes below change private synthetic proof rows; never app-user grants.
 update public.app_11941c8fec_payment_periods set tier='balanced' where subscription_id='110' and proof_id='130';
