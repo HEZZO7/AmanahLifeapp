@@ -27,6 +27,8 @@ jobs:
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/family-entitlement.test.mjs
       - name: Isolated checkout and webhook lifecycle requests
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/lemon-payments.test.mjs
+      - name: Isolated AI entitlement request tests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/ai-access.test.mjs
       - name: Install dependencies
         run: npm install
       - uses: denoland/setup-deno@v2
@@ -39,6 +41,13 @@ jobs:
           supabase/functions/app_11941c8fec_lemonsqueezy_webhook/index.ts
           supabase/functions/app_11941c8fec_lemonsqueezy_checkout_test/index.ts
           supabase/functions/app_11941c8fec_lemonsqueezy_webhook_test/index.ts
+      - name: Type-check protected AI endpoints
+        run: >-
+          deno check
+          supabase/functions/app_11941c8fec_ai_life_coach/index.ts
+          supabase/functions/app_11941c8fec_ai_search/index.ts
+          supabase/functions/app_11941c8fec_receipt_scan/index.ts
+          supabase/functions/app_11941c8fec_savings_tips/index.ts
       - name: Lint
         run: npm run lint
       - name: Build
@@ -106,4 +115,10 @@ jobs:
           -f tests/lifecycle-seed.sql
           -f supabase/migrations/202610150005_subscription_lifecycle.sql
           -f tests/subscription-lifecycle-security.sql
+
+      - name: AI entitlement RPC, identity boundaries and paid/trial policy
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/migrations/202610160006_ai_entitlement.sql
+          -f tests/ai-entitlement-security.sql
 
