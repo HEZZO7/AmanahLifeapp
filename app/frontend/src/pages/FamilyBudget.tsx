@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/lib/supabase';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import BottomNav from '@/components/BottomNav';
@@ -53,7 +54,26 @@ export default function FamilyBudget() {
   const { tier, isTrialActive, loading: subLoading } = useSubscription();
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const hasAccess = tier === 'family' || isTrialActive;
+  const hasAccess = !!userId || tier === 'family' || isTrialActive;
+  const [writeAllowed, setWriteAllowed] = useState(false);
+  const [loadedForUser, setLoadedForUser] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    setWriteAllowed(false);
+    if (!userId) return () => { cancelled = true; };
+    const check = async () => {
+      const { data: own } = await supabase.rpc('app_11941c8fec_current_user_family_entitled');
+      if (own === true) { if (!cancelled) setWriteAllowed(true); return; }
+      const { data: memberships } = await supabase.from('app_11941c8fec_family_members')
+        .select('family_id').eq('user_id', userId).limit(1);
+      const familyId = memberships?.[0]?.family_id;
+      if (!familyId) return;
+      const { data: canWrite } = await supabase.rpc('app_11941c8fec_family_can_write', { p_family_id: familyId });
+      if (!cancelled) setWriteAllowed(canWrite === true);
+    };
+    check().catch(() => { if (!cancelled) setWriteAllowed(false); });
+    return () => { cancelled = true; };
+  }, [userId, tier, isTrialActive]);
   const [lockedModalOpen, setLockedModalOpen] = useState(true);
   const [data, setData] = useState<FamilyBudgetData>(EMPTY_DATA);
 
@@ -66,6 +86,7 @@ export default function FamilyBudget() {
     setData(readLocal(userId) ?? EMPTY_DATA);
     setLegacyPrompt(hasUnclaimedLegacyBlob(userId) ? describeLegacyBlob() : null);
     setLoaded(true);
+    setLoadedForUser(userId);
   }, [userId]);
 
   const [activeTab, setActiveTab] = useState<'family' | 'budget' | 'income' | 'expenses'>('budget');
@@ -74,9 +95,9 @@ export default function FamilyBudget() {
   const [newExpense, setNewExpense] = useState({ category: 'Housing', description: '', amount: '', currency: 'USD' });
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || loadedForUser !== userId || !writeAllowed) return;
     writeLocal(userId, data);
-  }, [data, userId, loaded]);
+  }, [data, userId, loaded, loadedForUser, writeAllowed]);
 
   // Server mirror (Phase B step 1). Debounced so typing into the budget does
   // not fire a request per keystroke, and deliberately silent: a failure here
@@ -84,7 +105,7 @@ export default function FamilyBudget() {
   // source of truth. Failures are logged for diagnosis only.
   const mirrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!loaded || !userId || !hasAccess) return;
+    if (!loaded || !userId || loadedForUser !== userId || !writeAllowed) return;
     if (mirrorTimer.current) clearTimeout(mirrorTimer.current);
     mirrorTimer.current = setTimeout(() => {
       mirrorToServer(userId, data).then((res) => {
@@ -94,9 +115,10 @@ export default function FamilyBudget() {
     return () => {
       if (mirrorTimer.current) clearTimeout(mirrorTimer.current);
     };
-  }, [data, userId, loaded, hasAccess]);
+  }, [data, userId, loaded, loadedForUser, writeAllowed]);
 
   const handleClaimLegacy = () => {
+    if (!writeAllowed) return;
     const claimed = claimLegacyBlob(userId);
     if (claimed) setData(claimed);
     setLegacyPrompt(null);
@@ -108,6 +130,7 @@ export default function FamilyBudget() {
   };
 
   const addMember = () => {
+    if (!writeAllowed) return;
     if (!newMember.name) return;
     setData(prev => ({
       ...prev,
@@ -117,10 +140,12 @@ export default function FamilyBudget() {
   };
 
   const removeMember = (id: string) => {
+    if (!writeAllowed) return;
     setData(prev => ({ ...prev, members: prev.members.filter(m => m.id !== id) }));
   };
 
   const addIncome = () => {
+    if (!writeAllowed) return;
     if (!newIncome.source || !newIncome.amount) return;
     setData(prev => ({
       ...prev,
@@ -136,6 +161,7 @@ export default function FamilyBudget() {
   };
 
   const addExpense = () => {
+    if (!writeAllowed) return;
     if (!newExpense.description || !newExpense.amount) return;
     const amt = parseFloat(newExpense.amount);
     setData(prev => ({
@@ -181,7 +207,13 @@ export default function FamilyBudget() {
           }}
           requiredPlan="family"
         />
-        <main className="max-w-lg mx-auto px-4 py-12 flex flex-col items-center text-center">
+        {!writeAllowed && userId && (
+        <p role="status" className="max-w-4xl mx-auto px-4 text-sm text-muted-foreground">
+          {language === 'ar' ? 'الميزانية متاحة للقراءة. يتطلب التعديل والمزامنة استحقاقًا صالحًا.'
+            : 'Your budget remains readable. Editing and syncing require a valid entitlement.'}
+        </p>
+      )}
+      <main className="max-w-lg mx-auto px-4 py-12 flex flex-col items-center text-center">
           <span className="text-5xl mb-4">🔒</span>
           <p className="text-foreground font-semibold mb-2">
             {language === 'ar' ? 'ميزة مدفوعة' : 'Premium Feature'}
@@ -225,7 +257,7 @@ export default function FamilyBudget() {
                 : `It contains ${legacyPrompt.members} member(s), ${legacyPrompt.income} income entr(ies) and ${legacyPrompt.expenses} expense(s).`}
             </p>
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleClaimLegacy}>
+              <Button size="sm" disabled={!writeAllowed} onClick={handleClaimLegacy}>
                 {language === 'ar' ? 'نعم، هذه بياناتي' : "Yes, this is mine"}
               </Button>
               <Button size="sm" variant="outline" onClick={handleDeclineLegacy}>
@@ -283,23 +315,23 @@ export default function FamilyBudget() {
                     <p className="text-sm text-foreground">{m.name}</p>
                     <p className="text-xs text-muted-foreground">{m.role}</p>
                   </div>
-                  <button onClick={() => removeMember(m.id)} className="text-red-400 text-xs">✕</button>
+                  <button disabled={!writeAllowed} onClick={() => removeMember(m.id)} className="text-red-400 text-xs">✕</button>
                 </div>
               ))}
               <div className="mt-3 flex gap-2">
-                <input
+                <input disabled={!writeAllowed}
                   value={newMember.name}
                   onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))}
                   placeholder={language === 'ar' ? 'الاسم' : 'Name'}
                   className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground"
                 />
-                <input
+                <input disabled={!writeAllowed}
                   value={newMember.role}
                   onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))}
                   placeholder={language === 'ar' ? 'الدور' : 'Role'}
                   className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground"
                 />
-                <button onClick={addMember} className="bg-primary text-white px-3 py-2 rounded-lg text-xs font-medium">+</button>
+                <button disabled={!writeAllowed} onClick={addMember} className="bg-primary text-white px-3 py-2 rounded-lg text-xs font-medium">+</button>
               </div>
             </div>
 
@@ -372,21 +404,21 @@ export default function FamilyBudget() {
                 {language === 'ar' ? 'إضافة دخل' : 'Add Income'}
               </h3>
               <div className="space-y-2">
-                <input
+                <input disabled={!writeAllowed}
                   value={newIncome.source}
                   onChange={e => setNewIncome(p => ({ ...p, source: e.target.value }))}
                   placeholder={language === 'ar' ? 'المصدر' : 'Source'}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                 />
                 <div className="flex gap-2">
-                  <input
+                  <input disabled={!writeAllowed}
                     type="number"
                     value={newIncome.amount}
                     onChange={e => setNewIncome(p => ({ ...p, amount: e.target.value }))}
                     placeholder={language === 'ar' ? 'المبلغ' : 'Amount'}
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                   />
-                  <select
+                  <select disabled={!writeAllowed}
                     value={newIncome.currency}
                     onChange={e => setNewIncome(p => ({ ...p, currency: e.target.value }))}
                     className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
@@ -394,7 +426,7 @@ export default function FamilyBudget() {
                     {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <button onClick={addIncome} className="w-full bg-primary text-white py-2 rounded-lg text-sm font-medium">
+                <button disabled={!writeAllowed} onClick={addIncome} className="w-full bg-primary text-white py-2 rounded-lg text-sm font-medium">
                   {language === 'ar' ? 'إضافة' : 'Add Income'}
                 </button>
               </div>
@@ -425,7 +457,7 @@ export default function FamilyBudget() {
                 {language === 'ar' ? 'إضافة مصروف' : 'Add Expense'}
               </h3>
               <div className="space-y-2">
-                <select
+                <select disabled={!writeAllowed}
                   value={newExpense.category}
                   onChange={e => setNewExpense(p => ({ ...p, category: e.target.value }))}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
@@ -434,21 +466,21 @@ export default function FamilyBudget() {
                     <option key={c.name} value={c.name}>{c.icon} {language === 'ar' ? c.nameAr : c.name}</option>
                   ))}
                 </select>
-                <input
+                <input disabled={!writeAllowed}
                   value={newExpense.description}
                   onChange={e => setNewExpense(p => ({ ...p, description: e.target.value }))}
                   placeholder={language === 'ar' ? 'الوصف' : 'Description'}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                 />
                 <div className="flex gap-2">
-                  <input
+                  <input disabled={!writeAllowed}
                     type="number"
                     value={newExpense.amount}
                     onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))}
                     placeholder={language === 'ar' ? 'المبلغ' : 'Amount'}
                     className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                   />
-                  <select
+                  <select disabled={!writeAllowed}
                     value={newExpense.currency}
                     onChange={e => setNewExpense(p => ({ ...p, currency: e.target.value }))}
                     className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
@@ -456,7 +488,7 @@ export default function FamilyBudget() {
                     {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <button onClick={addExpense} className="w-full bg-red-500/80 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium">
+                <button disabled={!writeAllowed} onClick={addExpense} className="w-full bg-red-500/80 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium">
                   {language === 'ar' ? 'إضافة مصروف' : 'Add Expense'}
                 </button>
               </div>

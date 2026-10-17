@@ -30,14 +30,6 @@ function json(body: unknown, status: number, corsHeaders: Record<string, string>
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
-function generateJoinCode(): string {
-  // Short, human-typeable, avoids visually-ambiguous characters (0/O, 1/I/L).
-  const alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
-  let code = "";
-  for (let i = 0; i < 6; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return code;
-}
-
 Deno.serve(async (req: Request) => {
   const requestId = crypto.randomUUID();
   const corsHeaders = corsHeadersFor(req);
@@ -70,7 +62,6 @@ Deno.serve(async (req: Request) => {
   }
 
   const FAMILIES = "app_11941c8fec_families";
-  const MEMBERS = "app_11941c8fec_family_members";
   const isAr = body.language === "ar";
 
   if (body.action === "send") {
@@ -79,14 +70,12 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing or invalid email" }, 400, corsHeaders);
     }
 
-    const { data: sub } = await supabase
-      .from("app_11941c8fec_subscriptions")
-      .select("tier")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (sub?.tier !== "family") {
-      return json({ error: "family_plan_required" }, 403, corsHeaders);
-    }
+    // Use the same private invoice/period proof as family RLS, not a tier/status shortcut.
+    const { data: entitled, error: entitlementError } = await supabase.rpc(
+      'app_11941c8fec_account_family_entitled', { p_user_id: user.id }
+    );
+    if (entitlementError) return json({ error: 'subscription_lookup_failed' }, 503, corsHeaders);
+    if (entitled !== true) return json({ error: 'family_plan_required' }, 403, corsHeaders);
 
     let { data: family } = await supabase
       .from(FAMILIES)
@@ -97,7 +86,7 @@ Deno.serve(async (req: Request) => {
     if (!family) {
       const { data: created, error: createError } = await supabase
         .from(FAMILIES)
-        .insert({ owner_user_id: user.id, join_code: generateJoinCode() })
+        .insert({ owner_user_id: user.id })
         .select("id, name, join_code")
         .single();
       if (createError || !created) {
@@ -106,15 +95,7 @@ Deno.serve(async (req: Request) => {
       }
       family = created;
 
-      // The owner is a member of their own family too - matching what the
-      // pre-migration local screen always showed ("You" / "Admin").
-      await supabase.from(MEMBERS).insert({
-        family_id: family.id,
-        user_id: user.id,
-        display_name: user.email?.split("@")[0] || "Owner",
-        member_role: "owner",
-        age_group: "adult",
-      });
+      // Verified AFTER INSERT trigger creates exactly one canonical owner membership.
     }
 
     const smtpHost = Deno.env.get("SMTP_HOST");
@@ -140,12 +121,16 @@ Deno.serve(async (req: Request) => {
       });
 
       const subject = isAr ? "دعوة للانضمام إلى عائلتك على أمانة لايف" : "You're invited to join a family on AmanahLife";
+      // Legacy codes may predate server-only generation; never interpolate raw HTML.
+      const joinCodeHtml = String(family.join_code).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[character]!));
       const html = `
         <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #0a2e1f;">${isAr ? "دعوة عائلية" : "Family Invite"}</h2>
           <p>${isAr ? "دعاك أحد أفراد العائلة للانضمام إلى لوحة العائلة على أمانة لايف." : "You've been invited to join a family on AmanahLife's Family Dashboard."}</p>
           <p>${isAr ? "افتح لوحة العائلة في التطبيق وأدخل الرمز التالي:" : "Open the Family Dashboard in the app and enter this code:"}</p>
-          <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; background: #f3f4f6; padding: 16px; text-align: center; border-radius: 8px;">${family.join_code}</p>
+          <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; background: #f3f4f6; padding: 16px; text-align: center; border-radius: 8px;">${joinCodeHtml}</p>
         </div>`;
 
       await transporter.sendMail({ from: smtpFrom, to: email, subject, html });
@@ -166,41 +151,29 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing or invalid age group" }, 400, corsHeaders);
     }
 
-    const { data: family } = await supabase
-      .from(FAMILIES)
-      .select("id, name")
-      .eq("join_code", joinCode.trim().toUpperCase())
-      .maybeSingle();
-    if (!family) {
-      return json({ error: "invalid_code" }, 200, corsHeaders);
-    }
-
-    const { data: existing } = await supabase
-      .from(MEMBERS)
-      .select("id")
-      .eq("family_id", family.id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (existing) {
-      return json({ error: "already_member" }, 200, corsHeaders);
-    }
-
-    const { error: insertError } = await supabase.from(MEMBERS).insert({
-      family_id: family.id,
-      user_id: user.id,
-      display_name: typeof displayName === "string" && displayName.trim() ? displayName.trim().slice(0, 100) : (user.email?.split("@")[0] || "Member"),
-      member_role: "member",
-      age_group: ageGroup,
-      household_role: typeof householdRole === "string" ? householdRole.slice(0, 50) : null,
+    // Forward the verified user's JWT: RPC derives auth.uid(), locks entitlement,
+    // inserts idempotently and sets only this account's allowed profile metadata.
+    const userClient = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-    if (insertError) {
-      console.error(JSON.stringify({ requestId, userId: user.id, action: "accept_insert_error", error: insertError.message }));
-      return json({ error: "Could not join family" }, 500, corsHeaders);
+    const { data: familyId, error: joinError } = await userClient.rpc(
+      "app_11941c8fec_accept_family_invite", {
+        p_code: joinCode,
+        p_display_name: typeof displayName === "string" ? displayName : null,
+        p_age_group: ageGroup,
+        p_household_role: typeof householdRole === "string" ? householdRole : null,
+      });
+    if (joinError) {
+      const errorName = joinError.message === "family_plan_required"
+        ? "family_plan_required" : (joinError.code === "22023" ? "invalid_code" : "Could not join family");
+      return json({ error: errorName }, errorName === "invalid_code" ? 200 : 403, corsHeaders);
     }
-
-    console.log(JSON.stringify({ requestId, userId: user.id, action: "invite_accepted", familyId: family.id }));
-    return json({ familyId: family.id, familyName: family.name }, 200, corsHeaders);
+    if (typeof familyId !== "string") return json({ error: "Could not join family" }, 503, corsHeaders);
+    const { data: family } = await userClient.from(FAMILIES).select("name").eq("id", familyId).maybeSingle();
+    return json({ familyId, familyName: family?.name }, 200, corsHeaders);
   }
 
   return json({ error: "Unknown action" }, 400, corsHeaders);
 });
+
