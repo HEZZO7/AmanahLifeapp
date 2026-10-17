@@ -54,7 +54,10 @@ accounts does not migrate guest/unscoped cache into a different user's cache.
   notification is sent or scheduled. Dependency installation occurs separately;
   test execution denies network sockets.
 - Web retains the existing strict server tests and lint/build CI.
-- RN CI checks TypeScript without invoking EAS, Expo deployment or native builds.
+- RN CI runs full TypeScript on the changed tree and reviewed 74673f4 baseline
+  with identical dependencies. It fails on new/changed diagnostics and reports
+  pre-existing errors explicitly; this is not a claim that full TypeScript is clean.
+  No EAS, Expo deployment or native build is invoked.
 
 Commands are in the PR workflows. CI links/results belong in the PR report.
 Mocked dependencies and React renderer do not prove hosted JWT/RLS/GRANT,

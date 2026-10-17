@@ -49,7 +49,7 @@ export function useNotifications() {
   const preferenceClient = useMemo(() => createPreferenceClient(accountId, {
     url: EDGE_FUNCTION_URL,
     getSession: async () => (await supabase.auth.getSession()).data.session,
-    request: (...args) => fetch(...args),
+    request: (input, init) => fetch(input, init),
     readCache: async () => null, // Web has no persistent preference cache.
     writeCache: async () => undefined,
   }), [accountId]);
