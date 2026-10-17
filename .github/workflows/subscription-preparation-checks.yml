@@ -31,8 +31,14 @@ jobs:
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/ai-access.test.mjs
       - name: Isolated notification preference authorization
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preferences.test.mjs
+      - name: Isolated notification client compatibility
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preference-client.test.mjs
       - name: Install dependencies
         run: npm install
+      - name: Install matching React test renderer (test runtime only)
+        run: npm install --no-save --package-lock=false react-test-renderer@18.3.1
+      - name: Notification preference React state and account isolation
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-preference-state.test.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -127,5 +133,6 @@ jobs:
           -f tests/ai-entitlement-security.sql
       - name: Validate read-only preference evidence query syntax
         run: psql -v ON_ERROR_STOP=1 -f ../../docs/notification-preferences-readonly.sql
+
 
 

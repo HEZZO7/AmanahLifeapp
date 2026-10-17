@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { createPreferenceClient } from '@/lib/notificationPreferenceClient';
+import { usePreferenceState } from '@/lib/usePreferenceState';
+export type { NotificationPreferences } from '@/lib/notificationPreferenceClient';
 
 const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/app_11941c8fec_push_notify`;
@@ -23,24 +26,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-export interface NotificationPreferences {
-  prayer_reminders: boolean;
-  bill_reminders: boolean;
-  habit_reminders: boolean;
-  fasting_reminders: boolean;
-  savings_reminders: boolean;
-  general_activity: boolean;
-}
-
-const DEFAULT_PREFERENCES: NotificationPreferences = {
-  prayer_reminders: true,
-  bill_reminders: true,
-  habit_reminders: true,
-  fasting_reminders: true,
-  savings_reminders: true,
-  general_activity: true,
-};
-
 export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
 /**
@@ -60,7 +45,15 @@ export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'un
 export function useNotifications() {
   const { user } = useAuth();
   const [permission, setPermission] = useState<NotificationPermissionState>('default');
-  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const accountId = user?.id ?? null;
+  const preferenceClient = useMemo(() => createPreferenceClient(accountId, {
+    url: EDGE_FUNCTION_URL,
+    getSession: async () => (await supabase.auth.getSession()).data.session,
+    request: (...args) => fetch(...args),
+    readCache: async () => null, // Web has no persistent preference cache.
+    writeCache: async () => undefined,
+  }), [accountId]);
+  const { preferences, preferencesLoading, savingPreferences, preferenceError, updatePreferences } = usePreferenceState(preferenceClient);
   const [loading, setLoading] = useState(true);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
@@ -86,45 +79,6 @@ export function useNotifications() {
         setLoading(false);
       });
   }, [isSupported]);
-
-  // Load preferences from backend
-  useEffect(() => {
-    if (!user) return;
-
-    const loadPreferences = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const response = await fetch(EDGE_FUNCTION_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ action: 'get_preferences' }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.preferences) {
-            setPreferences({
-              prayer_reminders: data.preferences.prayer_reminders ?? true,
-              bill_reminders: data.preferences.bill_reminders ?? true,
-              habit_reminders: data.preferences.habit_reminders ?? true,
-              fasting_reminders: data.preferences.fasting_reminders ?? true,
-              savings_reminders: data.preferences.savings_reminders ?? true,
-              general_activity: data.preferences.general_activity ?? true,
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load notification preferences:', err);
-      }
-    };
-
-    loadPreferences();
-  }, [user]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!isSupported) return false;
@@ -182,35 +136,6 @@ export function useNotifications() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permission, swRegistration, user]);
 
-  // Update notification preferences. Values are still saved even for the
-  // categories currently disabled in the UI, so nothing is lost once real
-  // scheduling infrastructure lands for them.
-  const updatePreferences = useCallback(async (newPrefs: Partial<NotificationPreferences>) => {
-    const updated = { ...preferences, ...newPrefs };
-    setPreferences(updated);
-
-    if (!user) return;
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'update_preferences',
-          preferences: updated,
-        }),
-      });
-    } catch (err) {
-      console.error('Failed to update preferences:', err);
-    }
-  }, [preferences, user]);
-
   // Send a local notification (for testing / immediate notifications) -
   // shows directly via the service worker, no network push involved.
   const sendLocalNotification = useCallback((title: string, body: string, options?: { icon?: string; url?: string; tag?: string }) => {
@@ -233,9 +158,13 @@ export function useNotifications() {
     permission,
     preferences,
     loading,
+    preferencesLoading,
+    savingPreferences,
+    preferenceError,
     requestPermission,
     updatePreferences,
     sendLocalNotification,
     subscribeToPush,
   };
 }
+

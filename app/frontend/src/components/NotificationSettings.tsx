@@ -78,6 +78,9 @@ export default function NotificationSettings() {
     permission,
     preferences,
     loading,
+    preferencesLoading,
+    savingPreferences,
+    preferenceError,
     requestPermission,
     updatePreferences,
     sendLocalNotification,
@@ -188,6 +191,13 @@ export default function NotificationSettings() {
         </div>
       )}
 
+      {preferenceError && (
+        <p role="alert" className="text-xs text-red-400 mb-3">
+          {isAr
+            ? (preferenceError === 'save' ? 'تعذّر تأكيد الحفظ. القيمة السابقة باقية؛ أعد المحاولة بالضغط مجددًا.' : 'تعذّر تحديث التفضيلات. أعد فتح الصفحة للمحاولة مجددًا.')
+            : (preferenceError === 'save' ? 'Save could not be confirmed. Previous values retained; tap again to retry.' : 'Could not refresh preferences. Reopen this page to retry.')}
+        </p>
+      )}
       {/* Notification Type Preferences - the 4 real categories are live,
           interactive toggles now (real Web Push + server scheduling).
           General Activity stays disabled below since it has no real
@@ -212,6 +222,7 @@ export default function NotificationSettings() {
                 </div>
               </div>
               <button
+                disabled={preferencesLoading || savingPreferences}
                 onClick={() => updatePreferences({ [type.key]: !enabled })}
                 className={`w-10 h-5 rounded-full relative flex-shrink-0 ml-2 transition-all ${
                   enabled ? 'bg-primary' : 'bg-muted'
@@ -257,3 +268,4 @@ export default function NotificationSettings() {
     </div>
   );
 }
+
