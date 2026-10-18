@@ -17,6 +17,7 @@ async function http(base, path, token, method='GET', data, prefer) {
   const response = await fetch(base + '/' + path, {method, headers,
     body:data === undefined ? undefined : JSON.stringify(data), redirect:'error', signal:AbortSignal.timeout(15000)});
   let body; try {body=await response.json();} catch {body=null;}
+  report.lastResponse={method,status:response.status};
   return {status:response.status,body};
 }
 const rest = (...args) => http(config.rest,...args);
@@ -30,9 +31,10 @@ async function read(index) {
   assert.equal(r.body[0].user_id,config.users[index]); return r.body[0];
 }
 async function patch(index,data) {
-  const r = await rest(path(config.users[index]),config.tokens[index],'PATCH',data,'return=representation');
-  success(r); assert.ok(Array.isArray(r.body) && r.body.length===1,'Own PATCH did not save exactly one row');
-  return r.body[0];
+  const r = await rest(path(config.users[index]),config.tokens[index],'PATCH',data,'return=minimal');
+  success(r); const saved=await read(index);
+  for (const [key,value] of Object.entries(data)) assert.deepEqual(saved[key],value,'Own PATCH was not saved');
+  return saved;
 }
 let before;
 let changed = false;
@@ -49,10 +51,16 @@ try {
   changed=true; // even an unexpectedly successful foreign write needs cleanup
   for (let i=0;i<2;i++) {
     const r=await rest(path(config.users[1-i]),config.tokens[i]); success(r); assert.deepEqual(r.body,[]);
-    const update=await rest(path(config.users[1-i]),config.tokens[i],'PATCH',{bill_reminders:false},'return=representation');
-    success(update); assert.deepEqual(update.body,[]);
+    const otherBefore=await read(1-i);
+    const update=await rest(path(config.users[1-i]),config.tokens[i],'PATCH',{bill_reminders:otherBefore.bill_reminders!==true},'return=minimal');
+    success(update); assert.deepEqual(await read(1-i),otherBefore);
   }
   ok('cross-account reads and updates affect no rows (both directions)');
+  const returning=await rest(path(config.users[0]),config.tokens[0],'PATCH',{bill_reminders:before[0].bill_reminders},'return=representation');
+  if(returning.status===401 || returning.status===403) {
+    report.compatibility.push({client:'PATCH with return=representation',status:'BLOCKED',reason:'Gateway includes PK id in RETURNING; SELECT(id) intentionally not granted'});
+    console.log('BLOCKER: PATCH representation requires a different response strategy with current column grants');
+  } else {success(returning); report.compatibility.push({client:'PATCH with return=representation',status:'accepted'});}
   forbidden(await rest(`${table}?select=${columns}`,undefined));
   forbidden(await rest(`${table}?select=${columns}`,'not-a-jwt'));
   const pieces=config.tokens[0].split('.');
@@ -116,6 +124,7 @@ try {
       ok('confirmed original allowed preferences restored for both synthetic users');
     } catch {report.restoreFailed=true;process.exitCode=1;console.error('FAIL: synthetic account restoration; isolated operator cleanup required');}
   }
+  delete report.lastResponse;
   report.securityPassed=!report.failure&&!report.restoreFailed;
   report.rolloutReady=false; // CI is not hosted deployment approval; compatibility gates remain.
   writeFileSync('notification-postgrest-results.json',JSON.stringify(report,null,2)+'\n');

@@ -16,6 +16,8 @@ SQL اليدوي `ON CONFLICT ... DO UPDATE SET timezone=...` ليس طلب Supa
 
 المشغّل يفحص طلبَي الويب الحاليين: location upsert في `PrayerTimes.tsx` وpreference upsert في `BackupRestore.tsx`. عند رفضهما يسجل **BLOCKED** في `notification-postgrest-results.json`، ولا يدعي توافق العميل. PATCH ذاتي محدود للأعلام والموقع يُختبر كعملية مسموحة، لكنه لا يستبدل العميل تلقائيًا هنا. إذا ثبت الرفض يلزم إصلاح متوافق مستقل واختبارات إدراج/تحديث/تزامن وفشل حفظ؛ لا توسيع UPDATE(user_id) لمجرد تمرير الاختبار.
 
+**نتيجة HTTP مؤكدة إضافية على PostgREST 12:** PATCH مع return=representation يضيف id إلى RETURNING حتى مع select محدد؛ SELECT(id) غير ممنوح في007. مشغّل الأمن يستخدم return=minimal ثم GET للأعمدة المسموحة ويتحقق من القيم المحفوظة. probe مستقل يسجل رفض representation كعائق توافق، دون منح id أو حقول داخلية. يجب اختبار إصدار الاستضافة الفعلي أيضًا.
+
 **نجاح اختبارات الأمن لا يعني نجاح توافق العميل أو جاهزية الطرح.** التقرير يفصل `securityPassed` و`compatibility` و`hostedAuthVerified`، ويظل `rolloutReady=false`؛ الـprobes التشخيصية ليست اختبارات قبول ناجحة للتوافق.
 
 ## الاختبار المستضاف — مُجهّز، لا يُنفذ دون بيئة معتمدة
