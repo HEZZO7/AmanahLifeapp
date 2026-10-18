@@ -196,11 +196,13 @@ jobs:
       postgres:
         image: postgres:${{ matrix.postgres }}
         env:
+          POSTGRES_USER: fixture_admin
+          POSTGRES_DB: postgres
           POSTGRES_PASSWORD: isolated-ci-fixture
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd "pg_isready -U fixture_admin"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -221,7 +223,7 @@ jobs:
           node-version: '22'
       - name: Production-shaped notification schema under non-superuser owner
         run: >-
-          psql -v ON_ERROR_STOP=1
+          psql -U fixture_admin -v ON_ERROR_STOP=1
           -f tests/notification-postgrest-bootstrap.sql
           -f tests/notification-authority-fixture.sql
           -f supabase/migrations/202610180007_notification_table_authority.sql
