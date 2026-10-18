@@ -65,7 +65,7 @@ jobs:
       - name: Type-check notification preference entry point
         run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_push_notify/index.ts
       - name: Type-check notification storage and Supabase adapter
-        run: npx tsc --noEmit --skipLibCheck --target ES2022 --moduleResolution bundler --module esnext src/lib/notificationPreferenceStorage.ts
+        run: npx tsc --noEmit --skipLibCheck --types vite/client --target ES2022 --moduleResolution bundler --module esnext src/lib/notificationPreferenceStorage.ts
       - name: Lint
         run: npm run lint
       - name: Build
