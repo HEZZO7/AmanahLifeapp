@@ -21,6 +21,9 @@ select public.fixture_expect_denied('delete from public.app_11941c8fec_notificat
 select public.fixture_expect_denied('truncate public.app_11941c8fec_notification_preferences');
 select public.fixture_expect_denied('truncate public.app_11941c8fec_push_subscriptions');
 set local role authenticated;
+select set_config('request.jwt.claim.sub','',true);
+select public.fixture_assert((select count(*)=0 from public.app_11941c8fec_notification_preferences),'Missing identity exposed rows');
+select public.fixture_expect_denied('insert into public.app_11941c8fec_notification_preferences(user_id,bill_reminders) values(''11111111-1111-4111-8111-111111111111'',false)');
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 select public.fixture_assert((select count(*)=1 from public.app_11941c8fec_notification_preferences),'Own-only read failed');
 select public.fixture_assert((select bill_reminders=false from public.app_11941c8fec_notification_preferences where user_id=auth.uid()),'Existing false flag lost');

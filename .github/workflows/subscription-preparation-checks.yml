@@ -145,6 +145,8 @@ jobs:
           -f tests/notification-authority-security.sql
       - name: Reject inherited grants atomically without partial hardening
         run: python3 tests/notification-authority-preflight.py
+      - name: Independently reviewable future defaults proposal (isolated only)
+        run: python3 tests/future-default-privileges.py
       - name: Validate read-only preference evidence query syntax
         run: psql -v ON_ERROR_STOP=1 -f ../../docs/notification-preferences-readonly.sql
 
