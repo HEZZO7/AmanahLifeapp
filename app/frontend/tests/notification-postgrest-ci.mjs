@@ -13,7 +13,8 @@ const jwt=sub=>{
 };
 const a=jwt('11111111-1111-4111-8111-111111111111');
 const b=jwt('22222222-2222-4222-8222-222222222222');
-for(const value of [secret,a,b]) console.log(`::add-mask::${value}`);
+const c=jwt('33333333-3333-4333-8333-333333333333');
+for(const value of [secret,a,b,c]) console.log(`::add-mask::${value}`);
 writeFileSync('/tmp/notification-postgrest.env',[
  'PGRST_DB_URI=postgres://authenticator:isolated-local-only@127.0.0.1:5432/postgres',
  'PGRST_DB_SCHEMAS=public','PGRST_DB_ANON_ROLE=anon',`PGRST_JWT_SECRET=${secret}`,
@@ -21,5 +22,6 @@ writeFileSync('/tmp/notification-postgrest.env',[
 ].join('\n')+'\n',{mode:0o600});
 appendFileSync(process.env.GITHUB_ENV,[
  'NOTIFICATION_TEST_MODE=local-ci','NOTIFICATION_TEST_MUTATION=synthetic-users-only',
- 'NOTIFICATION_TEST_URL=http://127.0.0.1:3000',`NOTIFICATION_TEST_JWT_A=${a}`,`NOTIFICATION_TEST_JWT_B=${b}`,
+ 'NOTIFICATION_TEST_URL=http://127.0.0.1:3000',`NOTIFICATION_TEST_JWT_A=${a}`,`NOTIFICATION_TEST_JWT_B=${b}`,`NOTIFICATION_TEST_JWT_C=${c}`,
 ].join('\n')+'\n');
+

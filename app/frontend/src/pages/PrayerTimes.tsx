@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import { getUserItem, setUserItem } from '@/lib/userStorage';
-import { supabase } from '@/lib/supabase';
+import { notificationPreferenceStorage } from '@/lib/notificationPreferenceStorage';
 import {
   calculatePrayerTimes, CALCULATION_METHODS, DEFAULT_CALCULATION_METHOD, CalculationMethodKey,
 } from '@/lib/prayerCalculation';
@@ -42,12 +42,9 @@ const MANUAL_CITY_KEY = 'prayer_manual_city';
 // Server-side scheduling (Fasting/Suhoor-Iftar reminders, push_scheduler
 // edge function) can't see GPS or the "auto" mode - only a synced manual
 // city is reachable server-side (falls back to Mecca otherwise, matching
-// this screen's own on-screen fallback). Upsert-only-these-columns is safe:
-// Postgres upsert with onConflict only updates the columns actually
-// listed, leaving prayer/bill/goal/etc. preference toggles on the same row
-// untouched. Also carries timezone/language (needed for the 9am/10am local
-// bill/goal rules and for which language to send notification text in) -
-// there's no better single place these are already computed client-side.
+// this screen's own on-screen fallback). Synchronize only location fields;
+// the shared writer preserves unrelated flags, binds the SDK account and
+// uses minimal-response PATCH/INSERT without updating user_id.
 async function syncLocationToSupabase(
   userId: string | null,
   method: CalculationMethodKey,
@@ -57,15 +54,18 @@ async function syncLocationToSupabase(
 ) {
   if (!userId) return;
   try {
-    await supabase.from('app_11941c8fec_notification_preferences').upsert({
-      user_id: userId,
-      prayer_calc_method: method,
-      prayer_location_mode: mode,
-      prayer_manual_city: mode === 'manual' && city ? city : null,
+    await notificationPreferenceStorage.syncLocation(userId, {
+      method, mode, city,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language,
-    }, { onConflict: 'user_id' });
-  } catch { /* best-effort - only affects server-side reminder accuracy, not this screen's own display */ }
+    });
+  } catch {
+    // Local prayer calculations remain available; do not imply that reminder
+    // settings have been synchronized when Auth/network/storage rejected them.
+    toast.error(language === 'ar'
+      ? 'الإعدادات محفوظة على الجهاز، لكن تعذرت مزامنة التذكيرات. أعد المحاولة من إعدادات الموقع.'
+      : 'Settings remain on this device, but reminder sync failed. Retry from location settings.');
+  }
 }
 
 export default function PrayerTimes() {

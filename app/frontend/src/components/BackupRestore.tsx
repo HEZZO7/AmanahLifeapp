@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
-import { notificationBackupColumns, notificationRestoreRow } from '@/lib/notificationBackup';
+import { notificationBackupColumns } from '@/lib/notificationBackup';
+import { notificationPreferenceStorage } from '@/lib/notificationPreferenceStorage';
 import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 
@@ -181,9 +182,7 @@ export default function BackupRestore() {
 
           if (table === 'app_11941c8fec_notification_preferences') {
             if (rows.length !== 1) throw new Error('Invalid preference backup');
-            const row = notificationRestoreRow(rows[0], user.id);
-            const { error } = await supabase.from(table).upsert(row, { onConflict: 'user_id' });
-            if (error) throw new Error('Preference restore failed');
+            await notificationPreferenceStorage.restore(user.id, rows[0]);
             continue; // Preserve scheduler markers, row identity, and current registrations.
           }
           // Existing non-notification restore behavior; report failures honestly.
@@ -303,3 +302,4 @@ export default function BackupRestore() {
     </div>
   );
 }
+

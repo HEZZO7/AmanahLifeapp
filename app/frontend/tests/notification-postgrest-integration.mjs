@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 import {claims, columns, flags, location, target} from './notification-postgrest-target.mjs';
+import {exercisePreferenceWriteFlows} from './notification-preference-write-postgrest.mjs';
 const config = target(process.env);
 const table = 'app_11941c8fec_notification_preferences';
 const push = 'app_11941c8fec_push_subscriptions';
@@ -56,11 +57,6 @@ try {
     success(update); assert.deepEqual(await read(1-i),otherBefore);
   }
   ok('cross-account reads and updates affect no rows (both directions)');
-  const returning=await rest(path(config.users[0]),config.tokens[0],'PATCH',{bill_reminders:before[0].bill_reminders},'return=representation');
-  if(returning.status===401 || returning.status===403) {
-    report.compatibility.push({client:'PATCH with return=representation',status:'BLOCKED',reason:'Gateway includes PK id in RETURNING; SELECT(id) intentionally not granted'});
-    console.log('BLOCKER: PATCH representation requires a different response strategy with current column grants');
-  } else {success(returning); report.compatibility.push({client:'PATCH with return=representation',status:'accepted'});}
   forbidden(await rest(`${table}?select=${columns}`,undefined));
   forbidden(await rest(`${table}?select=${columns}`,'not-a-jwt'));
   const pieces=config.tokens[0].split('.');
@@ -97,18 +93,12 @@ try {
     forbidden(await rest(path(config.users[i]),config.tokens[i],'DELETE'));
   }
   ok('identity/internal fields, foreign INSERT and DELETE blocked for both users');
-  // This probes the CURRENT Supabase-js location/restore shape. PostgREST
-  // merge-duplicates also updates user_id, unlike the hand-written SQL test.
-  for (const [name,body] of [
-    ['PrayerTimes location upsert',{user_id:config.users[0],timezone:'UTC',language:'ar',prayer_calc_method:'UmmAlQura',prayer_location_mode:'manual',prayer_manual_city:null}],
-    ['BackupRestore preference upsert',{user_id:config.users[0],bill_reminders:false}],
-  ]) {
-    const r=await rest(`${table}?on_conflict=user_id`,config.tokens[0],'POST',body,'resolution=merge-duplicates,return=minimal');
-    if(r.status===401 || r.status===403) {
-      report.compatibility.push({client:name,status:'BLOCKED',reason:'PostgREST merge-duplicates requires UPDATE(user_id), intentionally not granted'});
-      console.log(`BLOCKER: current ${name} is incompatible with the identity-column restriction`);
-    } else {success(r);report.compatibility.push({client:name,status:'accepted'});}
-  }
+  // Forbidden legacy wire shapes remain rejected; the current flow facade
+  // below must PASS rather than reclassifying incompatibility as a green test.
+  forbidden(await rest(`${table}?on_conflict=user_id`,config.tokens[0],'POST',
+    {user_id:config.users[0],bill_reminders:false},'resolution=merge-duplicates,return=minimal'));
+  report.compatibility=await exercisePreferenceWriteFlows(config,read,ok);
+  report.clientCompatibilityPassed=true;
 } catch (error) {
   // Assert failures may contain actual data: do not log raw error/stack/body.
   report.failure=true;
@@ -130,3 +120,4 @@ try {
   writeFileSync('notification-postgrest-results.json',JSON.stringify(report,null,2)+'\n');
   console.log(`Security checks: ${report.securityPassed?'PASS':'FAIL'}; hosted Auth verified: ${report.hostedAuthVerified}; rollout: NOT APPROVED`);
 }
+

@@ -3,6 +3,18 @@
 do $$ begin
  if current_setting('amanahlife.security_fixture',true) is distinct from 'isolated' then raise exception 'Isolated fixture required'; end if;
 end $$;
+-- The SDK concurrency test deliberately creates C, a new disposable row.
+-- Verify both independent writes and untouched server fields, then remove
+-- only that synthetic row before comparing the two original accounts.
+select public.fixture_assert((select count(*)=1 from public.app_11941c8fec_notification_preferences
+ where user_id='33333333-3333-4333-8333-333333333333'
+ and bill_reminders=false and habit_reminders=false and prayer_reminders=true
+ and fasting_reminders=true and savings_reminders=true and general_activity=true
+ and timezone='UTC' and language='ar' and prayer_calc_method='UmmAlQura'
+ and prayer_location_mode='manual' and (prayer_manual_city->>'lat')::numeric=21
+ and last_suhoor_sent_date is null and last_iftar_sent_date is null and created_at=updated_at),
+ 'Concurrent new-row flow lost fields/defaults or changed server metadata');
+delete from public.app_11941c8fec_notification_preferences where user_id='33333333-3333-4333-8333-333333333333';
 select public.fixture_assert((select count(*)=2 from public.app_11941c8fec_notification_preferences),'HTTP tests created/deleted preference rows');
 select public.fixture_assert((select bool_and(
  last_suhoor_sent_date=case when user_id='11111111-1111-4111-8111-111111111111' then date '2026-01-01' else date '2026-01-02' end
@@ -19,3 +31,4 @@ select public.fixture_assert((select count(*)=2 and bool_and(
  and p256dh=case when user_id='11111111-1111-4111-8111-111111111111' then 'fixture-key-A' else 'fixture-key-B' end
  and auth_key=case when user_id='11111111-1111-4111-8111-111111111111' then 'fixture-auth-A' else 'fixture-auth-B' end)
  from public.app_11941c8fec_push_subscriptions),'HTTP tests changed push registrations');
+

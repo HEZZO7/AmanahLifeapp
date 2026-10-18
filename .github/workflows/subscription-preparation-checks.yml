@@ -37,6 +37,8 @@ jobs:
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preference-client.test.mjs
       - name: Sanitized notification backup contract
         run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-backup.test.mjs
+      - name: Notification location and backup write regression tests
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-preference-write.test.mjs
       - name: Install dependencies
         run: npm install
       - name: Install matching React test renderer (test runtime only)
@@ -62,6 +64,8 @@ jobs:
           supabase/functions/app_11941c8fec_savings_tips/index.ts
       - name: Type-check notification preference entry point
         run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_push_notify/index.ts
+      - name: Type-check notification storage and Supabase adapter
+        run: npx tsc --noEmit --skipLibCheck --target ES2022 --moduleResolution bundler --module esnext src/lib/notificationPreferenceStorage.ts
       - name: Lint
         run: npm run lint
       - name: Build
@@ -242,8 +246,12 @@ jobs:
             sleep 1
           done
           exit 1
-      - name: Two-user PostgREST/JWT security and client compatibility probes
-        run: node tests/notification-postgrest-integration.mjs
+      - name: Install isolated Supabase SDK test dependency
+        run: npm install --prefix /tmp/notification-client --package-lock=false --ignore-scripts @supabase/supabase-js@2.106.0
+      - name: Two-user PostgREST/JWT security and actual client flows
+        env:
+          NOTIFICATION_TEST_SDK_PACKAGE_JSON: /tmp/notification-client/package.json
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs tests/notification-postgrest-integration.mjs
       - name: Verify unchanged rows, constraints and server-only data after HTTP tests
         run: psql -v ON_ERROR_STOP=1 -f tests/notification-postgrest-preservation.sql
       - name: Publish redacted security results and compatibility blockers
@@ -258,3 +266,4 @@ jobs:
         run: |
           docker rm -f notification-postgrest || true
           rm -f /tmp/notification-postgrest.env
+
