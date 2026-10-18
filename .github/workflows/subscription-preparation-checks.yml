@@ -131,8 +131,38 @@ jobs:
           psql -v ON_ERROR_STOP=1
           -f supabase/migrations/202610160006_ai_entitlement.sql
           -f tests/ai-entitlement-security.sql
+      - name: Execute complete permission evidence SQL read-only on isolated PostgreSQL 17
+        run: python3 tests/production-permission-evidence.py populated
       - name: Validate read-only preference evidence query syntax
         run: psql -v ON_ERROR_STOP=1 -f ../../docs/notification-preferences-readonly.sql
 
 
 
+
+  evidence-postgres15:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Complete read-only evidence query on fresh PostgreSQL 15 (no fixture writes)
+        run: python3 tests/production-permission-evidence.py empty

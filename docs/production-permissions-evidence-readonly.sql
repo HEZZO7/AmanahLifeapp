@@ -240,7 +240,7 @@ report(section,object,evidence) as (
      'create',pg_catalog.has_schema_privilege(a.oid,n.oid,'CREATE'))) from actors a))
  from pg_catalog.pg_namespace n where n.oid in (select oid from scope_namespaces)
  union all
- select '06_default_acl',pg_catalog.pg_get_userbyid(d.defaclrole)||' / '||coalesce(n.nspname,'GLOBAL')||' / '||d.defaclobjtype,
+ select '06_default_acl',pg_catalog.pg_get_userbyid(d.defaclrole)||' / '||coalesce(n.nspname,'GLOBAL')||' / '||d.defaclobjtype::text,
    pg_catalog.jsonb_build_object('creator',pg_catalog.pg_get_userbyid(d.defaclrole),'scope',coalesce(n.nspname,'GLOBAL'),
      'object_type',d.defaclobjtype,'grants',(select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
        'grantee',case when x.grantee=0 then 'PUBLIC' else pg_catalog.pg_get_userbyid(x.grantee) end,
