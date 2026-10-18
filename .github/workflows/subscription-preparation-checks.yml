@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Isolated PostgREST target safety guards
+        run: node --test tests/notification-postgrest-guard.test.mjs
       - name: Auth return tests
         run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/auth-return.test.mjs
       - name: Webhook signature tests
@@ -180,3 +182,77 @@ jobs:
       - uses: actions/checkout@v4
       - name: Complete read-only evidence query on fresh PostgreSQL 15 (no fixture writes)
         run: python3 tests/production-permission-evidence.py empty
+
+
+  notification-postgrest:
+    # Real HTTP, HS256 signature verification, SET ROLE and RLS; no hosted
+    # credentials or external Supabase endpoint is used by this automatic job.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['15', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+      PGOPTIONS: '-c amanahlife.security_fixture=isolated'
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Production-shaped notification schema under non-superuser owner
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/notification-postgrest-bootstrap.sql
+          -f tests/notification-authority-fixture.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+      - name: Inherited SELECT and version-aware MAINTAIN atomic rollback
+        run: python3 tests/notification-authority-preflight.py
+      - name: Start disposable PostgREST with ephemeral JWT signing key
+        run: |
+          node tests/notification-postgrest-ci.mjs
+          docker run -d --name notification-postgrest --network host \
+            --env-file /tmp/notification-postgrest.env postgrest/postgrest:v12.2.12
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Two-user PostgREST/JWT security and client compatibility probes
+        run: node tests/notification-postgrest-integration.mjs
+      - name: Verify unchanged rows, constraints and server-only data after HTTP tests
+        run: psql -v ON_ERROR_STOP=1 -f tests/notification-postgrest-preservation.sql
+      - name: Publish redacted security results and compatibility blockers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-postgrest-pg${{ matrix.postgres }}
+          path: app/frontend/notification-postgrest-results.json
+          if-no-files-found: ignore
+      - name: Remove disposable gateway and test-only credentials
+        if: always()
+        run: |
+          docker rm -f notification-postgrest || true
+          rm -f /tmp/notification-postgrest.env

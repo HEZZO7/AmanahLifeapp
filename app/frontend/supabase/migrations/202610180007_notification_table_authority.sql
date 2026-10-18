@@ -89,13 +89,22 @@ create policy amanah_preferences_update on public.app_11941c8fec_notification_pr
 -- No browser table access or copying registration secrets through backups.
 
 do $$
-declare target text; actor text; privilege text; col record; allowed text[] := array[
+declare target text; actor text; privilege text; col record;
+ table_privileges text[] := array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'];
+ allowed text[] := array[
  'user_id','prayer_reminders','bill_reminders','habit_reminders','fasting_reminders','savings_reminders','general_activity',
  'timezone','language','prayer_calc_method','prayer_location_mode','prayer_manual_city'];
 begin
+ -- MAINTAIN was added in PostgreSQL 17. Never pass an unsupported privilege
+ -- name to has_table_privilege on older supported servers (e.g. PG15).
+ if current_setting('server_version_num')::integer >= 170000 then
+  table_privileges := array_append(table_privileges,'MAINTAIN');
+ end if;
  foreach target in array array['app_11941c8fec_notification_preferences','app_11941c8fec_push_subscriptions'] loop
   foreach actor in array array['anon','authenticated','service_role'] loop
-   foreach privilege in array array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'] loop
+   -- Effective access includes PUBLIC, inherited memberships and grant options;
+   -- inspecting relacl alone would miss a custom-role MAINTAIN grant.
+   foreach privilege in array table_privileges loop
     if has_table_privilege(actor,'public.'||target,privilege||' WITH GRANT OPTION')
      or (has_table_privilege(actor,'public.'||target,privilege)
       and (actor<>'service_role' or privilege not in ('SELECT','INSERT','UPDATE','DELETE'))) then
@@ -118,3 +127,4 @@ begin
 end $$;
 notify pgrst,'reload schema';
 commit;
+

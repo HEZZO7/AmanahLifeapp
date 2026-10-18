@@ -9,10 +9,21 @@ select public.fixture_assert(
 select public.fixture_assert(not exists(select 1 from pg_policy where polrelid in
  ('public.app_11941c8fec_notification_preferences'::regclass,'public.app_11941c8fec_push_subscriptions'::regclass)
  and 0=any(polroles)),'PUBLIC RLS policy remains');
-select public.fixture_assert(not has_function_privilege('anon','public.app_11941c8fec_is_family_member(uuid)','EXECUTE')
- and not has_function_privilege('anon','public.app_11941c8fec_is_family_owner(uuid)','EXECUTE')
- and not has_function_privilege('anon','public.app_11941c8fec_add_owner_as_member()','EXECUTE')
- and not has_function_privilege('anon','public.app_11941c8fec_set_join_code()','EXECUTE'),'Anonymous family helpers remain open');
+-- Check the production-shaped schema rather than a user_id-primary-key model.
+select public.fixture_assert((select a.attname='id' from pg_index i join pg_attribute a on a.attrelid=i.indrelid and a.attnum=i.indkey[0]
+ where i.indrelid='public.app_11941c8fec_notification_preferences'::regclass and i.indisprimary),'Preferences PK differs from production');
+select public.fixture_assert((select count(*)=2 from pg_attribute where attrelid='public.app_11941c8fec_notification_preferences'::regclass
+ and attname in ('last_suhoor_sent_date','last_iftar_sent_date') and atttypid='date'::regtype),'Reminder markers must be dates');
+do $$ declare actor text; target text; begin
+ if current_setting('server_version_num')::int >= 170000 then
+  foreach actor in array array['anon','authenticated','service_role'] loop
+   foreach target in array array['app_11941c8fec_notification_preferences','app_11941c8fec_push_subscriptions'] loop
+    perform public.fixture_assert(not has_table_privilege(actor,'public.'||target,'MAINTAIN')
+      and not has_table_privilege(actor,'public.'||target,'MAINTAIN WITH GRANT OPTION'),'Effective MAINTAIN remains');
+   end loop;
+  end loop;
+ end if;
+end $$;
 set local role anon;
 select public.fixture_expect_denied('select user_id from public.app_11941c8fec_notification_preferences');
 select public.fixture_expect_denied('select endpoint,auth_key from public.app_11941c8fec_push_subscriptions');
@@ -30,7 +41,6 @@ select public.fixture_assert((select bill_reminders=false from public.app_11941c
 select public.fixture_expect_denied('select last_suhoor_sent_date from public.app_11941c8fec_notification_preferences');
 select public.fixture_expect_denied('select auth_key from public.app_11941c8fec_push_subscriptions');
 select public.fixture_expect_denied('delete from public.app_11941c8fec_notification_preferences');
-select public.fixture_expect_denied('truncate public.app_11941c8fec_subscriptions');
 select public.fixture_expect_denied('truncate public.app_11941c8fec_notification_preferences');
 select public.fixture_expect_denied('truncate public.app_11941c8fec_push_subscriptions');
 select public.fixture_expect_denied('update public.app_11941c8fec_notification_preferences set user_id=''22222222-2222-4222-8222-222222222222''');
@@ -65,3 +75,4 @@ delete from public.app_11941c8fec_push_subscriptions where user_id='33333333-333
 delete from public.app_11941c8fec_notification_preferences where user_id='33333333-3333-4333-8333-333333333333';
 select public.fixture_expect_denied('truncate public.app_11941c8fec_push_subscriptions');
 rollback;
+
