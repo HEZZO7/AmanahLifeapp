@@ -1,79 +1,52 @@
-# مراجعة أمان وإعادة إنتاج حزمة Supabase المحلية
+# حالة حزمة التحقق المحلي بعد تثبيت التبعيات
 
-المصدر المستهدف: `HEZZO7/AmanahLifeapp`، PR #2 المسودة، `f29d8df16e434e8cd064968e4b832e9c8f84e2fb`. هذه مراجعة للحزمة غير المفعلة، وليست نتيجة تكامل. لا تشغيل workflow أو Docker/Supabase أو SQL في هذه المراجعة. لا تغييرات على التطبيق أو Migration 007 أو الإنتاج.
+PR #2 مسودة. التطبيق المستهدف f29d8df16e434e8cd064968e4b832e9c8f84e2fb؛ أساس مراجعة CI هو d80428205a9b2cae256cbf30e52f30ae9f3622b8. التغييرات الحالية محصورة في ci/notification-local وdocs/ci؛ لا تغيير لتطبيق أو migrations أو workflows نشطة أو الإنتاج.
 
-**القرار: لا تفعّل الحزمة بعد.** التصحيحات المقترحة جاهزة للمراجعة، لكن قفل سلسلة التبعيات ونجاح التشغيل الحقيقي لم يثبتا. يبقى إطلاق الاشتراكات No-Go والمنتجات الرقمية مستقلة.
+**الحالة: المراجع مثبتة، والتحقق من bytes والتوافق التشغيلي غير مكتمل. لا تفعّل workflow الآن.** لا يمكن إعلان الإغلاق الكامل لعائق إعادة الإنتاج بناء على بيانات metadata وفحوص offline فقط. لا Docker/Supabase/SQL/Deno أو workflow شُغل هنا. الاشتراكات المدفوعة No-Go والمنتجات الرقمية مستقلة.
 
-| البند | النتيجة | الدليل وحدودها |
-|---|---|---|
-| الصلاحيات وأحداث GitHub | PASS للمقترح | contents:read فقط؛ action checkout مثبت على SHA كامل مع persist-credentials:false؛ لا PR/fork/pull_request_target/workflow_run أو OIDC أو environment أو secrets.* |
-| عدم التفعيل | PASS | الملف docs/ci/notification-local-supabase.yml.proposed خارج .github/workflows؛ لا trigger فعال جديد. رفعه كملف توثيق لا يفعله |
-| حدود بيانات الاختبار | PASS بالمصدر؛ التشغيل غير مثبت | staging لقائمة 13 Git blob مثبتًا؛ حاويات التطبيق لا تركب المستودع الكامل أو .env أو .git أو Docker socket. بيئة harness تنظف بـenv -i وHOME مؤقت |
-| مفاتيح الإنتاج وبيانات العملاء | PASS من حيث المدخلات | لا أسرار مستضافة أو مفاتيح دفع أو بيانات عملاء في الحزمة. مفاتيح service_role المحلية تنشأ عبر CLI محلي جديد ولا تدخل حاوية assertions؛ متاحة فقط لإنشاء/حذف المستخدمين وداخل Edge الأصلي |
-| منع طلبات الإنتاج | NOT VERIFIED تشغيليًا | شبكة internal، إزالة proxy قبل المستخدمين، فحص env المحلي والمنافذ ومقارنة المفاتيح، ثم canary موجب على bridge ومحاولة مرفوضة من namespaces الخدمات الخمس. لم ينفذ أي من ذلك فعليًا |
-| دقة مخطط الإشعارات | PARTIAL | PK(id)، UNIQUE(user_id)، مفاتيح push، FK وNOT NULL وأنواع markers DATE من fixture المدقق. defaults تمثيلية وليست دليلًا إنتاجيًا |
-| الفشل والنتائج | PASS بمراجعة التحكم والفحوص الثابتة | set -euo pipefail؛ psql ON_ERROR_STOP؛ assertions حقيقية؛ baseline/007 مرتين مع بصمات بيانات؛ summary لا يثبت اكتمالًا عند فقد marker أو فشل phase أو teardown. لا continue-on-error أو تحويل فشل الخدمات إلى نجاح |
-| التنفيذ الفعلي على Ubuntu | NOT VERIFIED | تصميمه يستخدم Docker وPython وNode وCLI على ubuntu-24.04 قياسي؛ لا خدمة مدفوعة لازمة. البيئة الحالية لا تتيح daemon. التوافق الفعلي ووقت التشغيل ومقدار القرص غير مقاسة |
-| قابلية إعادة الإنتاج | FAIL كضمان كامل | مصدر/Action/CLI version مثبتة، ونسخ SDK التسع مطابقة lockfile التطبيق. لكن checksum CLI من نفس release وليس hash مستقلًا معتمدًا؛ صور tags دون digests مسبقة؛ imports Edge @2/@3 غير مقفلة؛ lock/integrity npm يسجل بعد التحميل فقط |
-| السجلات والاحتفاظ | PASS بالمصدر | لا artifacts/cache upload؛ لا start/status/DB/Edge raw logs. regression logs تبقى على runner المؤقت. Summary ثابت ومنقح. سجلات GitHub العادية تخضع لمدة احتفاظ المستودع الحالية، ولم نفحص إعدادها أو نغيره |
-| النشر والدمج والفوترة | PASS بالمصدر | لا deploy/link/login/db push أو مزود دفع أو API لإنشاء مشاريع/دمج/تعديل billing. GITHUB_TOKEN للقراءة فقط. جميع أوامر SQL داخل postgres محلي محدد الاسم |
+## الأقفال ومصادرها
 
-عنوان إنتاج عام موجود في مصدر المشروع ليس سرًا يمكن ضمان إخفائه عن host الذي ينفذ checkout؛ لذلك لا ندعي استحالة معرفته عالميًا. ما يفرضه المقترح هو عدم تحميل إعداداته في مسار الاختبار وعدم إتاحة مدخلات إنتاج للتطبيق المحلي. منع الاتصال الفعلي من التطبيق المحلي يحتاج نجاح فحوص الشبكة، ولا تكفي مراجعة الكود لإثباته. ولا تمثل هذه المراجعة مسح أسرار كاملًا لتاريخ المستودع.
+- CLI2.121.0: أرشيف linux_amd64 محدد، وSHA-256 ثابت 4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f من digest أصل الإصدار في GitHub API. لم نعد ننزل checksums ديناميكيًا ونثق بها بجوار الأرشيف. يفحص الأرشيف قبل فكّه، ثم يتحقق من --version.
+- 7 صور Docker مثبتة @sha256، مع --platform=linux/amd64 وفحص OCI architecture/OS وRepoDigests قبل تشغيل الخدمات، ثم مقارنة image IDs الفعلية للحاويات بالقائمة التي سُحبت. مراجع الصور ومصادر الأدلة بالضبط في runtime-lock.json.
+- صور PostgreSQL17.11.0.004-r1 وAuth2.197.0-r0 وPostgREST16.4-r0 وEdge1.77.4-r0 مأخوذة من كتالوج CLI نفسه ومن إعلانات نشر supabase/slim-services التي تصرح linux/amd64 والدigest المطابق. يفعّل SUPABASE_USE_SLIM_IMAGES محليًا فقط. لا خلط عشوائي لنسخ الخدمات؛ التوافق الفعلي ما زال يحتاج تشغيلًا.
+- Node22.23.3 وPython3.12.15 وKong2.8.1 مثبتة على manifests خاصة بـamd64 من docker-library/repo-info بمراجع Git ثابتة. npm10.9.9 مضمن في صورة Node، وتؤكده بيانات إصدار Node وفحص --version المستقبلي. Kong القديم لم يُسحب للتحقق من استمرار توفر digest؛ CLI يستعمل alias library/kong:2.8.1 بعد تحميل الدigest والتأكد من image ID، مع تعطيل إعادة كتابة registry الافتراضية. لا fallback إلى tag متحرك عند الفشل.
+- Deno2.1.4 مضمن في صورة Edge المذكورة؛ التحقق من نسخة المصدر deno/Cargo.toml ليس تشغيلًا للثنائية. وظيفة ci_runtime_probe محلية للاختبار فقط تفحص Deno.version وlinux/x86_64 قبل الحسابين، ولا تقرأ أسرارًا أو قاعدة البيانات. لا تثبيت Deno latest أو setup-deno Action.
+- package-lock.json v3 وnpm ci --ignore-scripts، مع 26 حزمة بإصدارات/SRI محددة. يحتفظ SDK2.110.0 المطابق لنسخة التطبيق، ويثبت web-push3.6.7 وتبعياته. قارنا31 حافة semver و12 شرط Node؛ كلها تقبل Node22.23.3. هذا لا يثبت توافق طبقة npm في Deno2.1.4 مع SDK الحديث.
+- deno.lock/import_map.json/deno.json يثبتون جذري npm والgraph نفسه. JSON والاتساق فُحصا، ولم يعمل Deno نفسه للتحقق من parsing أو تطبيق frozen lock داخل الـruntime المضمن.
 
-## التصحيحات المجهزة
+## حدود مصدر integrity — عائق باقٍ يجب عدم إخفائه
 
-1. استبدال mount المستودع الكامل بـ13 ملفًا مسموحًا وبصمات Git الفعلية، ورفض الانحراف أو الروابط الرمزية/المسارات الخارجة أو عنوان Supabase مستضاف في الملفات المشغلة.
-2. تصحيح مرجع SDK: lockfile التطبيق في f29 يحدد 2.110.0، لا 2.106.0 المستخدم في المقترح الأول. package.json يثبت نسخ التسع dependencies؛ record-deps يرفض أي graph أو نسخة مختلفة ويسجل integrity. هذا لا يغني عن frozen lock مسبق.
-3. تمثيل صلاحيات وسياسات الإنتاج غير الآمنة قبل007، وإثبات تجاوز anon داخل transaction يُتراجع عنه، ثم تطبيق007 مرتين وفحص عدم تغيير البيانات.
-4. إضافة INSERT عابر للحسابات يجب أن يفشل بـ42501، وتحقق true ثم false عبر Edge حتى لا ينجح اختبار false بسبب بقاء قيمة سابقة.
-5. canary متاح فعلًا مع positive control، ثم حجب من namespace كل خدمة، وفحص loopback-only والمفاتيح المحلية وعدم وجود VAPID/internal/payment secrets؛ لا probe إلى نطاق إنتاجي.
-6. جعل teardown جزءًا من النتيجة: فشل إيقاف stack أو بقاء containers/volumes يفشل خطوة التنظيف والـjob. لا ملخص نجاح شامل قبل اكتمالها. عند فقد runner أو الإلغاء القسري قد لا تنفذ always؛ المشروع محلي على runner مؤقت ولا توجد موارد سحابية لتنظيفها.
-7. تضييق بيئة host، وتأكيد تعطيل migrations/seed والخدمات غير اللازمة وOAuth/SMTP الخارجي في config، وحجب raw logs.
+لم تتوفر اتصالات registry/download من أداة التنفيذ؛ لم نحمل أرشيف CLI أو صور OCI أو npm tarballs. بيانات إصدار CLI وكتالوج الصور بيانات ناشرين، وليست شهادة على bytes سحبناها محليًا.
 
-## ما يشغله المقترح عند اعتماد تشغيله لاحقًا
+قيم npm SRI ليست مأخوذة من registry npm مباشرة: قيم حزم SDK التسع متطابقة في lockfileين عامين مستقلين عند Git blob ثابت؛ graph web-push مأخوذ من lockfile عام، وقيمة web-push الأساسية وبعض القيم طابقت مصدرًا ثانيًا. بقية القيم ليست موثقة من ناشر الحزمة مباشرة. أسماء المصادر وblob IDs في runtime-lock.json؛ لم ننسخ أو نشغل كود تلك المشاريع. لا نصف هذه القيم بأنها تحقق ناشر مستقل أو npm audit أو attestation. يلزم تحقق canonical registry أو تنزيل bytes والتحقق منها في بيئة مأذونة قبل اعتبار عائق الثقة مغلقًا بالكامل. أي mismatch يجب أن يفشل، لا أن يعيد توليد الأقفال أو يقبل hash جديدًا تلقائيًا.
 
-- مستخدمان أصليان في Auth المحلي، وتسجيل دخول بكلمة مرور، وgetSession/getUser وJWTs صادرة فعليًا من Auth؛ ليس توقيع JWT اصطناعيًا لاجتياز الاختبار.
-- JWT غائب أو تالف أو معدّل، وعزل RLS وقراءة الأعمدة، وcount=exact للذات/الآخر، ورفض user_id/id/markers/Push المباشر.
-- facade الفعلي لـPrayerTimes وBackupRestore مع حقول backup قديمة، والحفاظ على false، وجلستين متزامنتين لأول INSERT: صفر PATCH مرتين، INSERT201 و23505/409، ثم PATCH retry واحد.
-- get/update_preferences الأصليان من مصدر ثابت مع Authorization فقط كما في العملاء، وكذلك apikey+JWT؛ حفظ true ثم false وقراءة الستة وغياب تغيير بيانات B.
-- أربعة ملفات regression أصلية مع منع HTTP/TCP. لا اختبار UI أو RN كامل، ولا إرسال Web Push أو تشغيل Scheduler.
+## كيف يُفرض الفشل المغلق دون اعتماد على Deno lock وحده
 
-**ما شغلناه الآن فقط:** خمسة اختبارات offline للحزمة نفسها، وفحص YAML/permissions/trigger، وتحويل config على template upstream، ومطابقة/staging ملفات المصدر الـ13. لا تطبيق007 أو SQL parser/execution أو JWT/PostgREST/Edge integration أو regression التطبيق في هذه الجلسة. لا تنسب نجاح CI التاريخي إلى هذه الحزمة.
+1. تمسح بيئة host بـenv -i وHOME مؤقت، ويُنسخ 13 Git blob مسموحًا من المصدر الثابت. لا mount للمستودع الكامل أو .env أو .git أو Docker socket في الاختبارات. لا secrets.* أو environment أو OIDC؛ contents:read وcheckout مثبت بـSHA وpersist-credentials:false فقط.
+2. يتحقق من CLI والدigests والمنصة ونسخ أدوات الحاويات قبل استخدامها. npm ci لا يشغّل lifecycle scripts ولا يحدّث lockfile؛ فحص لاحق يقارن أسماء ونسخ الحزم المثبتة.
+3. تنزل tarballs من registry.npmjs.org فقط، مع رفض redirect خارجه، وفحص SHA-512 واسم/نسخة package.json والdependencies قبل بدء الخدمات. لا فك ملفات tar إلى filesystem في هذا الفحص.
+4. استُبدل CONNECT proxy الخارجي بمرآة HTTP محلية read-only على شبكة internal فقط، منذ البداية. لا bridge أو outbound fetch داخل المرآة، ولا مسار fallback. لا تخدم إلا metadata للنسخ المثبتة وtarballs المقفلة، ويعاد فحص digest عند تقديمها. مجهول/تلاعب/مسار آخر يرفض. NPM_CONFIG_REGISTRY يمرر إلى عملية Edge نفسها حسب مصدر CLI المثبت، وCLI --import-map يضبط imports الأصلية دون تعديل ملفات التطبيق.
+5. هذه المرآة المقفلة هي حد فرض إضافي إذا لم يطبق embedder إعداد frozen في deno.json. دعم الـlock وشكل metadata/cache وإعادة تشغيل العمال ما زال يحتاج أول تشغيل حقيقي. عدم توافقه يفشل دون فتح الإنترنت أو تبديل نسخ.
+6. baseline ACL غير الآمن،007 مرتان وبصمات حفظ البيانات، JWT/RLS/count=exact/race/false/Edge تبقى في الحزمة. assert-network يتحقق من الصور والمفاتيح المحلية وغياب proxy خارجي؛ canary ذو positive control ثم namespaces الخدمات الخمس. لا probe إلى نطاق إنتاجي.
+7. التنظيف جزء من الحكم؛ no-backup يستهدف stack هذا التشغيل فقط ويتحقق من زوال containers/volumes. لا تقرير اكتمال دون marker الاختبار وmarker teardown وكل phase ناجح. لا artifacts/cache upload أو raw DB/Edge/status/credentials logs.
 
-## شروط قبل التفعيل ثم قبل أي rollout
+عنوان إنتاج عام قد يوجد في المستودع الذي ينفذ host checkout؛ لا ندعي استحالة معرفته. مدخلات الحاويات المسموح بها لا تحتوي إعداد Supabase مستضافًا، وحظر الاتصال يحتاج إثباتًا ديناميكيًا. لم نفحص تاريخ المستودع كله بحثًا عن أسرار. لا مفاتيح إنتاج أو بيانات عملاء جُمعت لهذه المهمة.
 
-1. تثبيت ومراجعة digest صور CLI/Node/Python والخدمات، وhash مستقل لثنائية CLI، وfrozen npm/Deno graph مع integrity. إعدادات Actions المسموح بها في الحساب لم تتوفر عبر موصل القراءة؛ يلزم التحقق من السماح بـcheckout والـstandard runner عند الاعتماد. لا نطلب أسرارًا.
-2. مراجعة الحزمة واعتماد فرع/تشغيل واحد صراحةً. لا تنقل template الآن. متغير LOCAL_ONLY_APPROVAL علامة تحقق تقنية وليس موافقة بشرية مستقلة.
-3. نجاح فعلي لكل phase، وكل migration/data/race/assertion/regression، ثم teardown؛ اللون الأخضر مع job skipped أو summary جزئي لا يعتبر نجاحًا.
-4. قبل استنتاج تطابق إنتاج: تأكيد defaults الحقيقية، إعدادات JWT/JWKS/gateway، صلاحيات مالك postgres، نسخة PostgreSQL والـSDK/Edge/الويب/المحمول المنشورة. قد يكون postgres المحلي SUPERUSER. اختبار JWT منتهي صالح التوقيع غير موجود؛ tampering ليس بديلًا عنه. SDK logout/account switch لا يثبت إبطال JWT صادر سابقًا فورًا.
-5. لا rollout بناء على نجاح محلي وحده، ولا نشر billing migrations001–006 مع007. المخطط المحلي لا يختبر تبعيات/تريجرات إنتاج غير معروفة ولا يوفر downgrading إلى grants الواسعة؛ أي تغيير إنتاجي له موافقة وخطة مستقلة.
+## ما نُفذ بالفعل
 
-## الوقت والتكلفة
+- 13 اختبارًا offline للحزمة: syntax، الأقفال، checksum/SRI mismatch ببيانات unit اصطناعية، هوية tarball، رفض graph متغير أو image متحرك، routing المرآة دون TCP، وعدم قبول ملخص ناقص أو نجاح ملف دون الحالات.
+- 128 حالة أصلية من f29: notification-preferences68، notification-preference-client30، notification-backup7، notification-preference-write23. جميعها0 فشل/إلغاء/تخطٍ ومع deny-network. هذه اختبارات المصدر المعزولة وليست اختبارات Supabase الحقيقي.
+- اكتُشف أن أوضاع تشغيل معينة هنا قد تخرج0 دون إثبات الحالات الداخلية. استُبدل loader worker في harness فقط بـregisterHooks المتزامن (متاح من Node22.15)، وأضيف فحص إلزامي لأعداد الحالات. لم نعد نعتبر نجاح ملف واحد/خروج0 دليلًا كافيًا.
+- host الفعلي Node24.19.0/npm11.9.0. نجح npm ci --dry-run --offline، لكنه لم ينزل أو يثبت أي حزمة (node_modules لم ينشأ)، وأصدر EBADENGINE متوقعًا لأن root يطلب Node22.23.3. لا تنسب هذه النتيجة إلى تنفيذ npm10.9.9 المثبت.
+- YAML والصلاحيات/trigger، وتحويل config على template CLI، وبصمات13 ملفًا، وJSON/semver/engines فُحصت. bash -n وnode --check وPython AST ضمن الفحوص.
+- لم يُنفذ npm ci حقيقي، أو تنزيل/تحقق bytes حقيقي، أو Deno parse/check/cache، أو OCI pull/inspect، أو Docker/Supabase/Auth/PostgREST/SQL/Edge/JWT integration. لم تعمل مجموعة CI الكاملة أو lint/build في هذه المهمة.
 
-مستودع AmanahLifeapp كان public عند القراءة. standard ubuntu-24.04 مجاني لدقائق Actions في المستودعات العامة؛ لا larger runner أو artifacts/cache أو Supabase cloud resources. تقدير 15–30 دقيقة باردة، job بحد40 دقيقة وخطوة الاختبار35، وتنزيلات2–5GB؛ ليست قياسات. preflight يرفض قرصًا أقل من8GiB أو RAM أقل من8GiB ولا يرقّي runner تلقائيًا. تقييد Actions بالحساب أو rate limit للتنزيلات قد يمنع التشغيل. إذا صار المستودع private فالـjob يُتخطى، ولا يجوز وصفه بنجاح التكامل.
+## الباقي والتفعيل
 
-المراجع الرسمية: https://docs.github.com/en/billing/concepts/product-billing/github-actions ؛ https://supabase.com/docs/guides/local-development/cli/getting-started ؛ https://github.com/supabase/cli/releases/tag/v2.121.0
+قبل التفعيل: مراجعة provenance لقيم npm والتحقق canonical/bytes، ومراجعة هذا diff والأقفال، وموافقة مستقلة على التشغيل. لا يُنشأ فرع تشغيل الآن. يلزم أول تشغيل فعلي لإثبات توفر الصور القديمة، Linux/amd64 الفعلي، دعم slim containers وإعدادها، npm10.9.9، تحميل Deno2.1.4 للgraph والمرآة وnative lock، ثم اختبارات الخدمات والتنظيف. OS/Docker/Python/curl على runner القياسي قد تتغير؛ الأقفال لا تعني آلة bit-for-bit.
 
-لم نعدل workflows الحالية غير المثبتة بالـSHA خارج نطاق الحزمة. إيداع هذا المقترح يستخدم [skip ci] لمنع تشغيل CI المعتاد؛ template نفسه لا يمكن اكتشافه كـworkflow. يبقى PR #2 مسودة دون دمج أو نشر.
+قبل rollout لاحقًا: defaults الإنتاجية ما زالت تمثيلية؛ القيود تطابق fixture المدقق، وليس فحصًا جديدًا للإنتاج. تبقى نسخ العملاء/Edge المنشورة وJWT/JWKS/gateway وهوية مالك DB والتجربة المستضافة المعزولة غير مثبتة. لا نشر007 أو001–006 أو تعديل أي grants/RLS إنتاجي ضمن المهمة.
 
-## الملفات المضافة بالضبط (17، دون ملفات تطبيق أو workflows نشطة)
+التكلفة لم تتغير: standard ubuntu-24.04 في المستودع العام لا يفرض رسوم دقائق؛ لا مشاريع Supabase أو خدمات مدفوعة أو billing changes. تقدير15–30 دقيقة باردة، سقف40 دقيقة، غير مقاس؛ rate limits/Actions allowlist/disk قد تمنع التشغيل ولا تبرر ترقية تلقائية.
 
-```text
-ci/notification-local/assert-network.py
-ci/notification-local/cache-proxy.py
-ci/notification-local/cleanup.sh
-ci/notification-local/configure.py
-ci/notification-local/package.json
-ci/notification-local/record-deps.py
-ci/notification-local/review-static.py
-ci/notification-local/run.sh
-ci/notification-local/setup.sql
-ci/notification-local/source-manifest.json
-ci/notification-local/stage.py
-ci/notification-local/suite.mjs
-ci/notification-local/summarize.py
-docs/ci/local-supabase-integration-review-ar.md
-docs/ci/local-supabase-setup-ar.md
-docs/ci/local-supabase-static-validation.json
-docs/ci/notification-local-supabase.yml.proposed
-```
+المراجع: https://github.com/supabase/cli/releases/tag/v2.121.0 ؛ https://github.com/supabase/cli/blob/8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2/packages/stack/src/Artifacts.ts ؛ https://github.com/supabase/edge-runtime/blob/v1.77.4/deno/Cargo.toml ؛ مصادر الصور والحزم الإضافية بالـruntime-lock.json. Template ما زال docs/ci/notification-local-supabase.yml.proposed خارج .github/workflows؛ commit التوثيق يستخدم [skip ci].

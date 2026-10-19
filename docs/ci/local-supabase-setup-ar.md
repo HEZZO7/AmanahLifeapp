@@ -10,15 +10,15 @@
 - docs/ci/notification-local-supabase.yml.proposed: template خارج مسار workflows.
 - ci/notification-local/: scripts وsource-manifest ونسخ dependencies المحددة.
 
-## بعد إغلاق عوائق التبعيات والحصول على موافقة تشغيل صريحة لاحقًا
+## بعد استكمال تحقق bytes/provenance وموافقة مراجعة الأقفال والحصول على موافقة تشغيل صريحة لاحقًا
 
 1. أنشئ فرعًا مخصصًا ci/local-notification-validation-approved من commit المقترح الذي تمت مراجعته في PR #2. لا تنشئ فرعًا من f29 وحده؛ ذلك commit لا يحتوي harness.
 2. على ذلك الفرع فقط، انسخ docs/ci/notification-local-supabase.yml.proposed إلى .github/workflows/notification-local-supabase.yml. لا تعدل SHA التطبيق أو توسع الشبكة أو تضف secrets. إضافة الملف ودفعه إلى هذا الفرع هو التفعيل ويحتاج الموافقة؛ لا تنفذه الآن. كل push لاحق إلى الفرع قد يعيد التشغيل؛ لا schedule أو PR trigger.
 3. راقب Actions. المطلوب نجاح الخطوات كاملة وملخص مراحل مكتمل وتنظيف ناجح. skip/timeout/FAIL/NOT ESTABLISHED ليست نجاح تكامل. لا تشارك status.json أو keys أو JWT أو raw logs؛ شارك الحالة وأسماء الفحوص فقط.
 
-ينشئ harness مشروع CLI محليًا غير مربوط، ومستخدمين اصطناعيين، وجداول الإشعارات وحدها. لا تنفذ setup.sql أو Migration007 من Supabase SQL Editor؛ كلاهما للتشغيل المحلي المحدد داخل الحزمة فقط. لا تحتاج001–006 أو SMTP/OAuth/VAPID/INTERNAL_PUSH_SECRET أو أي مفتاح إنتاجي.
+ينشئ harness مشروع CLI محليًا غير مربوط، ومستخدمين اصطناعيين، وجداول الإشعارات وحدها. لا تنفذ setup.sql أو Migration007 من Supabase SQL Editor؛ كلاهما للتشغيل المحلي المحدد داخل الحزمة فقط. لا تحتاج001–006 أو SMTP/OAuth/VAPID/INTERNAL_PUSH_SECRET أو أي مفتاح إنتاجي. وظيفة ci_runtime_probe إضافية للاختبار المحلي فقط، ولا تنشر إلى الإنتاج.
 
-بعد تحميل التبعيات يُحذف proxy الخارجي قبل إنشاء المستخدمين. تحفظ فقط ملفات المصدر الـ13 المسموح بها. الصور ونسخ الخدمات/مفاتيح CLI يفحصها harness في الذاكرة؛ لا يطبعها. تسجيل hashes عند التشغيل لا يغني عن مراجعتها وتثبيتها مسبقًا كما في التقرير.
+تثبت الصور والأدوات والحزم في runtime-lock.json/package-lock.json/deno.lock. لا proxy خارجي: مرآة artifacts مقفلة تعمل على internal network فقط. تفحص SRI/هويات tarballs قبل بدء الخدمات؛ فشلها يمنع التشغيل ولا يعيد توليد الأقفال. الصورة ونسخة Deno الفعلية يجب أن تطابق الأقفال. تحقق تنزيلات bytes/provenance ما زال مطلوبًا كما يوضح التقرير.
 
 ## التنظيف والفشل
 
@@ -26,6 +26,6 @@ always يستهدف project ID واحدًا مشتقًا من run ID وattempt �
 
 ## فحص الحزمة دون Docker
 
-يمكن تشغيل python3 ci/notification-local/review-static.py للفحوص offline فقط. لا يستدعي Docker أو SQL أو workflow. نجاحه لا يثبت تكامل Supabase. نموذج config upstream استُخدم أيضًا في المراجعة خارج المستودع؛ CLI الحقيقي لم ينفذ هنا.
+يمكن تشغيل python3 ci/notification-local/review-static.py للفحوص offline فقط. تشمل syntax وgraph والأقفال وحالات فساد checksum/SRI باستخدام unit fixtures؛ لا تتحقق من bytes الناشرين دون تنزيلها. لا يستدعي Docker أو SQL أو workflow. نجاحه لا يثبت تكامل Supabase. نموذج config upstream استُخدم أيضًا في المراجعة خارج المستودع؛ CLI الحقيقي لم ينفذ هنا.
 
 التكلفة المشروطة والقيود في التقرير. PR #2 مسودة، الاشتراكات No-Go، والمنتجات الرقمية مستقلة.

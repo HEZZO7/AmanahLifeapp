@@ -13,6 +13,7 @@ for section in ['studio','local_smtp','storage','realtime','analytics','db.poole
     s=re.sub(pattern,disable,s)
 s=re.sub(r'(?m)^major_version\s*=.*$','major_version = 17',s)
 s+='\n[functions.app_11941c8fec_push_notify]\nenabled = true\nverify_jwt = false\n'
+s+='\n[functions.ci_runtime_probe]\nenabled = true\nverify_jwt = false\n'
 # Verify application Auth guard without the optional gateway JWT guard.
 # The managed production verify_jwt setting is still an external evidence gap.
 config=tomllib.loads(s)
@@ -25,5 +26,6 @@ assert config['auth']['enabled'] is True and config['api']['enabled'] is True
 assert all(not provider.get('enabled',False) for provider in config['auth'].get('external',{}).values())
 assert not config['auth'].get('email',{}).get('smtp',{}).get('enabled',False)
 assert config['functions']['app_11941c8fec_push_notify']['verify_jwt'] is False
+assert config['edge_runtime']['deno_version']==2
 assert not (root/'supabase/.temp/project-ref').exists()
 p.write_text(s)

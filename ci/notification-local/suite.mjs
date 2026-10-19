@@ -41,6 +41,10 @@ try {
  if(phase==='warm'){
   const status=JSON.parse(readFileSync('/status.json','utf8'));
   const publicKey=status.ANON_KEY??status.anon_key;
+  const runtime=await safeFetch(origin+'/functions/v1/ci_runtime_probe',{headers:{apikey:publicKey}});
+  assert.equal(runtime.status,200);
+  assert.deepEqual(await runtime.json(),{deno:'2.1.4',os:'linux',arch:'x86_64'});
+  pass('Actual local Edge worker reports pinned Deno 2.1.4 on linux/x86_64');
   const response=await safeFetch(origin+'/functions/v1/app_11941c8fec_push_notify',{
    method:'POST',headers:{apikey:publicKey,'Content-Type':'application/json'},body:JSON.stringify({action:'get_preferences'})});
   assert.equal(response.status,401);assert.equal(response.headers.get('cache-control'),'no-store');

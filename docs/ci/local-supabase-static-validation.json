@@ -1,28 +1,116 @@
 {
-  "review_date": "2026-10-19T05:11:08.453766+00:00",
-  "subject_sha": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
-  "offline_harness_unit_tests": {
-    "passed": 5,
-    "failed": 0
+  "review_date": "2026-10-19T07:21:51.571276+00:00",
+  "application_sha": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+  "prior_ci_review_sha": "d80428205a9b2cae256cbf30e52f30ae9f3622b8",
+  "host": {
+    "node": "24.19.0",
+    "npm": "11.9.0"
   },
-  "other_static_checks": {
-    "yaml_and_permissions": "PASS",
-    "no_active_workflow_added": "PASS",
-    "upstream_template_transform": "PASS",
-    "thirteen_git_blobs_staged": "PASS",
-    "ddl_matches_audited_fixture": "PASS"
+  "pinned_ci": {
+    "node": "22.23.3",
+    "npm": "10.9.9",
+    "python": "3.12.15",
+    "deno_embedded": "2.1.4",
+    "supabase_cli": "2.121.0",
+    "docker_images": 7,
+    "npm_packages": 26
   },
-  "sql_parser_or_execution": false,
-  "docker_or_services_started": false,
-  "application_regression_tests_run": false,
-  "integration_tests_run": false,
+  "offline_harness_tests": {
+    "pass": 13,
+    "fail": 0
+  },
+  "baseline_tests": [
+    {
+      "file": "notification-preferences.test.mjs",
+      "exit_code": 0,
+      "summary": {
+        "tests": 68,
+        "pass": 68,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "host_node": "24.19.0",
+      "network_deny_preload": true,
+      "sync_hook": true
+    },
+    {
+      "file": "notification-preference-client.test.mjs",
+      "exit_code": 0,
+      "summary": {
+        "tests": 30,
+        "pass": 30,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "host_node": "24.19.0",
+      "network_deny_preload": true,
+      "sync_hook": true
+    },
+    {
+      "file": "notification-backup.test.mjs",
+      "exit_code": 0,
+      "summary": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "host_node": "24.19.0",
+      "network_deny_preload": true,
+      "sync_hook": true
+    },
+    {
+      "file": "notification-preference-write.test.mjs",
+      "exit_code": 0,
+      "summary": {
+        "tests": 23,
+        "pass": 23,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "host_node": "24.19.0",
+      "network_deny_preload": true,
+      "sync_hook": true
+    }
+  ],
+  "semver": {
+    "dependency_edges": 31,
+    "node_engines": 12,
+    "target_node": "22.23.3",
+    "status": "PASS"
+  },
+  "npm_ci_dry_run": {
+    "exit_code": 0,
+    "offline": true,
+    "installed_packages": false,
+    "node_modules_created": false,
+    "root_engine_warning": true
+  },
+  "static_checks": {
+    "bash_js_python_syntax": "PASS",
+    "yaml_minimal_permissions_inactive_template": "PASS",
+    "upstream_config_template_transform": "PASS",
+    "thirteen_subject_git_blobs": "PASS",
+    "npm_deno_graph_consistency": "PASS",
+    "publisher_cli_image_metadata": "PASS"
+  },
+  "actual_cli_or_tarball_bytes_verified": false,
+  "registry_tarballs_downloaded": false,
+  "images_pulled_or_inspected": false,
+  "deno_parser_or_runtime_executed": false,
+  "sql_or_docker_services_executed": false,
+  "supabase_jwt_postgrest_edge_integration_executed": false,
   "workflow_enabled": false,
   "workflow_executed": false,
-  "unresolved": [
-    "independent CLI binary hash and immutable image digests",
-    "frozen npm and Deno integrity graph",
-    "production defaults not independently verified",
-    "runtime network and real local integration not executed",
-    "Actions account allowlist unavailable via read connector"
+  "remaining_blockers": [
+    "Canonical verification of npm SRI provenance; current expected SRIs come from pinned public consumer lockfiles",
+    "Download and byte verification of CLI/npm artifacts and OCI image architecture/availability",
+    "Pinned Node22.23.3/npm10.9.9 and embedded Deno2.1.4 runtime compatibility",
+    "Native Deno frozen-lock parsing/enforcement and artifact mirror interoperability",
+    "Actual local integration and later hosted/default/deployed-version verification"
   ]
 }

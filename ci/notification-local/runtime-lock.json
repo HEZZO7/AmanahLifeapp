@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "platform": "linux/amd64",
+  "cli": {
+    "version": "2.121.0",
+    "url": "https://github.com/supabase/cli/releases/download/v2.121.0/supabase_2.121.0_linux_amd64.tar.gz",
+    "sha256": "4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f",
+    "source": "https://github.com/supabase/cli/releases/tag/v2.121.0",
+    "source_commit": "8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2",
+    "bytes_verified_locally": false
+  },
+  "deno": {
+    "version": "2.1.4",
+    "runtime_image": "edge_runtime",
+    "source": "https://github.com/supabase/edge-runtime/blob/v1.77.4/deno/Cargo.toml",
+    "runtime_probe_required": true
+  },
+  "images": {
+    "db": {
+      "reference": "ghcr.io/supabase/cli/postgres:17.11.0.004-r1@sha256:8fb7ae7cd0d8121c460c8756d7f2791ce9a19c3331b46987456dfa4f8b45d701",
+      "version": "17.11.0.004",
+      "platform": "linux/amd64",
+      "architecture_evidence": "Publisher release declares linux/amd64 and the exact multi-platform image digest; actual OCI pull/inspect remains mandatory",
+      "source": "https://github.com/supabase/cli/blob/8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2/packages/stack/src/Artifacts.ts",
+      "publisher_release": "https://github.com/supabase/slim-services/releases/tag/postgres-17.11.0.004-r1"
+    },
+    "auth": {
+      "reference": "ghcr.io/supabase/cli/auth:v2.197.0-r0@sha256:7eb303831d170865840dbb3f9018b48561c988704ad1d9a2bafabb4e93e92da5",
+      "version": "v2.197.0",
+      "platform": "linux/amd64",
+      "architecture_evidence": "Publisher release declares linux/amd64 and the exact multi-platform image digest; actual OCI pull/inspect remains mandatory",
+      "source": "https://github.com/supabase/cli/blob/8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2/packages/stack/src/Artifacts.ts",
+      "publisher_release": "https://github.com/supabase/slim-services/releases/tag/auth-v2.197.0-r0"
+    },
+    "rest": {
+      "reference": "ghcr.io/supabase/cli/postgrest:v16.4-r0@sha256:63a8d4acfdeb107b6568f4582759c78072100ef07951a7fbe58c9a51241138a7",
+      "version": "v16.4",
+      "platform": "linux/amd64",
+      "architecture_evidence": "Publisher release declares linux/amd64 and the exact multi-platform image digest; actual OCI pull/inspect remains mandatory",
+      "source": "https://github.com/supabase/cli/blob/8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2/packages/stack/src/Artifacts.ts",
+      "publisher_release": "https://github.com/supabase/slim-services/releases/tag/postgrest-v16.4-r0"
+    },
+    "edge_runtime": {
+      "reference": "ghcr.io/supabase/cli/edge-runtime:v1.77.4-r0@sha256:33ca85830d726be1864e8ab929bf9e2230b0a750d59634fef871e736c9a40c34",
+      "version": "v1.77.4",
+      "platform": "linux/amd64",
+      "architecture_evidence": "Publisher release declares linux/amd64 and the exact multi-platform image digest; actual OCI pull/inspect remains mandatory",
+      "source": "https://github.com/supabase/cli/blob/8a549dffa6bc5c88069c61c1f55ef55ad9b82ae2/packages/stack/src/Artifacts.ts",
+      "publisher_release": "https://github.com/supabase/slim-services/releases/tag/edge-runtime-v1.77.4-r0"
+    },
+    "node": {
+      "reference": "docker.io/library/node@sha256:efd0ab5780c2d9ab1f0f869571a00d5edb17793bff4cce4a2792e3eb0ffc7562",
+      "image_id": "sha256:d0a16be756b6ec6658aecb8b7bcf87fa6c7d0d7fcc6ca53ad14bb49a4c90bdd7",
+      "version": "22.23.3",
+      "platform": "linux/amd64",
+      "architecture_evidence": "publisher repo-info amd64 manifest",
+      "source": "https://raw.githubusercontent.com/docker-library/repo-info/e4b4e8b2a1f7019730f54817485eee9b2f3908a3/repos/node/remote/22-bookworm-slim.md"
+    },
+    "python": {
+      "reference": "docker.io/library/python@sha256:2ed6491b93cd49272ee6de2b5a38440c3448360322c089fc23e370722d74179d",
+      "image_id": "sha256:4f228bc1cbcfc794e4878312cfc241d368eff55a21c08d1e2bb263116c4ef524",
+      "version": "3.12.15",
+      "platform": "linux/amd64",
+      "architecture_evidence": "publisher repo-info amd64 manifest",
+      "source": "https://raw.githubusercontent.com/docker-library/repo-info/e4b4e8b2a1f7019730f54817485eee9b2f3908a3/repos/python/remote/3.12-slim-bookworm.md"
+    },
+    "kong": {
+      "reference": "docker.io/library/kong@sha256:e21b0b793879ab96720ed4188f9441260273f4bf775bcbff8d435e019ffb759a",
+      "cli_alias": "library/kong:2.8.1",
+      "image_id": "sha256:3cefb958bcd694597b65adc00053a762b1f9a6df3c6031af528d052d75a64e1a",
+      "version": "2.8.1",
+      "platform": "linux/amd64",
+      "architecture_evidence": "historical publisher repo-info amd64 manifest; availability not pulled",
+      "source": "https://github.com/docker-library/repo-info/blob/3438568819b900d66e5b19e7162ca7f614e20c49/repos/kong/remote/2.8.1.md"
+    }
+  },
+  "npm_integrity_sources": [
+    {
+      "url": "https://github.com/lyuai/agentok/blob/6b7133c48d7a24bcfa630dc81b08f4aa9e59ab6d/frontend/pnpm-lock.yaml",
+      "blob": "3d80edd29065896f90189d927d2401ed7793e83f",
+      "note": "All nine SDK SRIs cross-checked against second consumer"
+    },
+    {
+      "url": "https://github.com/paycrest/noblocks/blob/ecccb491b7fcbba025ced6b6e13b8e1736d8f178/scripts/pnpm-lock.yaml",
+      "blob": "26306afe6fdffd98b8b0abd11941c93225306ad1"
+    },
+    {
+      "url": "https://github.com/kooritea/mpush/blob/4c2ff45bb5907537c816c37fc4c209ab84c5902e/package-lock.json",
+      "blob": "3f79ba997be6e65ba3fe939d371acee1f0462ef7",
+      "note": "Web-push graph SRIs; root web-push SRI cross-checked with second consumer"
+    },
+    {
+      "url": "https://github.com/wjdgustn/thetree/blob/8c5dde1e1a5d72d73c2ba1d51fecbe40e96e5b9d/package-lock.json",
+      "blob": "e19ac972e766bfcccd76546f63aff163dd20ec95"
+    }
+  ],
+  "npm_registry_or_tarball_verified_locally": false,
+  "npm": {
+    "version": "10.9.9",
+    "source": "https://github.com/nodejs/node/blob/v22.23.3/deps/npm/package.json",
+    "role": "npm ci executable embedded in pinned Node image"
+  }
+}

@@ -26,7 +26,7 @@ try:
 except (OSError,ValueError):pass
 PY
 fi
-if [ -x "$root/bin/supabase" ]; then
+if [ -x "$root/bin/supabase" ] && [ -f "$root/stack/supabase/config.toml" ]; then
  "$root/bin/supabase" --workdir "$root/stack" stop --no-backup > "$root/stop.log" 2>&1 || cleanup_failed=1
 fi
 # No --all; no unrelated containers, networks, projects, volumes or daemon changes.

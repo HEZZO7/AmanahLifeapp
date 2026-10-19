@@ -14,12 +14,13 @@ python3 "$HARNESS_DIR/stage.py" "$SOURCE_DIR" "$LOCAL_RUN_DIR/subject" "$HARNESS
 SOURCE_DIR="$LOCAL_RUN_DIR/subject"
 project="amanah-local-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 private="${project}-private"
-node_image=node:22.20.0-bookworm-slim
-python_image=python:3.12.12-slim-bookworm
+node_image="$(python3 "$HARNESS_DIR/repro-cli.py" image node)"
+python_image="$(python3 "$HARNESS_DIR/repro-cli.py" image python)"
 printf '%s\n' "$project" > "$LOCAL_RUN_DIR/project"
 printf '%s\n' "$private" > "$LOCAL_RUN_DIR/network"
 unset SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
 export DO_NOT_TRACK=1
+export SUPABASE_USE_SLIM_IMAGES=true SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io
 # Do not redirect Docker to any remote daemon.
 unset DOCKER_HOST DOCKER_CONTEXT DOCKER_TLS DOCKER_TLS_VERIFY DOCKER_CERT_PATH
 export DOCKER_HOST=unix:///var/run/docker.sock
@@ -31,27 +32,26 @@ assert shutil.disk_usage(sys.argv[1]).free>=8*1024**3, 'Insufficient disposable 
 memory=int(next(line.split()[1] for line in Path('/proc/meminfo').read_text().splitlines() if line.startswith('MemTotal:')))*1024
 assert memory>=8*1024**3, 'Insufficient standard runner memory'
 PY
-# Official immutable release version, verified against its release checksums.
+# The expected SHA256 is committed from the publisher release API, not fetched
+# dynamically alongside the binary. No package manager installs the CLI.
 curl --fail --silent --show-error --location "https://github.com/supabase/cli/releases/download/v${CLI_VERSION}/supabase_${CLI_VERSION}_linux_amd64.tar.gz" -o "$LOCAL_RUN_DIR/cli.tar.gz"
-curl --fail --silent --show-error --location "https://github.com/supabase/cli/releases/download/v${CLI_VERSION}/checksums.txt" -o "$LOCAL_RUN_DIR/checksums.txt"
-python3 - "$LOCAL_RUN_DIR" "$CLI_VERSION" <<'PY'
-from pathlib import Path
-import hashlib,sys
-root=Path(sys.argv[1]); name=f'supabase_{sys.argv[2]}_linux_amd64.tar.gz'
-lines=[s.split() for s in (root/'checksums.txt').read_text().splitlines()]
-expected=[p[0] for p in lines if len(p)==2 and p[1].lstrip('*')==name]
-assert len(expected)==1 and hashlib.sha256((root/'cli.tar.gz').read_bytes()).hexdigest()==expected[0]
-PY
+python3 "$HARNESS_DIR/repro-cli.py" cli "$LOCAL_RUN_DIR/cli.tar.gz"
 tar -xzf "$LOCAL_RUN_DIR/cli.tar.gz" -C "$LOCAL_RUN_DIR/bin" supabase
 cli="$LOCAL_RUN_DIR/bin/supabase"
 "$cli" --version > "$LOCAL_RUN_DIR/cli-version.txt"
-docker pull "$node_image" >/dev/null
-docker pull "$python_image" >/dev/null
+grep -qx "$CLI_VERSION" "$LOCAL_RUN_DIR/cli-version.txt"
+python3 "$HARNESS_DIR/repro-cli.py" images "$LOCAL_RUN_DIR/pulled-images.json"
+test "$(docker run --rm --network none "$node_image" node --version)" = v22.23.3
+test "$(docker run --rm --network none "$node_image" npm --version)" = 10.9.9
+test "$(docker run --rm --network none "$python_image" python --version)" = 'Python 3.12.15'
 # Dependency installation cannot access user/project credentials: none mounted.
 docker run --rm --user "$(id -u):$(id -g)" -e npm_config_cache=/tmp/npm --tmpfs /tmp \
  -v "$HARNESS_DIR:/harness" -w /harness "$node_image" \
- npm install --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org > "$LOCAL_RUN_DIR/npm.log" 2>&1
+ npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org > "$LOCAL_RUN_DIR/npm.log" 2>&1
 python3 "$HARNESS_DIR/record-deps.py" "$HARNESS_DIR" "$LOCAL_RUN_DIR/dependencies.json"
+# A second, independent SRI/manifest check creates a frozen artifact mirror for
+# Deno. Downloads occur before local keys/users exist; no runtime proxy exists.
+python3 "$HARNESS_DIR/repro-cli.py" tarballs "$LOCAL_RUN_DIR/npm-artifacts"
 "$cli" --workdir "$LOCAL_RUN_DIR/stack" init > "$LOCAL_RUN_DIR/init.log" 2>&1
 python3 "$HARNESS_DIR/configure.py" "$LOCAL_RUN_DIR/stack" "$project"
 functions="$LOCAL_RUN_DIR/stack/supabase/functions"
@@ -60,25 +60,26 @@ for file in notificationPreferences.ts notificationPreferencesStore.ts; do
  cp "$SOURCE_DIR/app/frontend/supabase/functions/_shared/$file" "$functions/_shared/$file"
 done
 cp "$SOURCE_DIR/app/frontend/supabase/functions/app_11941c8fec_push_notify/index.ts" "$functions/app_11941c8fec_push_notify/index.ts"
-# An internal-only network has no default Internet route. The disposable cache
-# proxy is its ONLY external path, restricted to explicit dependency origins.
+cp "$HARNESS_DIR/deno.lock" "$HARNESS_DIR/deno.json" "$HARNESS_DIR/import_map.json" "$functions/"
+mkdir -p "$functions/ci_runtime_probe"
+cp "$HARNESS_DIR/runtime-probe.ts" "$functions/ci_runtime_probe/index.ts"
+# Internal network only, including during module loading. This HTTP mirror
+# serves verified artifacts; it has no outbound connections or bridge route.
 docker network create --internal --driver bridge \
  --opt com.docker.network.bridge.host_binding_ipv4=127.0.0.1 "$private" >/dev/null
-docker run -d --name "${project}-cache" --network "$private" --network-alias dependency-cache \
+docker run -d --name "${project}-cache" --network "$private" --network-alias dependency-cache --user "$(id -u):$(id -g)" \
  --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp \
- -v "$HARNESS_DIR/cache-proxy.py:/proxy.py:ro" "$python_image" python /proxy.py >/dev/null
-docker network connect bridge "${project}-cache"
+ -v "$HARNESS_DIR:/harness:ro" -v "$LOCAL_RUN_DIR/npm-artifacts:/cache:ro" \
+ "$python_image" python /harness/locked-registry.py /cache >/dev/null
 "$cli" --workdir "$LOCAL_RUN_DIR/stack" --network-id "$private" start \
  --exclude studio,realtime,storage-api,imgproxy,mailpit,postgres-meta,logflare,vector,supavisor,edge-runtime \
  > "$LOCAL_RUN_DIR/start.log" 2>&1
 "$cli" --workdir "$LOCAL_RUN_DIR/stack" status -o json > "$LOCAL_RUN_DIR/status.json" 2> "$LOCAL_RUN_DIR/status.log"
 cat > "$LOCAL_RUN_DIR/functions.env" <<'ENV'
-HTTP_PROXY=http://dependency-cache:3128
-HTTPS_PROXY=http://dependency-cache:3128
-NO_PROXY=kong,auth,rest,db,localhost,127.0.0.1
+NPM_CONFIG_REGISTRY=http://dependency-cache:4873/
 ENV
-"$cli" --workdir "$LOCAL_RUN_DIR/stack" --network-id "$private" functions serve app_11941c8fec_push_notify \
- --env-file "$LOCAL_RUN_DIR/functions.env" --no-verify-jwt \
+"$cli" --workdir "$LOCAL_RUN_DIR/stack" --network-id "$private" functions serve \
+ --env-file "$LOCAL_RUN_DIR/functions.env" --import-map "$functions/import_map.json" --no-verify-jwt \
  > "$LOCAL_RUN_DIR/edge.log" 2>&1 &
 printf '%s\n' "$!" > "$LOCAL_RUN_DIR/serve.pid"
 node_run() {
@@ -88,7 +89,7 @@ node_run() {
   -e HTTP_PROXY= -e HTTPS_PROXY= -e ALL_PROXY= -e NO_PROXY=kong,auth,rest,db \
   -v "$HARNESS_DIR:/harness:ro" -v "$SOURCE_DIR:/source:ro" \
   -v "$LOCAL_RUN_DIR/results:/results" "$@" "$node_image" \
-  node --experimental-strip-types --loader /source/app/frontend/tests/preference-test-loader.mjs /harness/suite.mjs "$phase"
+  node --experimental-strip-types --import /harness/test-register.mjs /harness/suite.mjs "$phase"
 }
 # Require the ORIGINAL handler's no-store 401, not a gateway OPTIONS response.
 # No Auth user exists and no application JWT is passed during cache warmup.
@@ -98,9 +99,8 @@ for attempt in 1 2 3; do
  sleep 2
 done
 test "$warmed" = true
-# Seal before users/login/migrations/testing: proxy and its public attachment
-# are removed. Runtime imports must now be cached or the test FAILS.
-docker rm -f "${project}-cache" >/dev/null
+# Already sealed from the start. Keep the read-only, internal artifact mirror
+# for worker restarts; it cannot access the Internet or serve unknown packages.
 python3 "$HARNESS_DIR/assert-network.py" "$project" "$private" "$LOCAL_RUN_DIR"
 node_run users -v "$LOCAL_RUN_DIR/status.json:/status.json:ro"
 cp "$LOCAL_RUN_DIR/results/accounts.local.json" "$LOCAL_RUN_DIR/users.json"
@@ -204,9 +204,10 @@ grep -qx 'A markers: PASS' "$LOCAL_RUN_DIR/markers.log"
 # Relevant existing regression tests run offline inside the SAME sealed network.
 for test_file in notification-preferences.test.mjs notification-preference-client.test.mjs notification-backup.test.mjs notification-preference-write.test.mjs; do
  docker run --rm --user "$(id -u):$(id -g)" --network "$private" --cap-drop ALL --read-only --tmpfs /tmp \
-  -v "$SOURCE_DIR:/source:ro" -w /source/app/frontend "$node_image" \
-  node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs "tests/$test_file" \
+  -v "$SOURCE_DIR:/source:ro" -v "$HARNESS_DIR:/harness:ro" -w /source/app/frontend "$node_image" \
+  node --experimental-strip-types --import /harness/test-register.mjs --import ./tests/deny-network.mjs "tests/$test_file" \
   > "$LOCAL_RUN_DIR/regression-${test_file}.log" 2>&1
+ python3 "$HARNESS_DIR/verify-test-log.py" "$test_file" "$LOCAL_RUN_DIR/regression-${test_file}.log"
 done
 sql -v actor_a="$actor_a" -v actor_b="$actor_b" -f - > "$LOCAL_RUN_DIR/delete-fixture.log" <<'SQL'
 delete from public.app_11941c8fec_push_subscriptions where user_id in (:'actor_a',:'actor_b');
