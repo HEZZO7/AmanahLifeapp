@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import AppLogo from '@/components/AppLogo';
+import { consumeAuthReturn, readAuthReturn, rememberAuthReturn } from '@/lib/authReturn';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -23,12 +24,10 @@ export default function Login() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Only permit internal, known destinations. Never trust arbitrary return URLs.
-  const returnTo = searchParams.get('next') === '/subscription' || sessionStorage.getItem('amanahlife_auth_return') === '/subscription'
-    ? '/subscription' : '/';
+  const authSearch = searchParams.toString();
+  const returnTo = readAuthReturn(authSearch, sessionStorage);
   const finishLogin = () => {
-    sessionStorage.removeItem('amanahlife_auth_return');
-    navigate(returnTo, { replace: true });
+    navigate(consumeAuthReturn(authSearch, sessionStorage), { replace: true });
   };
 
   const isAr = language === 'ar';
@@ -49,6 +48,7 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    rememberAuthReturn(returnTo, sessionStorage);
     const { error } = await signUp(email, password);
     if (error) {
       toast.error(error.message);
@@ -63,6 +63,8 @@ export default function Login() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    // Persist direct /login?next=/subscription visits before leaving for OAuth.
+    rememberAuthReturn(returnTo, sessionStorage);
     const { error } = await signInWithGoogle();
     if (error) {
       if (error.message.includes('provider') || error.message.includes('not enabled')) {

@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
+import { notificationBackupColumns } from '@/lib/notificationBackup';
+import { notificationPreferenceStorage } from '@/lib/notificationPreferenceStorage';
 import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 
 const APP_VERSION = '2.0.0';
 
-// Tables that contain user data
+// Portable user data only. Push registrations are device-bound, never copied.
 const USER_TABLES = [
-  'app_11941c8fec_push_subscriptions',
   'app_11941c8fec_notification_preferences',
   'app_11941c8fec_email_digest',
   'app_11941c8fec_search_history',
-  'app_11941c8fec_subscriptions',
 ];
 
 // Local storage keys to backup
@@ -67,11 +67,10 @@ export default function BackupRestore() {
       for (const table of USER_TABLES) {
         const { data, error } = await supabase
           .from(table)
-          .select('*')
+          .select(table === 'app_11941c8fec_notification_preferences' ? notificationBackupColumns.join(',') : '*')
           .eq('user_id', user.id);
-        if (!error && data) {
-          supabaseData[table] = data;
-        }
+        if (error) throw new Error('Backup export failed');
+        if (data) supabaseData[table] = data;
       }
 
       // Collect local storage data
@@ -176,10 +175,19 @@ export default function BackupRestore() {
       // Restore Supabase data
       if (backup.supabaseData) {
         for (const [table, rows] of Object.entries(backup.supabaseData)) {
+          // Older or modified backups must not restore payment/entitlement state.
+          // The export allowlist also limits import; unknown tables are ignored.
+          if (!USER_TABLES.includes(table)) continue;
           if (!Array.isArray(rows) || rows.length === 0) continue;
 
-          // Delete existing data for this user
-          await supabase.from(table).delete().eq('user_id', user.id);
+          if (table === 'app_11941c8fec_notification_preferences') {
+            if (rows.length !== 1) throw new Error('Invalid preference backup');
+            await notificationPreferenceStorage.restore(user.id, rows[0]);
+            continue; // Preserve scheduler markers, row identity, and current registrations.
+          }
+          // Existing non-notification restore behavior; report failures honestly.
+          const { error: deleteError } = await supabase.from(table).delete().eq('user_id', user.id);
+          if (deleteError) throw new Error('Backup restore failed');
 
           // Insert backup data (update user_id to current user)
           const updatedRows = rows.map((row: Record<string, unknown>) => ({
@@ -191,7 +199,8 @@ export default function BackupRestore() {
           const cleanRows = updatedRows.map(({ id, ...rest }: Record<string, unknown>) => rest);
           
           if (cleanRows.length > 0) {
-            await supabase.from(table).insert(cleanRows);
+            const { error } = await supabase.from(table).insert(cleanRows);
+            if (error) throw new Error('Backup restore failed');
           }
         }
       }
@@ -293,3 +302,4 @@ export default function BackupRestore() {
     </div>
   );
 }
+

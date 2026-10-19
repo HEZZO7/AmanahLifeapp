@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3';
+import { handlePreferenceAction } from '../_shared/notificationPreferences.ts';
+import { scopedPreferenceStore, type PreferenceClient } from '../_shared/notificationPreferencesStore.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,10 +24,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
   let body: any;
   try {
     body = await req.json();
@@ -36,7 +34,51 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { action } = body;
+  const action = body?.action;
+  const preferenceResponse = await handlePreferenceAction(req, body, {
+    user: async token => {
+      const url = Deno.env.get('SUPABASE_URL');
+      const publicKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (!url || !publicKey) throw new Error('Authentication unavailable');
+      const client = createClient(url, publicKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data, error } = await client.auth.getUser(token);
+      if (error) {
+        if (!error.status || error.status === 429 || error.status >= 500) throw new Error('Authentication unavailable');
+        return null;
+      }
+      return data.user ? { id: data.user.id } : null;
+    },
+    store: verifiedUserId => {
+      const url = Deno.env.get('SUPABASE_URL');
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!url || !serviceKey) throw new Error('Storage unavailable');
+      // Preserve the existing database access model until preference-table RLS is audited.
+      // The admin client is confined to a fixed-table, fixed-user capability.
+      const client = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const storageClient: PreferenceClient = {
+        from: table => ({
+          select: columns => ({
+            eq: (column, value) => ({
+              maybeSingle: async () => {
+                const { data, error } = await client.from(table).select(columns).eq(column, value).maybeSingle();
+                return { data, error };
+              },
+            }),
+          }),
+          upsert: async (row, options) => {
+            const { error } = await client.from(table).upsert(row, options);
+            return { error };
+          },
+        }),
+      };
+      return scopedPreferenceStore(storageClient, verifiedUserId);
+    },
+  }, corsHeaders);
+  if (preferenceResponse) return preferenceResponse;
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     // Action: subscribe - save push subscription
@@ -143,103 +185,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Action: update_preferences - update notification preferences
-    if (action === 'update_preferences') {
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const { preferences } = body;
-      if (!preferences) {
-        return new Response(JSON.stringify({ error: 'Missing preferences' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const { error: upsertError } = await supabase
-        .from('app_11941c8fec_notification_preferences')
-        .upsert({
-          user_id: user.id,
-          ...preferences,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (upsertError) {
-        console.error(JSON.stringify({ requestId, error: upsertError }));
-        return new Response(JSON.stringify({ error: 'Failed to update preferences' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Action: get_preferences - get notification preferences
-    if (action === 'get_preferences') {
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const { data, error } = await supabase
-        .from('app_11941c8fec_notification_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error(JSON.stringify({ requestId, error }));
-        return new Response(JSON.stringify({ error: 'Failed to get preferences' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const preferences = data || {
-        prayer_reminders: true,
-        bill_reminders: true,
-        habit_reminders: true,
-        fasting_reminders: true,
-        savings_reminders: true,
-        general_activity: true,
-      };
-
-      return new Response(JSON.stringify({ preferences }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     // Action: send_notification - send push to specific user(s) by notification type
     if (action === 'send_notification') {
       const { user_id, notification_type, title, body: notifBody, icon, url } = body;
@@ -295,7 +240,7 @@ Deno.serve(async (req: Request) => {
         .single();
 
       // If user has disabled this type, skip
-      if (prefs && prefs[prefColumn] === false) {
+      if (prefs && (prefs as unknown as Record<string, unknown>)[prefColumn] === false) {
         return new Response(JSON.stringify({ success: true, skipped: true, reason: 'User disabled this notification type' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

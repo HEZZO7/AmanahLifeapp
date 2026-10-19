@@ -1,0 +1,68 @@
+# PROPOSAL ONLY. This file is intentionally OUTSIDE .github/workflows.
+# Activation requires separate approval and a push to the dedicated branch.
+name: Approved local notification integration
+on:
+  push:
+    branches: [ci/local-notification-validation-approved]
+permissions:
+  contents: read
+concurrency:
+  group: amanahlife-local-notification-validation
+  cancel-in-progress: false
+jobs:
+  local-supabase:
+    if: github.repository == 'HEZZO7/AmanahLifeapp' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      SUBJECT_SHA: f29d8df16e434e8cd064968e4b832e9c8f84e2fb
+      CLI_VERSION: 2.121.0
+      LOCAL_ONLY_APPROVAL: two-synthetic-users-no-egress
+    steps:
+      - name: Checkout approved harness revision (not PR head)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: harness-repo
+          persist-credentials: false
+      - name: Checkout immutable application under test
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: f29d8df16e434e8cd064968e4b832e9c8f84e2fb
+          path: source
+          persist-credentials: false
+      - name: Prepare and run disposable local stack
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C source rev-parse HEAD)" = "$SUBJECT_SHA"
+          export SOURCE_DIR="$GITHUB_WORKSPACE/source"
+          export HARNESS_DIR="$GITHUB_WORKSPACE/harness-repo/ci/notification-local"
+          export LOCAL_RUN_DIR="$RUNNER_TEMP/amanahlife-local-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          printf 'LOCAL_RUN_DIR=%s\n' "$LOCAL_RUN_DIR" >> "$GITHUB_ENV"
+          # No runner, repository, cloud or artifact credentials reach the harness.
+          env -i PATH="$PATH" HOME="$LOCAL_RUN_DIR/runner-home" \
+            RUNNER_TEMP="$RUNNER_TEMP" GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+            GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUBJECT_SHA="$SUBJECT_SHA" \
+            CLI_VERSION="$CLI_VERSION" LOCAL_ONLY_APPROVAL="$LOCAL_ONLY_APPROVAL" \
+            SOURCE_DIR="$SOURCE_DIR" HARNESS_DIR="$HARNESS_DIR" LOCAL_RUN_DIR="$LOCAL_RUN_DIR" \
+            bash "$HARNESS_DIR/run.sh"
+      - name: Teardown only this disposable run
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${LOCAL_RUN_DIR:-}" ]; then
+            env -i PATH="$PATH" RUNNER_TEMP="$RUNNER_TEMP" HOME="$LOCAL_RUN_DIR/runner-home" \
+              bash "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/cleanup.sh" "$LOCAL_RUN_DIR"
+          fi
+      - name: Publish only reviewed redacted summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${LOCAL_RUN_DIR:-}" ] && [ -d "$LOCAL_RUN_DIR" ]; then
+            python3 "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/summarize.py" "$LOCAL_RUN_DIR"
+            cat "$LOCAL_RUN_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+# No workflow_dispatch: GitHub requires that workflow on the default branch.
+# A separately approved dedicated-branch push avoids merging PR #2 or changing main.
+# No artifacts/cache, no secrets references, no deployment commands.

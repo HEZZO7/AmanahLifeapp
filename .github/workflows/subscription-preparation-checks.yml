@@ -1,0 +1,269 @@
+name: Subscription Preparation Checks
+
+on:
+  pull_request:
+    branches:
+      - fix/auth-subscription
+
+permissions:
+  contents: read
+
+jobs:
+  preparation-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Isolated PostgREST target safety guards
+        run: node --test tests/notification-postgrest-guard.test.mjs
+      - name: Auth return tests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/auth-return.test.mjs
+      - name: Webhook signature tests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/webhook-signature.test.mjs
+      - name: Family entitlement tests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/family-entitlement.test.mjs
+      - name: Isolated checkout and webhook lifecycle requests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/lemon-payments.test.mjs
+      - name: Isolated AI entitlement request tests
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/ai-access.test.mjs
+      - name: Isolated notification preference authorization
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preferences.test.mjs
+      - name: Isolated notification client compatibility
+        run: node --experimental-strip-types --import ./tests/deny-network.mjs tests/notification-preference-client.test.mjs
+      - name: Sanitized notification backup contract
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-backup.test.mjs
+      - name: Notification location and backup write regression tests
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-preference-write.test.mjs
+      - name: Install dependencies
+        run: npm install
+      - name: Install matching React test renderer (test runtime only)
+        run: npm install --no-save --package-lock=false react-test-renderer@18.3.1
+      - name: Notification preference React state and account isolation
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs --import ./tests/deny-network.mjs tests/notification-preference-state.test.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check payment Edge endpoints
+        run: >-
+          deno check
+          supabase/functions/app_11941c8fec_lemonsqueezy_checkout/index.ts
+          supabase/functions/app_11941c8fec_lemonsqueezy_webhook/index.ts
+          supabase/functions/app_11941c8fec_lemonsqueezy_checkout_test/index.ts
+          supabase/functions/app_11941c8fec_lemonsqueezy_webhook_test/index.ts
+      - name: Type-check protected AI endpoints
+        run: >-
+          deno check
+          supabase/functions/app_11941c8fec_ai_life_coach/index.ts
+          supabase/functions/app_11941c8fec_ai_search/index.ts
+          supabase/functions/app_11941c8fec_receipt_scan/index.ts
+          supabase/functions/app_11941c8fec_savings_tips/index.ts
+      - name: Type-check notification preference entry point
+        run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_push_notify/index.ts
+      - name: Type-check notification storage and Supabase adapter
+        run: npx tsc --noEmit --skipLibCheck --types vite/client --target ES2022 --moduleResolution bundler --module esnext src/lib/notificationPreferenceStorage.ts
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+
+  database-security:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+      PGOPTIONS: '-c amanahlife.security_fixture=isolated'
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audited schema baseline and migration
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/subscription-security-fixture.sql
+          -f supabase/migrations/202610140001_subscription_authority.sql
+          -f tests/subscription-security.sql
+      - name: Concurrent trial attempts
+        run: bash tests/concurrent-trial.sh
+      - name: Audited family helper bodies and scoped hardening
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/family-helper-fixture.sql
+          -f supabase/migrations/202610140002_family_helper_execution.sql
+          -f tests/family-helper-security.sql
+      - name: Preserve legacy data and enforce approved family policy
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/family-authority-seed.sql
+          -f supabase/migrations/202610150003_family_authority.sql
+          -f tests/family-authority-security.sql
+      - name: Concurrent authorized family joins
+        run: bash tests/concurrent-family-join.sh
+      - name: Trusted payment RPC lifecycle, bindings, idempotency and account authorization
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/lemon-payments-seed.sql
+          -f supabase/migrations/202610150004_trusted_lemon_payments.sql
+          -f tests/lemon-payments-security.sql
+      - name: Concurrent duplicate payment events apply exactly once
+        run: bash tests/concurrent-payment-events.sh
+      - name: Observed payments, paid plan boundaries and replacement history
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/lifecycle-seed.sql
+          -f supabase/migrations/202610150005_subscription_lifecycle.sql
+          -f tests/subscription-lifecycle-security.sql
+
+      - name: AI entitlement RPC, identity boundaries and paid/trial policy
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/migrations/202610160006_ai_entitlement.sql
+          -f tests/ai-entitlement-security.sql
+      - name: Execute complete permission evidence SQL read-only on isolated PostgreSQL 17
+        run: python3 tests/production-permission-evidence.py populated
+      - name: Isolated notification RLS, column grants, dependencies and repeated migration
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f tests/notification-authority-fixture.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+      - name: Reject inherited grants atomically without partial hardening
+        run: python3 tests/notification-authority-preflight.py
+      - name: Independently reviewable future defaults proposal (isolated only)
+        run: python3 tests/future-default-privileges.py
+      - name: Validate read-only preference evidence query syntax
+        run: psql -v ON_ERROR_STOP=1 -f ../../docs/notification-preferences-readonly.sql
+
+
+
+
+  evidence-postgres15:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Complete read-only evidence query on fresh PostgreSQL 15 (no fixture writes)
+        run: python3 tests/production-permission-evidence.py empty
+
+
+  notification-postgrest:
+    # Real HTTP, HS256 signature verification, SET ROLE and RLS; no hosted
+    # credentials or external Supabase endpoint is used by this automatic job.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['15', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: fixture_admin
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-ci-fixture
+      PGDATABASE: postgres
+      PGOPTIONS: '-c amanahlife.security_fixture=isolated'
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Production-shaped notification schema under non-superuser owner
+        run: >-
+          psql -U fixture_admin -v ON_ERROR_STOP=1
+          -f tests/notification-postgrest-bootstrap.sql
+          -f tests/notification-authority-fixture.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+          -f supabase/migrations/202610180007_notification_table_authority.sql
+          -f tests/notification-authority-security.sql
+      - name: Inherited SELECT and version-aware MAINTAIN atomic rollback
+        run: python3 tests/notification-authority-preflight.py
+      - name: Start disposable PostgREST with ephemeral JWT signing key
+        run: |
+          node tests/notification-postgrest-ci.mjs
+          docker run -d --name notification-postgrest --network host \
+            --env-file /tmp/notification-postgrest.env postgrest/postgrest:v12.2.12
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Install isolated Supabase SDK test dependency
+        run: npm install --prefix /tmp/notification-client --package-lock=false --ignore-scripts @supabase/supabase-js@2.106.0
+      - name: Two-user PostgREST/JWT security and actual client flows
+        env:
+          NOTIFICATION_TEST_SDK_PACKAGE_JSON: /tmp/notification-client/package.json
+        run: node --experimental-strip-types --loader ./tests/preference-test-loader.mjs tests/notification-postgrest-integration.mjs
+      - name: Verify unchanged rows, constraints and server-only data after HTTP tests
+        run: psql -v ON_ERROR_STOP=1 -f tests/notification-postgrest-preservation.sql
+      - name: Publish redacted security results and compatibility blockers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-postgrest-pg${{ matrix.postgres }}
+          path: app/frontend/notification-postgrest-results.json
+          if-no-files-found: ignore
+      - name: Remove disposable gateway and test-only credentials
+        if: always()
+        run: |
+          docker rm -f notification-postgrest || true
+          rm -f /tmp/notification-postgrest.env
+
