@@ -1,0 +1,270 @@
+# INACTIVE PROPOSAL. Install only after separate approval as:
+# .github/workflows/amanahlife-isolated-notifications-once.yml on main.
+# Replaces the old push-triggered proposal; never install both templates.
+name: AmanahLife isolated notification validation - once
+run-name: Approved isolated notification validation - 3968fa6 / f29d8df
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_isolated_run:
+        description: 'Approve ONE local-only test; no production, deployment, or payments'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amanahlife-local-notification-validation
+  cancel-in-progress: false
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      SUBJECT_SHA: f29d8df16e434e8cd064968e4b832e9c8f84e2fb
+      CLI_VERSION: 2.121.0
+      LOCAL_ONLY_APPROVAL: two-synthetic-users-no-egress
+    steps:
+      - name: Require explicit first manual run on main
+        id: authorize
+        timeout-minutes: 1
+        env:
+          APPROVE_ISOLATED_RUN: ${{ inputs.approve_isolated_run }}
+          REPOSITORY_PRIVATE: ${{ toJSON(github.event.repository.private) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          if [ "$GITHUB_REPOSITORY" != HEZZO7/AmanahLifeapp ] || [ "$REPOSITORY_PRIVATE" != false ]; then
+            printf '%s\n' 'FAIL: authorization requires the approved public repository.' >&2
+            exit 1
+          fi
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_WORKFLOW_REF" = HEZZO7/AmanahLifeapp/.github/workflows/amanahlife-isolated-notifications-once.yml@refs/heads/main
+          test "$GITHUB_RUN_NUMBER" = 1
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$APPROVE_ISOLATED_RUN" = true
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          printf '%s\n' 'Manual authorization gate: PASS. Exactly one first attempt is allowed.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout immutable reviewed CI package
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: HEZZO7/AmanahLifeapp
+          ref: 3968fa6795bab794e72596d23d87c6b388659098
+          path: harness-repo
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /ci/notification-local/
+
+      - name: Checkout immutable application baseline
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: HEZZO7/AmanahLifeapp
+          ref: f29d8df16e434e8cd064968e4b832e9c8f84e2fb
+          path: source
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /app/frontend/src/lib/notificationBackup.ts
+            /app/frontend/src/lib/notificationPreferenceClient.ts
+            /app/frontend/src/lib/notificationPreferenceWrite.ts
+            /app/frontend/supabase/functions/_shared/notificationPreferences.ts
+            /app/frontend/supabase/functions/_shared/notificationPreferencesStore.ts
+            /app/frontend/supabase/functions/app_11941c8fec_push_notify/index.ts
+            /app/frontend/supabase/migrations/202610180007_notification_table_authority.sql
+            /app/frontend/tests/deny-network.mjs
+            /app/frontend/tests/notification-backup.test.mjs
+            /app/frontend/tests/notification-preference-client.test.mjs
+            /app/frontend/tests/notification-preference-write.test.mjs
+            /app/frontend/tests/notification-preferences.test.mjs
+            /app/frontend/tests/preference-test-loader.mjs
+
+      - name: Verify all reviewed inputs before executing package code
+        id: verify
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY'
+          import hashlib, json, os, stat, subprocess
+          from pathlib import Path
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit('FAIL: ' + message)
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          harness = workspace / 'harness-repo'
+          source = workspace / 'source'
+          require(not harness.is_symlink() and not source.is_symlink(), 'checkout symlink')
+          for checkout, expected in [
+              (harness, '3968fa6795bab794e72596d23d87c6b388659098'),
+              (source, 'f29d8df16e434e8cd064968e4b832e9c8f84e2fb'),
+          ]:
+              actual = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()
+              require(actual == expected, 'checkout commit mismatch')
+
+          expected = {
+              'assert-network.py': '239d852947e42aba5c55081863df25d212df26b0cd437f115b46f9e1f207140b',
+              'cleanup.sh': 'be836fb5e2c557f52b9902b28b0d0dc79c1181c83942082071fdfb068c1cf328',
+              'configure.py': '43503725180ff5165b4c5e4bdb4a2bd7d71cc3bf1e7a6effd2dba9920a01779c',
+              'deno.json': '37ad43dbeb23368d06ffa080dca2b54e66e483af887efb75dfdb44147ca8c32c',
+              'deno.lock': '10b88ca3a204a0f6cb21f2d710519b36aedcb64752d80dd2829318c324fe025d',
+              'import_map.json': '63ef773b1f3686ce35fd9b2dc85600ef319616182d4f6eb98012aa478a34395c',
+              'locked-registry.py': '6002da78b835920deacafd298654b2b9f4f21e7119ae3b77b51ef686f465d146',
+              'package-lock.json': '693b22b04ae5c2b252568cbdd9bbd073c34467a075271382eec4ce530a8a7756',
+              'package.json': 'f0a19b090438945bee003ad21735167adce2796b9498cb4cb3af04c529321695',
+              'record-deps.py': 'bbff2fbe0820f9b44c3e567e6a935adad87c7c6857f3c9d816c406b433af6c27',
+              'repro-cli.py': '38d2543dbf3ad7dc692689ab989afcf47968e9d471b913f42ec77f77c3474532',
+              'repro.py': '473b370d0db601b4b6dae0510c72f5f915899d6698e58badb61dcd41f71ec962',
+              'review-static.py': '1c9ad54480fbc50757ceb273f951e2af69b96cd29b1161e1823a742f0fb3a2b3',
+              'run.sh': '66ec639895df564ad2219038e6062a65442a7d263562a03e3f79d2d59826fce0',
+              'runtime-lock.json': '125337f012ad5877c70712488e1448fed12de10000ea589c7b370e1087883ff5',
+              'runtime-probe.ts': '15bb87c49438f7a116a40f7fb2b60324c44e81af52648bfa005e0f0bea7d5ad2',
+              'setup.sql': '7a504623f5242049a9c7aad9939554277aefde605e705eaf53bf6b18d1bb2b65',
+              'source-manifest.json': '444912af4de20599540f8187442fe693bfb096750675013afcab173f92aa820c',
+              'stage.py': 'ddc2d0918a0579a52640d00ae26e5cc159e8be57bb0f9c8adfef88bdb3babca4',
+              'suite.mjs': 'f2d07dd9a6fa6126d81711142c0256229e2d106867c46300d70d8172b956bc58',
+              'summarize.py': 'e391d33ff623b8c4ce7a3deffba4b344c623ff96ad232cb94b46fdc1833cc84d',
+              'test-register.mjs': 'd24915cb4acc639805ae48fd68307ea04d989fa8e7757c79fa94886624defaca',
+              'verify-test-log.py': '6a65b7278f1c817ad4fb08eae59d3c68551b8b5441b62567ebccc0b7e806e8a8',
+          }
+          root = harness / 'ci' / 'notification-local'
+          require(not (harness / 'ci').is_symlink() and not root.is_symlink(), 'package directory symlink')
+          require({p.name for p in root.iterdir()} == set(expected), 'unexpected or missing package file')
+          for name, checksum in expected.items():
+              path = root / name
+              require(stat.S_ISREG(path.lstat().st_mode), 'non-regular package file')
+              require(hashlib.sha256(path.read_bytes()).hexdigest() == checksum, 'package checksum mismatch')
+
+          # This manifest was authenticated above before being read as data.
+          manifest = json.loads((root / 'source-manifest.json').read_text())
+          require(manifest['subject'] == 'f29d8df16e434e8cd064968e4b832e9c8f84e2fb', 'source manifest subject')
+          require(len(manifest['files']) == 13, 'unexpected application input count')
+          for name, checksum in manifest['files'].items():
+              rel = Path(name)
+              require(not rel.is_absolute() and '..' not in rel.parts and name.startswith('app/frontend/'), 'unsafe source path')
+              path = source / rel
+              require(not any(parent.is_symlink() for parent in [path, *path.parents] if parent.is_relative_to(source)), 'source symlink')
+              require(stat.S_ISREG(path.lstat().st_mode), 'non-regular application input')
+              raw = path.read_bytes()
+              blob = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+              require(blob == checksum, 'application input checksum mismatch')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('verified=true\n')
+          print('PASS: immutable commits, 23 package SHA256 checksums, and 13 application Git-blob checksums')
+          PY
+
+      - name: Run only the approved disposable local harness
+        id: harness
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          export SOURCE_DIR="$GITHUB_WORKSPACE/source"
+          export HARNESS_DIR="$GITHUB_WORKSPACE/harness-repo/ci/notification-local"
+          export LOCAL_RUN_DIR="$RUNNER_TEMP/amanahlife-local-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          printf 'LOCAL_RUN_DIR=%s\n' "$LOCAL_RUN_DIR" >> "$GITHUB_ENV"
+          env -i PATH="$PATH" HOME="$LOCAL_RUN_DIR/runner-home" \
+            RUNNER_TEMP="$RUNNER_TEMP" GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+            GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" SUBJECT_SHA="$SUBJECT_SHA" \
+            CLI_VERSION="$CLI_VERSION" LOCAL_ONLY_APPROVAL="$LOCAL_ONLY_APPROVAL" \
+            SOURCE_DIR="$SOURCE_DIR" HARNESS_DIR="$HARNESS_DIR" LOCAL_RUN_DIR="$LOCAL_RUN_DIR" \
+            bash "$HARNESS_DIR/run.sh"
+
+      - name: Teardown only this verified disposable run
+        id: teardown
+        if: always() && steps.verify.outputs.verified == 'true' && env.LOCAL_RUN_DIR != ''
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -i PATH="$PATH" RUNNER_TEMP="$RUNNER_TEMP" HOME="$LOCAL_RUN_DIR/runner-home" \
+            bash "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/cleanup.sh" "$LOCAL_RUN_DIR"
+
+      - name: Retain only the verified redacted summary
+        id: summary
+        if: always() && steps.verify.outputs.verified == 'true' && env.LOCAL_RUN_DIR != ''
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$LOCAL_RUN_DIR"
+          env -i PATH="$PATH" python3 -I "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/summarize.py" "$LOCAL_RUN_DIR"
+          cat "$LOCAL_RUN_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          printf '\n%s\n' \
+            'CI package: 3968fa6795bab794e72596d23d87c6b388659098' \
+            'Application: f29d8df16e434e8cd064968e4b832e9c8f84e2fb' \
+            "Run: https://github.com/HEZZO7/AmanahLifeapp/actions/runs/${GITHUB_RUN_ID}" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require successful cleanup and complete verified test evidence
+        if: always()
+        timeout-minutes: 1
+        env:
+          AUTHORIZATION_OUTCOME: ${{ steps.authorize.outcome }}
+          VERIFICATION_OUTCOME: ${{ steps.verify.outcome }}
+          HARNESS_OUTCOME: ${{ steps.harness.outcome }}
+          TEARDOWN_OUTCOME: ${{ steps.teardown.outcome }}
+          SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY'
+          import hashlib, json, os, re, stat
+          from pathlib import Path
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit('FAIL: ' + message + '; raw evidence withheld')
+
+          for key in ['AUTHORIZATION_OUTCOME', 'VERIFICATION_OUTCOME', 'HARNESS_OUTCOME', 'TEARDOWN_OUTCOME', 'SUMMARY_OUTCOME']:
+              require(os.environ.get(key) == 'success', 'required workflow step did not succeed')
+
+          root = Path(os.environ.get('LOCAL_RUN_DIR', ''))
+          expected_root = Path(os.environ['RUNNER_TEMP']) / ('amanahlife-local-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          require(root == expected_root and not root.is_symlink() and root.is_dir(), 'missing or invalid local evidence directory')
+          require(not (root / 'results').is_symlink(), 'invalid phase evidence directory')
+
+          def read(name):
+              path = root / name
+              require(path.is_file() and stat.S_ISREG(path.lstat().st_mode), 'missing or non-regular evidence file')
+              return path.read_bytes()
+
+          require(read('completed') == b'all-local-steps-completed\n', 'local test completion not established')
+          require(read('teardown-completed') == b'disposable-stack-removed\n', 'disposable stack teardown not established')
+          for phase, count in {'warm': 2, 'users': 1, 'network': 1, 'client': 7, 'edge': 2, 'cleanup': 1}.items():
+              result = json.loads(read('results/' + phase + '.json'))
+              require(isinstance(result, dict), 'invalid phase result')
+              require(result.get('subject') == 'f29d8df16e434e8cd064968e4b832e9c8f84e2fb' and result.get('phase') == phase, 'phase identity mismatch')
+              require(result.get('passed') is True and result.get('hostedVerified') is False and result.get('productionReady') is False, 'phase success not established')
+              checks = result.get('checks')
+              require(isinstance(checks, list) and len(checks) == count and all(isinstance(c, str) and c.strip() for c in checks), 'phase checks missing or incomplete')
+
+          for name, count in {'notification-preferences.test.mjs': 68, 'notification-preference-client.test.mjs': 30,
+                              'notification-backup.test.mjs': 7, 'notification-preference-write.test.mjs': 23}.items():
+              text = read('regression-' + name + '.log').decode('utf-8')
+              counts = {m[1]: int(m[2]) for m in re.finditer(r'^(?:# |ℹ )(tests|pass|fail|cancelled|skipped) (\d+)\s*$', text, re.M)}
+              require(counts == {'tests': count, 'pass': count, 'fail': 0, 'cancelled': 0, 'skipped': 0}, 'regression case counts missing or incomplete')
+
+          # Exact all-PASS redacted output of the immutable approved summarizer.
+          # This is a format checksum, never a substitute for phase/log checks.
+          require(hashlib.sha256(read('summary.md')).hexdigest() == '776fd57c16ecf1c6fb1ed15f3369cc8355500d9929acbd745d28d562098b0847', 'missing or invalid all-PASS summary')
+          print('PASS: all required steps, phase results, regression counts, completion markers and teardown verified')
+          PY
+
+# No deployment environments, secrets, artifacts/cache upload, cloud resources,
+# arbitrary refs, or user-controlled shell interpolation. Subsequent dispatches
+# and all reruns fail the first gate; they do not start Docker or checkout code.
