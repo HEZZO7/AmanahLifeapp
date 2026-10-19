@@ -1,0 +1,28 @@
+{
+  "review_date": "2026-10-19T05:11:08.453766+00:00",
+  "subject_sha": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+  "offline_harness_unit_tests": {
+    "passed": 5,
+    "failed": 0
+  },
+  "other_static_checks": {
+    "yaml_and_permissions": "PASS",
+    "no_active_workflow_added": "PASS",
+    "upstream_template_transform": "PASS",
+    "thirteen_git_blobs_staged": "PASS",
+    "ddl_matches_audited_fixture": "PASS"
+  },
+  "sql_parser_or_execution": false,
+  "docker_or_services_started": false,
+  "application_regression_tests_run": false,
+  "integration_tests_run": false,
+  "workflow_enabled": false,
+  "workflow_executed": false,
+  "unresolved": [
+    "independent CLI binary hash and immutable image digests",
+    "frozen npm and Deno integrity graph",
+    "production defaults not independently verified",
+    "runtime network and real local integration not executed",
+    "Actions account allowlist unavailable via read connector"
+  ]
+}

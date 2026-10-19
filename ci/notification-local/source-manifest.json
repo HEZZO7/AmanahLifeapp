@@ -1,0 +1,18 @@
+{
+  "subject": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+  "files": {
+    "app/frontend/src/lib/notificationBackup.ts": "7b282f69fb1c08f6fb9ff13121f48da16cefe465",
+    "app/frontend/src/lib/notificationPreferenceClient.ts": "afb745d7374d11e9b4e43d5a52ff9d9849155626",
+    "app/frontend/src/lib/notificationPreferenceWrite.ts": "b471ab49b0f7b4aabc9cc899f2f3bf8184ec7df4",
+    "app/frontend/supabase/functions/_shared/notificationPreferences.ts": "b8972901424ab9d12b93112e78384006732c805e",
+    "app/frontend/supabase/functions/_shared/notificationPreferencesStore.ts": "bb6444409571e12b56cc7726a61d17276ffe911f",
+    "app/frontend/supabase/functions/app_11941c8fec_push_notify/index.ts": "b1444d787a28db2321372c13ba4afec82b39b09e",
+    "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql": "6bb7c00a7db3e607894d5d2d2ba24fbb2e3e4ece",
+    "app/frontend/tests/deny-network.mjs": "90de67090e4c1f6e8be215706a55e419c64b0dc5",
+    "app/frontend/tests/notification-backup.test.mjs": "073d799c1a1ffd08f974de16997a9e557a698d07",
+    "app/frontend/tests/notification-preference-client.test.mjs": "7dbc3d7ce2cf2c8874d848ecdba753bb780ec949",
+    "app/frontend/tests/notification-preference-write.test.mjs": "605779abf18d37b4e665a4798686fbde0ad80fe2",
+    "app/frontend/tests/notification-preferences.test.mjs": "3a5f0c026fc4c8ab0085bea00046ef88e9bb3220",
+    "app/frontend/tests/preference-test-loader.mjs": "00945fc3592a6243846c4dd567b90ce153e484c3"
+  }
+}
