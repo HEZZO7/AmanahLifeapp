@@ -52,7 +52,24 @@ python3 "$HARNESS_DIR/record-deps.py" "$HARNESS_DIR" "$LOCAL_RUN_DIR/dependencie
 # A second, independent SRI/manifest check creates a frozen artifact mirror for
 # Deno. Downloads occur before local keys/users exist; no runtime proxy exists.
 python3 "$HARNESS_DIR/repro-cli.py" tarballs "$LOCAL_RUN_DIR/npm-artifacts"
-"$cli" --workdir "$LOCAL_RUN_DIR/stack" init > "$LOCAL_RUN_DIR/init.log" 2>&1
+# Preserve private raw files; only fixed, allowlisted diagnostics reach Actions.
+cli_phase() {
+ local phase="$1" code=0 diagnostic_code=0
+ shift
+ case "$phase" in init|start|status) ;; *) printf '%s\n' 'FAIL: unsupported CLI diagnostic phase' >&2; return 2 ;; esac
+ printf 'CI_CLI phase=supabase_%s result=started\n' "$phase"
+ case "$phase" in
+  init|start) "$@" > "$LOCAL_RUN_DIR/$phase.log" 2>&1 || code=$? ;;
+  status) "$@" > "$LOCAL_RUN_DIR/status.json" 2> "$LOCAL_RUN_DIR/status.log" || code=$? ;;
+ esac
+ python3 "$HARNESS_DIR/cli-diagnostics.py" "$phase" "$code" "$LOCAL_RUN_DIR/$phase.log" || diagnostic_code=$?
+ if [ "$diagnostic_code" -ne 0 ]; then
+  printf '%s\n' 'FAIL: CLI diagnostic unavailable; raw output withheld' >&2
+  if [ "$code" -eq 0 ]; then return 1; fi
+ fi
+ return "$code"
+}
+cli_phase init "$cli" --workdir "$LOCAL_RUN_DIR/stack" init
 python3 "$HARNESS_DIR/configure.py" "$LOCAL_RUN_DIR/stack" "$project"
 functions="$LOCAL_RUN_DIR/stack/supabase/functions"
 mkdir -p "$functions/_shared" "$functions/app_11941c8fec_push_notify"
@@ -71,10 +88,9 @@ docker run -d --name "${project}-cache" --network "$private" --network-alias dep
  --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp \
  -v "$HARNESS_DIR:/harness:ro" -v "$LOCAL_RUN_DIR/npm-artifacts:/cache:ro" \
  "$python_image" python /harness/locked-registry.py /cache >/dev/null
-"$cli" --workdir "$LOCAL_RUN_DIR/stack" --network-id "$private" start \
- --exclude studio,realtime,storage-api,imgproxy,mailpit,postgres-meta,logflare,vector,supavisor,edge-runtime \
- > "$LOCAL_RUN_DIR/start.log" 2>&1
-"$cli" --workdir "$LOCAL_RUN_DIR/stack" status -o json > "$LOCAL_RUN_DIR/status.json" 2> "$LOCAL_RUN_DIR/status.log"
+cli_phase start "$cli" --workdir "$LOCAL_RUN_DIR/stack" --network-id "$private" start \
+ --exclude studio,realtime,storage-api,imgproxy,mailpit,postgres-meta,logflare,vector,supavisor,edge-runtime
+cli_phase status "$cli" --workdir "$LOCAL_RUN_DIR/stack" status -o json
 cat > "$LOCAL_RUN_DIR/functions.env" <<'ENV'
 NPM_CONFIG_REGISTRY=http://dependency-cache:4873/
 ENV
