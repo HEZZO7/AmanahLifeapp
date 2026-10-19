@@ -22,7 +22,6 @@ concurrency:
 
 jobs:
   local-supabase:
-    if: github.repository == 'HEZZO7/AmanahLifeapp' && github.event.repository.private == false
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -31,14 +30,19 @@ jobs:
       LOCAL_ONLY_APPROVAL: two-synthetic-users-no-egress
     steps:
       - name: Require explicit first manual run on main
+        id: authorize
         timeout-minutes: 1
         env:
           APPROVE_ISOLATED_RUN: ${{ inputs.approve_isolated_run }}
+          REPOSITORY_PRIVATE: ${{ toJSON(github.event.repository.private) }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
-          test "$GITHUB_REPOSITORY" = HEZZO7/AmanahLifeapp
+          if [ "$GITHUB_REPOSITORY" != HEZZO7/AmanahLifeapp ] || [ "$REPOSITORY_PRIVATE" != false ]; then
+            printf '%s\n' 'FAIL: authorization requires the approved public repository.' >&2
+            exit 1
+          fi
           test "$GITHUB_REF" = refs/heads/main
           test "$GITHUB_WORKFLOW_REF" = HEZZO7/AmanahLifeapp/.github/workflows/amanahlife-isolated-notifications-once.yml@refs/heads/main
           test "$GITHUB_RUN_NUMBER" = 1
@@ -164,6 +168,7 @@ jobs:
           PY
 
       - name: Run only the approved disposable local harness
+        id: harness
         timeout-minutes: 35
         shell: bash
         run: |
@@ -180,6 +185,7 @@ jobs:
             bash "$HARNESS_DIR/run.sh"
 
       - name: Teardown only this verified disposable run
+        id: teardown
         if: always() && steps.verify.outputs.verified == 'true' && env.LOCAL_RUN_DIR != ''
         timeout-minutes: 3
         shell: bash
@@ -189,20 +195,75 @@ jobs:
             bash "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/cleanup.sh" "$LOCAL_RUN_DIR"
 
       - name: Retain only the verified redacted summary
+        id: summary
         if: always() && steps.verify.outputs.verified == 'true' && env.LOCAL_RUN_DIR != ''
         timeout-minutes: 1
         shell: bash
         run: |
           set -euo pipefail
-          if [ -d "$LOCAL_RUN_DIR" ]; then
-            env -i PATH="$PATH" python3 -I "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/summarize.py" "$LOCAL_RUN_DIR"
-            cat "$LOCAL_RUN_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
-            printf '\n%s\n' \
-              'CI package: 3968fa6795bab794e72596d23d87c6b388659098' \
-              'Application: f29d8df16e434e8cd064968e4b832e9c8f84e2fb' \
-              "Run: https://github.com/HEZZO7/AmanahLifeapp/actions/runs/${GITHUB_RUN_ID}" \
-              >> "$GITHUB_STEP_SUMMARY"
-          fi
+          test -d "$LOCAL_RUN_DIR"
+          env -i PATH="$PATH" python3 -I "$GITHUB_WORKSPACE/harness-repo/ci/notification-local/summarize.py" "$LOCAL_RUN_DIR"
+          cat "$LOCAL_RUN_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          printf '\n%s\n' \
+            'CI package: 3968fa6795bab794e72596d23d87c6b388659098' \
+            'Application: f29d8df16e434e8cd064968e4b832e9c8f84e2fb' \
+            "Run: https://github.com/HEZZO7/AmanahLifeapp/actions/runs/${GITHUB_RUN_ID}" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require successful cleanup and complete verified test evidence
+        if: always()
+        timeout-minutes: 1
+        env:
+          AUTHORIZATION_OUTCOME: ${{ steps.authorize.outcome }}
+          VERIFICATION_OUTCOME: ${{ steps.verify.outcome }}
+          HARNESS_OUTCOME: ${{ steps.harness.outcome }}
+          TEARDOWN_OUTCOME: ${{ steps.teardown.outcome }}
+          SUMMARY_OUTCOME: ${{ steps.summary.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY'
+          import hashlib, json, os, re, stat
+          from pathlib import Path
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit('FAIL: ' + message + '; raw evidence withheld')
+
+          for key in ['AUTHORIZATION_OUTCOME', 'VERIFICATION_OUTCOME', 'HARNESS_OUTCOME', 'TEARDOWN_OUTCOME', 'SUMMARY_OUTCOME']:
+              require(os.environ.get(key) == 'success', 'required workflow step did not succeed')
+
+          root = Path(os.environ.get('LOCAL_RUN_DIR', ''))
+          expected_root = Path(os.environ['RUNNER_TEMP']) / ('amanahlife-local-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          require(root == expected_root and not root.is_symlink() and root.is_dir(), 'missing or invalid local evidence directory')
+          require(not (root / 'results').is_symlink(), 'invalid phase evidence directory')
+
+          def read(name):
+              path = root / name
+              require(path.is_file() and stat.S_ISREG(path.lstat().st_mode), 'missing or non-regular evidence file')
+              return path.read_bytes()
+
+          require(read('completed') == b'all-local-steps-completed\n', 'local test completion not established')
+          require(read('teardown-completed') == b'disposable-stack-removed\n', 'disposable stack teardown not established')
+          for phase, count in {'warm': 2, 'users': 1, 'network': 1, 'client': 7, 'edge': 2, 'cleanup': 1}.items():
+              result = json.loads(read('results/' + phase + '.json'))
+              require(isinstance(result, dict), 'invalid phase result')
+              require(result.get('subject') == 'f29d8df16e434e8cd064968e4b832e9c8f84e2fb' and result.get('phase') == phase, 'phase identity mismatch')
+              require(result.get('passed') is True and result.get('hostedVerified') is False and result.get('productionReady') is False, 'phase success not established')
+              checks = result.get('checks')
+              require(isinstance(checks, list) and len(checks) == count and all(isinstance(c, str) and c.strip() for c in checks), 'phase checks missing or incomplete')
+
+          for name, count in {'notification-preferences.test.mjs': 68, 'notification-preference-client.test.mjs': 30,
+                              'notification-backup.test.mjs': 7, 'notification-preference-write.test.mjs': 23}.items():
+              text = read('regression-' + name + '.log').decode('utf-8')
+              counts = {m[1]: int(m[2]) for m in re.finditer(r'^(?:# |ℹ )(tests|pass|fail|cancelled|skipped) (\d+)\s*$', text, re.M)}
+              require(counts == {'tests': count, 'pass': count, 'fail': 0, 'cancelled': 0, 'skipped': 0}, 'regression case counts missing or incomplete')
+
+          # Exact all-PASS redacted output of the immutable approved summarizer.
+          # This is a format checksum, never a substitute for phase/log checks.
+          require(hashlib.sha256(read('summary.md')).hexdigest() == '776fd57c16ecf1c6fb1ed15f3369cc8355500d9929acbd745d28d562098b0847', 'missing or invalid all-PASS summary')
+          print('PASS: all required steps, phase results, regression counts, completion markers and teardown verified')
+          PY
 
 # No deployment environments, secrets, artifacts/cache upload, cloud resources,
 # arbitrary refs, or user-controlled shell interpolation. Subsequent dispatches
