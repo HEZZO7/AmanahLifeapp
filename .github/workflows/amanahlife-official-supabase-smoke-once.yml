@@ -58,7 +58,9 @@ jobs:
           umask 077
           test "$(uname -m)" = x86_64
           test ! -e "$SMOKE_ROOT"
-          mkdir -p "$SMOKE_ROOT/bin"
+          mkdir "$SMOKE_ROOT"
+          touch "$SMOKE_ROOT/workspace-owned"
+          mkdir "$SMOKE_ROOT/bin"
           docker version --format '{{.Client.Version}} / {{.Server.Version}}' > "$SMOKE_ROOT/docker-version.txt" 2>&1
           # CLI 2.121.0 publishes Docker ports without a host-IP option.
           # Keep its official network/config; block external NEW inbound traffic
@@ -128,6 +130,8 @@ jobs:
                   if config.get('project_id') != root.name or (root / 'supabase/.temp/project-ref').exists():
                       print('SMOKE phase=init exit=1 category=unexpected_local_project', flush=True)
                       sys.exit(1)
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write(f'{phase}_completed=true\n')
           (root / 'startup-passed').touch()
           PY
 
@@ -139,20 +143,29 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
+          if [ ! -e "$SMOKE_ROOT" ]; then
+            echo 'PASS: preparation created no workspace or services'
+            exit 0
+          fi
+          if [ ! -f "$SMOKE_ROOT/workspace-owned" ]; then
+            echo 'FAIL: refusing to delete an unowned workspace'
+            exit 1
+          fi
           if [ -f "$SMOKE_ROOT/start-attempted" ]; then
             timeout 180s "$SMOKE_ROOT/bin/supabase" --workdir "$SMOKE_ROOT" stop --no-backup \
               > "$SMOKE_ROOT/cleanup.log" 2>&1 || failed=1
+            # Only start can create services. Before that, Docker/CLI may not
+            # be available or verified; cleanup must still remove private files.
+            project="${SMOKE_ROOT##*/}"
+            for kind in container volume network; do
+              if [ "$kind" = container ]; then
+                remaining="$(docker ps -aq --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
+              else
+                remaining="$(docker "$kind" ls -q --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
+              fi
+              [ -z "$remaining" ] || failed=1
+            done
           fi
-          # A fresh init uses this directory basename as project_id.
-          project="${SMOKE_ROOT##*/}"
-          for kind in container volume network; do
-            if [ "$kind" = container ]; then
-              remaining="$(docker ps -aq --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
-            else
-              remaining="$(docker "$kind" ls -q --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
-            fi
-            [ -z "$remaining" ] || failed=1
-          done
           rm -rf -- "$SMOKE_ROOT" || failed=1
           if [ "$failed" != 0 ]; then
             echo 'FAIL: required cleanup incomplete; raw diagnostics withheld'
@@ -166,6 +179,8 @@ jobs:
           AUTHORIZATION: ${{ steps.authorize.outcome }}
           PREPARATION: ${{ steps.prepare.outcome }}
           STARTUP: ${{ steps.startup.outcome }}
+          INIT_COMPLETED: ${{ steps.startup.outputs.init_completed }}
+          START_COMPLETED: ${{ steps.startup.outputs.start_completed }}
           CLEANUP: ${{ steps.cleanup.outcome }}
         shell: bash
         run: |
@@ -173,5 +188,7 @@ jobs:
           test "$AUTHORIZATION" = success
           test "$PREPARATION" = success
           test "$STARTUP" = success
+          test "$INIT_COMPLETED" = true
+          test "$START_COMPLETED" = true
           test "$CLEANUP" = success
           echo 'PASS: official local Supabase init/start/cleanup smoke only; application integration untested'
