@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      SMOKE_ROOT: ${{ runner.temp }}/amanah-official-smoke-${{ github.run_id }}
+      SMOKE_ROOT: ${{ github.workspace }}/amanah-official-smoke-${{ github.run_id }}
       CLI_VERSION: 2.121.0
       CLI_SHA256: 4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f
       DO_NOT_TRACK: '1'
@@ -43,7 +43,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] ||
              [ "$GITHUB_REPOSITORY" != HEZZO7/AmanahLifeapp ] ||
              [ "$PRIVATE" != false ] || [ "$GITHUB_REF" != refs/heads/main ] ||
-             [ "$APPROVAL" != true ] || [ "$GITHUB_RUN_NUMBER" != 1 ] ||
+             [ "$APPROVAL" != true ] || [ "$GITHUB_RUN_NUMBER" != 2 ] ||
              [ "$GITHUB_RUN_ATTEMPT" != 1 ]; then
             echo 'FAIL: manual authorization gate rejected this run'
             exit 1
