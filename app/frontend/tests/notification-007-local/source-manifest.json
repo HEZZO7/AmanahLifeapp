@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "3968fa6795bab794e72596d23d87c6b388659098",
+  "files": {
+    "ci/notification-local/setup.sql": "2edf67f6501b800d2d58cc636c6520228cbd37df",
+    "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql": "6bb7c00a7db3e607894d5d2d2ba24fbb2e3e4ece",
+    "app/frontend/src/lib/notificationPreferenceWrite.ts": "b471ab49b0f7b4aabc9cc899f2f3bf8184ec7df4",
+    "app/frontend/src/lib/notificationBackup.ts": "7b282f69fb1c08f6fb9ff13121f48da16cefe465",
+    "app/frontend/src/lib/notificationPreferenceClient.ts": "afb745d7374d11e9b4e43d5a52ff9d9849155626",
+    "app/frontend/tests/preference-test-loader.mjs": "00945fc3592a6243846c4dd567b90ce153e484c3"
+  }
+}

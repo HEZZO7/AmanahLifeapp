@@ -1,0 +1,15 @@
+{
+  "name": "amanahlife-notification-007-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "review:offline": "node review.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.110.0"
+  }
+}
