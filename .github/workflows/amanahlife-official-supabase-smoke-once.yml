@@ -1,0 +1,194 @@
+# Review branch only. Installation and ONE manual execution need separate approval.
+# No checkout, application files, hosted credentials, or custom Supabase configuration.
+name: AmanahLife official Supabase smoke - once
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_local_smoke:
+        description: 'Approve ONE disposable official local startup test; no production access'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amanahlife-official-supabase-smoke-once
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SMOKE_ROOT: ${{ runner.temp }}/amanah-official-smoke-${{ github.run_id }}
+      CLI_VERSION: 2.121.0
+      CLI_SHA256: 4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f
+      DO_NOT_TRACK: '1'
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_PROJECT_REF: ''
+      SUPABASE_DB_PASSWORD: ''
+      DOCKER_HOST: unix:///var/run/docker.sock
+    steps:
+      - name: Require approved public repository and first manual attempt on main
+        id: authorize
+        env:
+          APPROVAL: ${{ inputs.approve_local_smoke }}
+          PRIVATE: ${{ toJSON(github.event.repository.private) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] ||
+             [ "$GITHUB_REPOSITORY" != HEZZO7/AmanahLifeapp ] ||
+             [ "$PRIVATE" != false ] || [ "$GITHUB_REF" != refs/heads/main ] ||
+             [ "$APPROVAL" != true ] || [ "$GITHUB_RUN_NUMBER" != 1 ] ||
+             [ "$GITHUB_RUN_ATTEMPT" != 1 ]; then
+            echo 'FAIL: manual authorization gate rejected this run'
+            exit 1
+          fi
+          echo 'PASS: first manual attempt authorized'
+
+      - name: Prepare disposable workspace and verify official CLI
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(uname -m)" = x86_64
+          test ! -e "$SMOKE_ROOT"
+          mkdir "$SMOKE_ROOT"
+          touch "$SMOKE_ROOT/workspace-owned"
+          mkdir "$SMOKE_ROOT/bin"
+          docker version --format '{{.Client.Version}} / {{.Server.Version}}' > "$SMOKE_ROOT/docker-version.txt" 2>&1
+          # CLI 2.121.0 publishes Docker ports without a host-IP option.
+          # Keep its official network/config; block external NEW inbound traffic
+          # both to host listeners and through Docker's forwarding chain.
+          interface="$(ip -4 route show default | awk 'NR==1 {print $5}')"
+          test -n "$interface"
+          sudo iptables -I DOCKER-USER 1 -i "$interface" -m conntrack --ctstate NEW -j DROP
+          sudo iptables -I INPUT 1 -i "$interface" -p tcp -m conntrack --ctstate NEW -j DROP
+          sudo ip6tables -I INPUT 1 ! -i lo -p tcp -m conntrack --ctstate NEW -j DROP
+          sudo ip6tables -I FORWARD 1 -i "$interface" -m conntrack --ctstate NEW -j DROP
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            --connect-timeout 20 --max-time 180 \
+            "https://github.com/supabase/cli/releases/download/v${CLI_VERSION}/supabase_${CLI_VERSION}_linux_amd64.tar.gz" \
+            -o "$SMOKE_ROOT/cli.tar.gz" > "$SMOKE_ROOT/download.log" 2>&1
+          printf '%s  %s\n' "$CLI_SHA256" "$SMOKE_ROOT/cli.tar.gz" | sha256sum -c - > "$SMOKE_ROOT/checksum.log" 2>&1
+          tar -xzf "$SMOKE_ROOT/cli.tar.gz" -C "$SMOKE_ROOT/bin" supabase > "$SMOKE_ROOT/extract.log" 2>&1
+          "$SMOKE_ROOT/bin/supabase" --version > "$SMOKE_ROOT/version.txt" 2>&1
+          grep -qx "$CLI_VERSION" "$SMOKE_ROOT/version.txt"
+          echo 'PASS: Docker available; inbound guard installed; CLI version and checksum verified'
+
+      - name: Official init and start only
+        id: startup
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import os, re, subprocess, sys, tomllib
+          from pathlib import Path
+          root = Path(os.environ['SMOKE_ROOT'])
+          cli = root / 'bin/supabase'
+          # Match only fixed hints. No captured text or match groups are emitted.
+          hints = [
+              ('port_conflict', r'address already in use|port is already allocated'),
+              ('docker_unavailable', r'cannot connect to the docker daemon|docker daemon is not running'),
+              ('image_download', r'failed to pull|pull access denied|manifest unknown|no matching manifest'),
+              ('database_bootstrap', r'error running container: exit|failed to (?:initialize|initialise|bootstrap) database'),
+              ('service_health', r'health.*(?:failed|timed out)|not ready:|unhealthy'),
+              ('network', r'network is unreachable|no such host|could not resolve host|tls handshake timeout'),
+          ]
+          for phase in ('init', 'start'):
+              log = root / (phase + '.log')
+              if phase == 'start':
+                  (root / 'start-attempted').touch()
+              try:
+                  with log.open('wb') as out:
+                      result = subprocess.run([str(cli), '--workdir', str(root), phase],
+                                              stdout=out, stderr=subprocess.STDOUT, timeout=1080)
+                  code = result.returncode if result.returncode >= 0 else 128 - result.returncode
+                  category = 'completed' if code == 0 else 'unknown_error'
+              except subprocess.TimeoutExpired:
+                  code, category = 124, 'timeout'
+              except OSError:
+                  code, category = 1, 'local_execution_error'
+              if code and category == 'unknown_error':
+                  with log.open('rb') as data:
+                      data.seek(0, 2)
+                      data.seek(max(0, data.tell() - 65536))
+                      text = data.read(65536).decode('utf-8', errors='replace').lower()
+                  category = next((name for name, pattern in hints if re.search(pattern, text)), category)
+              print(f'SMOKE phase={phase} exit={code} category={category}', flush=True)
+              if code:
+                  sys.exit(code)
+              if phase == 'init':
+                  config = tomllib.loads((root / 'supabase/config.toml').read_text())
+                  if config.get('project_id') != root.name or (root / 'supabase/.temp/project-ref').exists():
+                      print('SMOKE phase=init exit=1 category=unexpected_local_project', flush=True)
+                      sys.exit(1)
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write(f'{phase}_completed=true\n')
+          (root / 'startup-passed').touch()
+          PY
+
+      - name: Always stop and verify disposable resources removed
+        id: cleanup
+        if: ${{ always() && steps.authorize.outcome == 'success' }}
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          if [ ! -e "$SMOKE_ROOT" ]; then
+            echo 'PASS: preparation created no workspace or services'
+            exit 0
+          fi
+          if [ ! -f "$SMOKE_ROOT/workspace-owned" ]; then
+            echo 'FAIL: refusing to delete an unowned workspace'
+            exit 1
+          fi
+          if [ -f "$SMOKE_ROOT/start-attempted" ]; then
+            timeout 180s "$SMOKE_ROOT/bin/supabase" --workdir "$SMOKE_ROOT" stop --no-backup \
+              > "$SMOKE_ROOT/cleanup.log" 2>&1 || failed=1
+            # Only start can create services. Before that, Docker/CLI may not
+            # be available or verified; cleanup must still remove private files.
+            project="${SMOKE_ROOT##*/}"
+            for kind in container volume network; do
+              if [ "$kind" = container ]; then
+                remaining="$(docker ps -aq --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
+              else
+                remaining="$(docker "$kind" ls -q --filter "label=com.supabase.cli.project=$project" 2>/dev/null)" || failed=1
+              fi
+              [ -z "$remaining" ] || failed=1
+            done
+          fi
+          rm -rf -- "$SMOKE_ROOT" || failed=1
+          if [ "$failed" != 0 ]; then
+            echo 'FAIL: required cleanup incomplete; raw diagnostics withheld'
+            exit 1
+          fi
+          echo 'PASS: disposable resources and private logs removed'
+
+      - name: Require completed startup and cleanup
+        if: ${{ always() }}
+        env:
+          AUTHORIZATION: ${{ steps.authorize.outcome }}
+          PREPARATION: ${{ steps.prepare.outcome }}
+          STARTUP: ${{ steps.startup.outcome }}
+          INIT_COMPLETED: ${{ steps.startup.outputs.init_completed }}
+          START_COMPLETED: ${{ steps.startup.outputs.start_completed }}
+          CLEANUP: ${{ steps.cleanup.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$AUTHORIZATION" = success
+          test "$PREPARATION" = success
+          test "$STARTUP" = success
+          test "$INIT_COMPLETED" = true
+          test "$START_COMPLETED" = true
+          test "$CLEANUP" = success
+          echo 'PASS: official local Supabase init/start/cleanup smoke only; application integration untested'
