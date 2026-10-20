@@ -58,8 +58,7 @@ jobs:
           umask 077
           test "$(uname -m)" = x86_64
           test ! -e "$SMOKE_ROOT"
-          mkdir -p "$SMOKE_ROOT/home" "$SMOKE_ROOT/bin"
-          export HOME="$SMOKE_ROOT/home"
+          mkdir -p "$SMOKE_ROOT/bin"
           docker version --format '{{.Client.Version}} / {{.Server.Version}}' > "$SMOKE_ROOT/docker-version.txt" 2>&1
           # CLI 2.121.0 publishes Docker ports without a host-IP option.
           # Keep its official network/config; block external NEW inbound traffic
@@ -87,7 +86,6 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          export HOME="$SMOKE_ROOT/home"
           python3 - <<'PY'
           import os, re, subprocess, sys, tomllib
           from pathlib import Path
@@ -140,7 +138,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export HOME="$SMOKE_ROOT/home"
           failed=0
           if [ -f "$SMOKE_ROOT/start-attempted" ]; then
             timeout 180s "$SMOKE_ROOT/bin/supabase" --workdir "$SMOKE_ROOT" stop --no-backup \
