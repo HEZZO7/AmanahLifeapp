@@ -123,6 +123,10 @@ This cleanup mode does not need the SDK installed or the application checkout.
 It requires the private ownership marker, runs official `stop --no-backup`,
 checks project-labelled containers/volumes/networks, then deletes the workdir.
 Partial preparation before `start` needs neither CLI nor Docker for cleanup.
+Workdir creation uses an exclusive marker file. If writing the marker fails,
+only the inode-checked marker and newly created empty directory are removed;
+pre-existing/replaced paths and foreign files are preserved. This recovery is
+nonrecursive and needs no CLI or Docker.
 If stop/inspection fails or resources remain, it fails and retains ownership,
 config and CLI for the external cleanup step; status/private logs are removed.
 It never uses global prune, `--all`, or removes unrelated resources. There are
@@ -143,14 +147,14 @@ run; the cleanup-only report cannot substitute for an integration result.
 | `auth` | Exactly A/B, locally confirmed synthetic accounts; actual password login and Auth.getUser agree on distinct identities. Public email verification/OAuth are not claimed. |
 | `migration_first` | Only fixture + 007; all seeded data, PK/FK/UNIQUE definitions, indexes, column types/nullability/defaults preserved. |
 | `migration_repeat` | Applying 007 again preserves the entire semantic snapshot, including data, constraints, effective table/column rights, grant options, RLS and policy definitions. Policy OIDs are intentionally not compared. |
-| `effective_acl` | RLS enabled, no PUBLIC policy; anon has no rights; authenticated has only allowed own preference columns, no identity UPDATE; service_role has required CRUD only; effective MAINTAIN (PG17+) and grant options absent. |
+| `effective_acl` | RLS enabled; exact five policy names/tables/roles/commands/permissive modes/USING/WITH CHECK match reviewed 007; anon has no rights; authenticated has only allowed own preference columns, no identity UPDATE; service_role has required CRUD only; effective MAINTAIN (PG17+) and grant options absent. |
 | `forged_auth` | Real Auth and PostgREST reject missing/malformed JWTs and payload tampering of sub/role with unchanged signature. No unsigned decoding is used as authentication proof. |
 | `foreign_insert` | A cannot insert B's row while B has none: HTTP403/42501, not a misleading UNIQUE failure. |
 | `first_insert_race` | Independent SDK clients/writers for B both observe zero-row PATCH; actual INSERTs yield 201 and 409/23505, one bounded PATCH retry, one row, both location and false flags preserved. |
 | `cross_account` | Both directions: foreign read empty; PATCH count=exact zero and row unchanged; own PATCH count one. |
 | `column_denials` | Forbidden identity/internal columns, wildcard reads, DELETE, Push reads/inserts denied; anonymous Push access denied. |
 | `client_compatibility` | Actual PrayerTimes/BackupRestore writer saves five location fields without flag reset, restores all six false values, drops legacy foreign identity/internal fields, preserves the other account; request audit forbids identity UPDATE, select/representation/merge-duplicates. |
-| `session_switch` | Actual SDK logout/account switch prevents stale-account writes before storage requests. |
+| `session_switch` | Actual SDK logout/account switch rejects stale-account writes with zero additional network attempts, counted before URL/header/body validation or transport. A separate sticky rejected-guard counter is required to remain zero outside SDK error handling. No arguments or sensitive values are retained in these counters. |
 | `server_crud` | SET ROLE service_role can read/insert/update/delete required notification data; effects asserted and transaction rolled back. |
 | `sql_denials` | Real TRUNCATE denied for anon/authenticated/service_role on both tables; tests roll back. |
 | `preservation` | Push records, original A server-owned fields and all schema/permission metadata unchanged after HTTP tests; B has one valid default-generated identity/timestamps and untouched reminder markers. |
@@ -173,13 +177,22 @@ node "$TEST_DIR/review.test.mjs"
 These checks never execute the integration entrypoint or call Docker/SQL/Auth.
 Cleanup tests inject fake commands and use synthetic temporary directories.
 They do not prove the assertions in the acceptance matrix passed.
-Preparation verification on Node 24.19.0: 13 offline tests passed, including
-fake-command cleanup failures; all three JavaScript syntax checks passed.
+Preparation verification on Node 24.19.0: 19 offline tests passed; all three
+JavaScript syntax checks passed. The regression simulates an SDK-caught guard
+error: the old rejects/completed-response check passes incorrectly, while both
+new attempt and rejected-guard gates reject it. A genuine no-request rejection
+still passes. Marker failure before/after a partial write and preservation of
+pre-existing paths/foreign files are covered without services. Policy tests
+reject altered names, roles, commands, permissiveness, expressions, missing or
+extra policies. A separate text-only comparison confirmed the five expectations
+match reviewed 007 (source blob `6bb7c00a7db3e607894d5d2d2ba24fbb2e3e4ece`).
 
 Unverified until an approved run: real CLI status fields API_URL/ANON_KEY/
 SERVICE_ROLE_KEY, native Auth/REST/cache behavior, SDK/loader runtime integration,
 concurrent request outcomes, SQL execution and cleanup against Docker. SQL has
 not been executed or validated by a PostgreSQL parser in this preparation.
+Policy expression checking accepts only the reviewed scalar SELECT shape with
+optional inferred `AS uid`; an unexpected server deparse shape fails closed.
 Dependency tarballs have not been downloaded here; a future npm ci enforces SRI.
 
 The fixture reproduces audited table structure/constraints, but UTC/en/now()/

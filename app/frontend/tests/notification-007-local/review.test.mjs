@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {cleanup} from './integration.mjs';
+import {cleanup,createWorkspace} from './integration.mjs';
 import {API_ORIGIN,CHECKS,CLI_VERSION,CLI_ARCHIVE_SHA256,SOURCE_COMMIT,SDK_VERSION,
-  localStatus,allowedURL,workspace,commandCategory,requireCoverage,gitBlob} from './local-safety.mjs';
+  localStatus,allowedURL,workspace,commandCategory,requireCoverage,gitBlob,
+  createRequestAudit,requirePolicies,EXPECTED_POLICIES} from './local-safety.mjs';
 
 const read=name=>JSON.parse(fs.readFileSync(new URL(name,import.meta.url)));
 const jwt=role=>'e30.'+Buffer.from(JSON.stringify({role})).toString('base64url')+'.synthetic';
@@ -50,6 +51,59 @@ test('mandatory coverage cannot silently omit or duplicate a security group',()=
   requireCoverage(CHECKS);assert.throws(()=>requireCoverage(CHECKS.slice(1)));
   assert.throws(()=>requireCoverage([...CHECKS,CHECKS[0]]));assert.throws(()=>requireCoverage([]));
 });
+test('SDK-caught guard failure reproduces old false positive but fails both new gates',async()=>{
+  const traffic=createRequestAudit(),before=traffic.snapshot();let sent=0,oldCompleted=0;
+  const request=traffic.wrap(()=>{
+    assert.deepEqual(traffic.snapshot(),{attempted:1,rejected:0});
+    allowedURL('https://synthetic.invalid/rest/v1/table');
+  },async()=>{sent++;oldCompleted++;});
+  // Simulate the SDK converting a thrown fetch/guard assertion into result.error.
+  const sdk=async()=>{try{await request();return {error:null};}catch{return {error:{code:'synthetic'}};}};
+  const brokenWriter=async()=>{const result=await sdk();if(result.error)throw Error('Save not confirmed');};
+  await assert.rejects(brokenWriter());
+  assert.equal(oldCompleted,0); // Old rejects + completed-count check falsely passed.
+  assert.equal(sent,0);
+  assert.deepEqual(traffic.snapshot(),{attempted:1,rejected:1});
+  assert.throws(()=>traffic.requireNoAttempts(before));
+  assert.throws(()=>traffic.requireNoRejections()); // Outside the SDK catch.
+});
+test('legitimate stale-account rejection without a request passes both gates',async()=>{
+  const traffic=createRequestAudit(),before=traffic.snapshot();
+  await assert.rejects(async()=>{throw Error('Account mismatch before storage');});
+  traffic.requireNoAttempts(before);traffic.requireNoRejections();
+  assert.deepEqual(traffic.snapshot(),{attempted:0,rejected:0});
+});
+test('request audit counts before assertions, retains only counters, and distinguishes transport errors',async()=>{
+  const traffic=createRequestAudit();
+  const request=traffic.wrap(()=>{
+    assert.equal(traffic.snapshot().attempted,1);throw Error(secret);
+  },()=>assert.fail('Rejected guard must not reach transport'));
+  await assert.rejects(request(secret,{headers:secret,body:secret}));
+  const snapshot=traffic.snapshot();snapshot.rejected=0;
+  assert.throws(()=>traffic.requireNoRejections()); // A copied snapshot cannot reset it.
+  assert.ok(!JSON.stringify(traffic.snapshot()).includes(secret));
+  const network=createRequestAudit(),before=network.snapshot();
+  await assert.rejects(network.wrap(()=>{},async()=>{throw Error('Synthetic transport failure');})());
+  assert.deepEqual(network.snapshot(),{attempted:1,rejected:0});
+  assert.throws(()=>network.requireNoAttempts(before));
+});
+
+function policyRows(){
+  const expression=value=>value==='own'?'(( SELECT auth.uid() AS uid) = user_id)':value;
+  return structuredClone(EXPECTED_POLICIES).map(p=>({...p,qual:expression(p.qual),check:expression(p.check)}));
+}
+test('exact five policies accept only the reviewed roles, commands and expressions',()=>{
+  requirePolicies(policyRows());requirePolicies(policyRows().reverse());
+  const withoutAlias=policyRows().map(p=>({...p,qual:p.qual?.replace(' AS uid','')??null,check:p.check?.replace(' AS uid','')??null}));
+  requirePolicies(withoutAlias);
+  for(const change of [
+    p=>{p[0].name='unexpected';},p=>{p[0].table='other_table';},p=>{p[0].roles=['anon'];},
+    p=>{p[0].roles.push('public');},p=>{p[2].cmd='*';},p=>{p[0].permissive=false;},
+    p=>{p[2].qual='true';},p=>{p[3].check=null;},p=>{p[4].check='true';},
+    p=>{p[4].qual='(( SELECT auth.uid() AS uid) = user_id) OR true';},
+    p=>{p[0].qual='(true';},p=>{p.pop();},p=>{p.push(structuredClone(p[0]));},
+  ]){const p=policyRows();change(p);assert.throws(()=>requirePolicies(p));}
+});
 test('minimal SDK lock has registry URLs, SHA512 integrity and a complete nine-package graph',()=>{
   const pkg=read('./package.json'),lock=read('./package-lock.json');
   assert.deepEqual(pkg.dependencies,{'@supabase/supabase-js':'2.110.0'});
@@ -83,6 +137,26 @@ function owned(started=false){
   if(started)fs.writeFileSync(path.join(root,'start-attempted'),'1');
   return root;
 }
+function freshPath(){
+  const root=owned();fs.rmSync(root,{recursive:true});return root;
+}
+test('marker write failure before or after a partial write removes only its newly created workdir',()=>{
+  for(const partial of [false,true]){
+    const root=freshPath();
+    assert.throws(()=>createWorkspace(root,(fd)=>{if(partial)fs.writeFileSync(fd,'{');throw Error('Synthetic disk failure');}));
+    assert.ok(!fs.existsSync(root));
+  }
+});
+test('workspace preparation preserves existing paths and foreign files on marker failure',()=>{
+  const existing=owned(),fresh=freshPath();
+  try{
+    fs.writeFileSync(path.join(existing,'keep'),'synthetic');
+    assert.throws(()=>createWorkspace(existing));assert.equal(fs.readFileSync(path.join(existing,'keep'),'utf8'),'synthetic');
+    assert.throws(()=>createWorkspace(fresh,()=>{fs.writeFileSync(path.join(fresh,'keep'),'synthetic');throw Error('Synthetic failure');}));
+    assert.equal(fs.readFileSync(path.join(fresh,'keep'),'utf8'),'synthetic');
+    assert.ok(!fs.existsSync(path.join(fresh,'owned.json')));
+  }finally{for(const dir of [existing,fresh])fs.rmSync(dir,{recursive:true,force:true});}
+});
 test('partial preparation cleanup needs neither CLI nor Docker',()=>{
   const root=owned();fs.writeFileSync(path.join(root,'private-1.log'),secret);
   assert.equal(cleanup(root,()=>{throw Error('Offline test must not invoke a command');}),true);
@@ -121,6 +195,9 @@ test('integration wiring preserves independent race, idempotency, fail-closed fi
   assert.ok(text.includes('one=await login(writerClient(1,wait),1),two=await login(writerClient(1,wait),1)'));
   assert.ok(text.includes('assert.equal(waiting,2)'));assert.ok(text.includes('[201,409]'));
   assert.ok(text.includes('requireCoverage(completed)'));assert.ok(text.includes('finally{'));
+  assert.ok(text.includes('requirePolicies(first.policies)'));
+  assert.equal((text.match(/traffic.requireNoAttempts\(before\)/g)||[]).length,2);
+  assert.ok(text.includes('traffic.requireNoRejections()'));
   assert.ok(text.includes("import.meta.url===pathToFileURL"));
   assert.ok(!text.includes('console.error(error')&&!text.includes('console.log(status')&&!text.includes('console.log(credentials'));
   assert.ok(!/db push|db reset|functions deploy|--db-url|supabase login|--linked/.test(text));

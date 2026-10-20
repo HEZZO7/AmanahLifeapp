@@ -9,7 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {API_ORIGIN,CHECKS,CLI_VERSION,CLI_ARCHIVE_SHA256,SOURCE_COMMIT,SDK_VERSION,
   TABLE,PUSH,FLAGS,LOCATION,COLUMNS,workspace,localStatus,allowedURL,gitBlob,
-  commandCategory,requireCoverage,uuid,claims} from './local-safety.mjs';
+  commandCategory,requireCoverage,uuid,claims,createRequestAudit,requirePolicies} from './local-safety.mjs';
 
 const fixturePath='ci/notification-local/setup.sql';
 const migrationPath='app/frontend/supabase/migrations/202610180007_notification_table_authority.sql';
@@ -61,7 +61,8 @@ function metadata(){
       from pg_class c join pg_attribute a on a.attrelid=c.oid left join pg_attrdef d on d.adrelid=c.oid and d.adnum=a.attnum
       where c.oid in ('public.${TABLE}'::regclass,'public.${PUSH}'::regclass) and a.attnum>0 and not a.attisdropped),
     'rls',(select jsonb_agg(jsonb_build_array(relname,relrowsecurity) order by relname) from pg_class where oid in ('public.${TABLE}'::regclass,'public.${PUSH}'::regclass)),
-    'policies',(select jsonb_agg(jsonb_build_object('name',polname,'table',polrelid::regclass::text,'roles',polroles,'cmd',polcmd,
+    'policies',(select jsonb_agg(jsonb_build_object('name',polname,'table',(select relname from pg_class where oid=polrelid),
+      'roles',array(select r::regrole::text from unnest(polroles) r order by 1),'cmd',polcmd,'permissive',polpermissive,
       'qual',pg_get_expr(polqual,polrelid),'check',pg_get_expr(polwithcheck,polrelid)) order by polrelid,polname)
       from pg_policy where polrelid in ('public.${TABLE}'::regclass,'public.${PUSH}'::regclass)),
     'tableRights',(select jsonb_agg(jsonb_build_object('role',r,'table',t,'priv',p,'allow',has_table_privilege(r,'public.'||t,p),
@@ -124,6 +125,28 @@ export function cleanup(workdir,run=command){
   return !failed;
 }
 
+export function createWorkspace(workdir,write=fs.writeFileSync){
+  workspace(workdir,fs.realpathSync(process.env.RUNNER_TEMP||os.tmpdir()));
+  fs.mkdirSync(workdir,{mode:0o700}); // Never reuse a pre-existing directory.
+  const directory=fs.lstatSync(workdir),marker=path.join(workdir,'owned.json');
+  let fd,ownedMarker;
+  try{
+    fd=fs.openSync(marker,'wx',0o600);ownedMarker=fs.fstatSync(fd);
+    write(fd,JSON.stringify({project:path.basename(workdir),source:SOURCE_COMMIT}));
+  }catch(error){
+    const current=fs.lstatSync(workdir);
+    assert.ok(!current.isSymbolicLink()&&current.dev===directory.dev&&current.ino===directory.ino);
+    if(ownedMarker){
+      const file=fs.lstatSync(marker);
+      assert.ok(!file.isSymbolicLink()&&file.dev===ownedMarker.dev&&file.ino===ownedMarker.ino);
+      fs.unlinkSync(marker);
+    }
+    // Nonrecursive: foreign/replacement files are never removed on marker failure.
+    fs.rmdirSync(workdir);
+    throw error;
+  }finally{if(fd!==undefined)fs.closeSync(fd);}
+}
+
 async function execute(opts){
   assert.equal(process.env.AMANAHLIFE_LOCAL_007_APPROVAL,approval);
   assert.equal(process.platform,'linux');assert.equal(process.arch,'x64');
@@ -155,8 +178,7 @@ async function execute(opts){
   assert.equal(command('docker',['ps','-aq','--filter','label=com.supabase.cli.project']),'');
   for(const kind of ['volume','network'])
     assert.equal(command('docker',[kind,'ls','-q','--filter',`name=${project}`]),'');
-  fs.mkdirSync(root,{mode:0o700});
-  fs.writeFileSync(path.join(root,'owned.json'),JSON.stringify({project,source:SOURCE_COMMIT}),{mode:0o600});
+  createWorkspace(root);
   try{
     fs.mkdirSync(path.join(root,'bin'),{mode:0o700});
     command('tar',['-xzf',archive,'-C',path.join(root,'bin'),'supabase']);
@@ -197,10 +219,14 @@ async function execute(opts){
 
 // Auth/HTTP and SQL assertions are intentionally in this single test file.
 async function exercise({createClient,createNotificationPreferenceWriter,credentials,source}){
-  const fetchLocal=(input,init={})=>{
-    allowedURL(input);
-    return fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(15000)});
-  };
+  const traffic=createRequestAudit();
+  const localFetch=(inspect=()=>{},observe=()=>{})=>traffic.wrap(
+    (input,init={})=>{allowedURL(input);inspect(input,init);},
+    async(input,init={})=>{
+      const response=await fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(15000)});
+      await observe(input,init,response);return response;
+    });
+  const fetchLocal=localFetch();
   const sdk=fetcher=>createClient(API_ORIGIN,credentials.anon,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:fetcher||fetchLocal}});
   const users=[];let admin=createClient(API_ORIGIN,credentials.service,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:fetchLocal}});
   const clients=[];
@@ -235,8 +261,7 @@ async function exercise({createClient,createNotificationPreferenceWriter,credent
         ['SELECT','INSERT','UPDATE'].includes(x.priv)&&!(x.column==='user_id'&&x.priv==='UPDATE');
       assert.equal(x.grant,false);assert.equal(x.allow,allow);
     }
-    assert.ok(first.rls.every(x=>x[1]===true));assert.ok(first.policies.every(x=>!x.roles.includes(0)));
-    assert.equal(first.policies.length,5);
+    assert.ok(first.rls.every(x=>x[1]===true));requirePolicies(first.policies);
   });
   async function http(token,route,method='GET',body,prefer){
     const headers={apikey:credentials.anon,'Content-Type':'application/json'};
@@ -279,7 +304,7 @@ async function exercise({createClient,createNotificationPreferenceWriter,credent
   });
   const audit=[];
   function writerClient(index,barrier){
-    return sdk(async(input,init={})=>{
+    return sdk(localFetch((input,init={})=>{
       const url=allowedURL(input),method=init.method||'GET',headers=new Headers(init.headers);
       if(url.pathname===`/rest/v1/${TABLE}`&&['PATCH','POST'].includes(method)){
         const body=JSON.parse(init.body);
@@ -291,13 +316,13 @@ async function exercise({createClient,createNotificationPreferenceWriter,credent
         if(method==='PATCH'){assert.ok(!('user_id' in body));assert.equal(url.searchParams.get('user_id'),`eq.${users[index].id}`);assert.ok(headers.get('Prefer')?.includes('count=exact'));}
         else assert.equal(body.user_id,users[index].id);
       }
-      const response=await fetchLocal(input,init);
+    },async(input,init,response)=>{
+      const url=allowedURL(input),method=init.method||'GET';
       if(url.pathname===`/rest/v1/${TABLE}`&&['PATCH','POST'].includes(method)){
         audit.push({index,method,status:response.status});
         if(barrier&&method==='PATCH'&&response.ok&&/\/0$/.test(response.headers.get('content-range')||''))await barrier();
       }
-      return response;
-    });
+    }));
   }
   const settings={method:'UmmAlQura',mode:'manual',city:{name:'Fixture',nameAr:'Fixture',country:'Fixture',countryCode:'XX',lat:21,lon:39},timezone:'UTC',language:'ar'};
   await check('first_insert_race',async()=>{
@@ -353,8 +378,8 @@ async function exercise({createClient,createNotificationPreferenceWriter,credent
   await check('session_switch',async()=>{
     const client=await login(writerClient(0),0),writer=createNotificationPreferenceWriter(client);
     assert.equal((await client.auth.signOut({scope:'local'})).error,null);
-    let count=audit.length;await assert.rejects(writer.restore(A,{bill_reminders:true}));assert.equal(audit.length,count);
-    await login(client,1);count=audit.length;await assert.rejects(writer.restore(A,{bill_reminders:true}));assert.equal(audit.length,count);
+    let before=traffic.snapshot();await assert.rejects(writer.restore(A,{bill_reminders:true}));traffic.requireNoAttempts(before);
+    await login(client,1);before=traffic.snapshot();await assert.rejects(writer.restore(A,{bill_reminders:true}));traffic.requireNoAttempts(before);
     await login(clients[0],0);await login(clients[1],1);
   });
   await check('server_crud',()=>{
@@ -387,6 +412,8 @@ async function exercise({createClient,createNotificationPreferenceWriter,credent
     assert.equal(after.rows.length,2);assert.ok(b.id);assert.equal(b.created_at,b.updated_at);
     assert.equal(b.last_suhoor_sent_date,null);assert.equal(b.last_iftar_sent_date,null);
   });
+  // Outside SDK callbacks: caught/repackaged guard failures cannot turn green.
+  traffic.requireNoRejections();
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){

@@ -68,3 +68,43 @@ export function uuid(value) {
   assert.match(value,/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
   return value;
 }
+
+// Count before inspecting arguments; keep no URL, identity, header or body.
+export function createRequestAudit() {
+  let attempted=0,rejected=0;
+  const snapshot=()=>({attempted,rejected});
+  return {
+    snapshot,
+    wrap: (guard,send)=>async(...args)=>{
+      attempted++;
+      try { await guard(...args); }
+      catch(error){ rejected++;throw error; }
+      return send(...args);
+    },
+    requireNoAttempts: before=>assert.deepEqual(snapshot(),before,'Unexpected network attempt'),
+    requireNoRejections: ()=>assert.equal(rejected,0,'Request guard rejected an attempt'),
+  };
+}
+
+// Derived from the five CREATE POLICY definitions in reviewed Migration 007.
+export const EXPECTED_POLICIES = [
+  ...[TABLE,PUSH].map(table=>({table,name:'amanah_notification_service',roles:['service_role'],
+    cmd:'*',permissive:true,qual:'true',check:'true'})),
+  {table:TABLE,name:'amanah_preferences_read',roles:['authenticated'],cmd:'r',permissive:true,qual:'own',check:null},
+  {table:TABLE,name:'amanah_preferences_insert',roles:['authenticated'],cmd:'a',permissive:true,qual:null,check:'own'},
+  {table:TABLE,name:'amanah_preferences_update',roles:['authenticated'],cmd:'w',permissive:true,qual:'own',check:'own'},
+];
+function policyExpression(value) {
+  if(value===null)return null;
+  assert.equal(typeof value,'string','Missing policy expression');
+  if(/^\s*(?:true|\(\s*true\s*\))\s*$/.test(value))return 'true';
+  // pg_get_expr's scalar SELECT may include the inferred output alias uid.
+  if(/^\(\s*\(\s*SELECT\s+auth\.uid\(\)(?:\s+AS\s+uid)?\s*\)\s*=\s*user_id\s*\)$/.test(value))return 'own';
+  assert.fail('Unexpected policy expression');
+}
+export function requirePolicies(policies) {
+  assert.ok(Array.isArray(policies));
+  const sort=rows=>rows.sort((a,b)=>(a.table+'/'+a.name).localeCompare(b.table+'/'+b.name));
+  const actual=policies.map(p=>({...p,roles:[...p.roles].sort(),qual:policyExpression(p.qual),check:policyExpression(p.check)}));
+  assert.deepEqual(sort(actual),sort([...EXPECTED_POLICIES]),'Unexpected notification policies');
+}
