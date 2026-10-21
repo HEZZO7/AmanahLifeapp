@@ -1,0 +1,311 @@
+# REVIEW ONLY: installation and ONE execution need separate explicit approval.
+# Before installation: confirm zero history for THIS new filename; approve run_number=1.
+# Android, only after installation AND separate execution authorization:
+# GitHub > HEZZO7/AmanahLifeapp > Actions > AmanahLife Migration 008 local - once
+# > Run workflow > main > approve_migration_008=true > Run workflow ONCE.
+# Never use Re-run jobs. Inspect the final gate and safe job summary in that run.
+# Expected at the pinned defective source: 10 passed / 2 failed, process exit 1.
+# Both known failures MUST keep the job red. No artifacts/raw logs are uploaded.
+# Installation and execution each require a separate explicit authorization.
+name: AmanahLife Migration 008 local - once
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_migration_008:
+        description: 'Approve ONE disposable local Migration 008 test; no production'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amanahlife-migration-008-local-once
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      SOURCE_DIR: ${{ github.workspace }}/subject
+      TEST_DIR: ${{ github.workspace }}/package/app/frontend/tests/subscription-008-local
+      AMANAHLIFE_LOCAL_008_APPROVAL: synthetic-deletion-tests-only
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_PROJECT_REF: ''
+      SUPABASE_DB_PASSWORD: ''
+      DO_NOT_TRACK: '1'
+      DOCKER_HOST: unix:///var/run/docker.sock
+    steps:
+      - name: Require exactly the approved first manual attempt
+        id: authorize
+        timeout-minutes: 1
+        env:
+          APPROVAL: ${{ inputs.approve_migration_008 }}
+          PRIVATE: ${{ toJSON(github.event.repository.private) }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] ||
+             [ "$GITHUB_REPOSITORY" != HEZZO7/AmanahLifeapp ] ||
+             [ "$GITHUB_WORKFLOW_REF" != HEZZO7/AmanahLifeapp/.github/workflows/amanahlife-migration-008-local-once.yml@refs/heads/main ] ||
+             [ "$PRIVATE" != false ] || [ "$GITHUB_REF" != refs/heads/main ] ||
+             [ "$APPROVAL" != true ] || [ "$GITHUB_RUN_NUMBER" != 1 ] ||
+             [ "$GITHUB_RUN_ATTEMPT" != 1 ] ||
+             [ "$RUNNER_ENVIRONMENT" != github-hosted ]; then
+            echo 'FAIL: manual authorization rejected'
+            exit 1
+          fi
+          test "$(uname -m)" = x86_64
+          suffix="$(openssl rand -hex 4)"
+          {
+            printf 'SMOKE_ROOT=%s/amanah-008-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$suffix"
+            printf 'CLI_ARCHIVE=%s/supabase_2.121.0_linux_amd64.tar.gz\n' "$RUNNER_TEMP"
+            for item in RESULT_LOG CLEANUP_LOG PRIVATE_LOG PACKAGE_CHECKSUMS; do
+              printf '%s=%s/amanah-008-%s-%s\n' "$item" "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$item"
+            done
+          } >> "$GITHUB_ENV"
+          echo 'PASS: first manual attempt authorized'
+
+      - name: Check out immutable application sources
+        id: app
+        timeout-minutes: 2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: HEZZO7/AmanahLifeapp
+          ref: e4607cee6817f76d552e38b10ac68396e71d3a6a
+          path: subject
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /app/frontend/tests/subscription-security-fixture.sql
+            /app/frontend/tests/family-helper-fixture.sql
+            /app/frontend/supabase/migrations/202610140001_subscription_authority.sql
+            /app/frontend/supabase/migrations/202610140002_family_helper_execution.sql
+            /app/frontend/supabase/migrations/202610150003_family_authority.sql
+            /app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql
+            /app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql
+            /app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql
+            /app/frontend/supabase/functions/app_11941c8fec_delete_account/index.ts
+            /app/frontend/supabase/functions/app_11941c8fec_delete_account/handler.ts
+
+      - name: Check out immutable integration package
+        id: package
+        timeout-minutes: 2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: HEZZO7/AmanahLifeapp
+          ref: eb14cd3ac5e7e6ad8e7433cbc517e4c8dd40bab9
+          path: package
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /app/frontend/tests/subscription-008-local/
+
+      - name: Use the pinned compatible Node runtime
+        id: node
+        timeout-minutes: 2
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.23.3
+          check-latest: false
+
+      - name: Verify executable inputs and prepare only locked public dependencies
+        id: prepare
+        timeout-minutes: 6
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(node --version)" = v22.23.3
+          test "$(npm --version)" = 10.9.9
+          test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = e4607cee6817f76d552e38b10ac68396e71d3a6a
+          test "$(git -C "$GITHUB_WORKSPACE/package" rev-parse HEAD)" = eb14cd3ac5e7e6ad8e7433cbc517e4c8dd40bab9
+          test ! -e "$SMOKE_ROOT"
+          test ! -e "$CLI_ARCHIVE"
+          cd "$TEST_DIR"
+          cat > "$PACKAGE_CHECKSUMS" <<'SHA256'
+          adb03e459b46a2bc040892c609b6d9fc933ba6ea9b24011e3ddf64d8e71c220e  README.md
+          fde306a38d24bcbe527ae9399b05d1588c1bfaaaf67544ce25dfb156f57b05f1  fixture.sql
+          e2e25e0148a52180e4cc54e4d3f4308a96b0ad202dbc79dada9cb10b38627c18  integration.mjs
+          c9da835906746e31272a369d0dc3e3d19f38c8158b0cedc9ac86a69a158e13e4  metadata.sql
+          cafaa78cf6210c8cb6f49a27bc13d742a0e1500f1a8acc9e6a26eb45409c6801  package-lock.json
+          7d0c72b6d651e65145e0048b9c30a5b6d944bca01f36b5c5808c4c7d275ad904  package.json
+          d191a5bb0106cace91be83745df7e8e1bc717bd88856d961ad3a7e4c76146531  review.test.mjs
+          ea88e2954fa6cd6ed35bcf4800ab567fe062d30e35db91855ab4672c84a16142  safety.mjs
+          e87bf80996b8d56eeb32caf8cb42d282dcc316265ad288f2c40a35653ba39f86  source-manifest.json
+          SHA256
+          sha256sum --check --strict "$PACKAGE_CHECKSUMS" > "$PRIVATE_LOG" 2>&1
+          # Verify all ten app inputs before the harness can load any application code.
+          python3 -I - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['SOURCE_DIR']).resolve()
+          manifest = json.loads((Path(os.environ['TEST_DIR']) / 'source-manifest.json').read_text())
+          assert manifest['sourceCommit'] == 'e4607cee6817f76d552e38b10ac68396e71d3a6a'
+          files = dict(manifest['files'])
+          assert len(files) == 10
+          for name, expected in files.items():
+              target = root / name
+              assert target.resolve() == target and not target.is_symlink()
+              data = target.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest() == expected
+          PY
+          echo 'package_verified=true' >> "$GITHUB_OUTPUT"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            --connect-timeout 20 --max-time 180 \
+            https://github.com/supabase/cli/releases/download/v2.121.0/supabase_2.121.0_linux_amd64.tar.gz \
+            -o "$CLI_ARCHIVE" >> "$PRIVATE_LOG" 2>&1
+          printf '%s  %s\n' 4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f "$CLI_ARCHIVE" |
+            sha256sum --check --strict >> "$PRIVATE_LOG" 2>&1
+          npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org \
+            >> "$PRIVATE_LOG" 2>&1
+          echo 'PASS: source/package hashes, CLI archive, Node/npm and locked dependencies verified'
+
+      - name: Execute only the reviewed isolated integration entrypoint
+        id: integration
+        timeout-minutes: 26
+        run: |
+          set -euo pipefail
+          umask 077
+          code=0
+          node --experimental-strip-types \
+            "$TEST_DIR/integration.mjs" --source "$SOURCE_DIR" \
+            --workdir "$SMOKE_ROOT" --cli-archive "$CLI_ARCHIVE" \
+            > "$RESULT_LOG" 2>> "$PRIVATE_LOG" || code=$?
+          printf 'process_exit=%s\n' "$code" >> "$GITHUB_OUTPUT"
+          printf 'Integration process exit=%s; raw output withheld\n' "$code"
+          exit "$code"
+
+      - name: Always clean up and independently verify disposable resources
+        id: cleanup
+        if: ${{ always() && steps.authorize.outcome == 'success' }}
+        timeout-minutes: 5
+        env:
+          PACKAGE_VERIFIED: ${{ steps.prepare.outputs.package_verified }}
+        run: |
+          set -euo pipefail
+          umask 077
+          failed=0
+          if [ "$PACKAGE_VERIFIED" = true ]; then
+            if (cd "$TEST_DIR" && sha256sum --check --strict "$PACKAGE_CHECKSUMS") >> "$PRIVATE_LOG" 2>&1; then
+              node "$TEST_DIR/integration.mjs" --cleanup --workdir "$SMOKE_ROOT" \
+                > "$CLEANUP_LOG" 2>> "$PRIVATE_LOG" || failed=1
+            else
+              failed=1
+            fi
+          elif [ -e "$SMOKE_ROOT" ] || [ -L "$SMOKE_ROOT" ]; then
+            failed=1
+          fi
+          project="${SMOKE_ROOT##*/}"
+          for kind in container volume network; do
+            if [ "$kind" = container ]; then
+              remaining="$(docker ps -aq --filter "label=com.supabase.cli.project=$project" 2>> "$PRIVATE_LOG")" || failed=1
+            else
+              remaining="$(docker "$kind" ls -q --filter "label=com.supabase.cli.project=$project" 2>> "$PRIVATE_LOG")" || failed=1
+            fi
+            [ -z "$remaining" ] || failed=1
+          done
+          [ ! -e "$SMOKE_ROOT" ] && [ ! -L "$SMOKE_ROOT" ] || failed=1
+          if [ "$failed" != 0 ]; then
+            echo 'FAIL: required cleanup/resource verification incomplete'
+            exit 1
+          fi
+          echo 'resources_verified=true' >> "$GITHUB_OUTPUT"
+          echo 'PASS: disposable workdir and project resources absent'
+
+      - name: Require all twelve checks without excusing known security failures
+        timeout-minutes: 2
+        if: ${{ always() }}
+        env:
+          REQUIRED_OUTCOMES: >-
+            ${{ steps.authorize.outcome }} ${{ steps.app.outcome }}
+            ${{ steps.package.outcome }} ${{ steps.node.outcome }}
+            ${{ steps.prepare.outcome }} ${{ steps.integration.outcome }}
+            ${{ steps.cleanup.outcome }}
+          CLEANUP_VERIFIED: ${{ steps.cleanup.outputs.resources_verified }}
+          INTEGRATION_EXIT: ${{ steps.integration.outputs.process_exit }}
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          checks = ['schema_migrations','auth','migration_metadata','untrusted_denials',
+                    'checkout_wins_race','active_billing_denial','history_retention','failed_delete_setup',
+                    'failed_delete_preserves_trial','failed_delete_cannot_restart_trial',
+                    'delete_wins_race','billing_preservation']
+          message = 'FAIL: required step, integration report or cleanup verification missing/invalid'
+          diagnostics = []
+          ok = False
+          def report(name):
+              p = Path(os.environ[name])
+              assert p.stat().st_size <= 262144
+              return json.loads(p.read_text().splitlines()[-1])
+          try:
+              result = report('RESULT_LOG')
+              required = {'mode','result','passed','failed','missing','checks','cleanupPassed','productionReady','source'}
+              assert set(result) in (required, required | {'infrastructureFailure'})
+              assert result['mode'] == 'integration'
+              assert result['source'] == 'e4607cee6817f76d552e38b10ac68396e71d3a6a'
+              assert result['productionReady'] is False
+              assert type(result['cleanupPassed']) is bool
+              assert result['result'] in ('passed','failed')
+              assert type(result['passed']) is int
+              assert isinstance(result['checks'], list) and len(result['checks']) <= 12
+              for item in result['checks']:
+                  assert set(item) == {'id','result'} and item['id'] in checks
+                  assert item['result'] in ('passed','failed')
+              ids = [item['id'] for item in result['checks']]
+              assert len(set(ids)) == len(ids)
+              assert ids == [name for name in checks if name in ids]
+              passed = sum(item['result'] == 'passed' for item in result['checks'])
+              failed = [item['id'] for item in result['checks'] if item['result'] == 'failed']
+              missing = [name for name in checks if name not in ids]
+              assert result['passed'] == passed and result['failed'] == failed and result['missing'] == missing
+              infra = result.get('infrastructureFailure')
+              if 'infrastructureFailure' in result:
+                  assert isinstance(infra, dict) and set(infra) == {'phase','category','exit'}
+                  assert infra['phase'] in checks + ['preflight','init','start','status','dependencies','cleanup']
+                  assert infra['category'] in {
+                      'assertion_failed','timeout','command_failed','port_conflict','docker_unavailable',
+                      'image_download','database_bootstrap','service_health','network','cleanup_failed',
+                      'session_failed','sql_session_failed','session_timeout','required_lock_not_observed',
+                      'nonlocal_request','unexpected_module_download','rpc_unavailable','prerequisite_failed'}
+                  assert type(infra['exit']) is int and 1 <= infra['exit'] <= 255
+                  diagnostics.append('Infrastructure: phase=' + infra['phase'] + ' category=' + infra['category'] + ' exit=' + str(infra['exit']))
+              expected_result = 'passed' if not failed and not missing and result['cleanupPassed'] and infra is None else 'failed'
+              assert result['result'] == expected_result
+              message = 'Migration 008 local: completed=' + str(len(ids)) + '/12; passed=' + str(passed) + '/12; failed=' + str(len(failed))
+              if failed:
+                  diagnostics.append('Failed groups: ' + ', '.join(failed))
+              if missing:
+                  diagnostics.append('Missing groups: ' + ', '.join(missing))
+              cleaned = report('CLEANUP_LOG')
+              assert cleaned == {'mode':'cleanup','cleanupPassed':True,'productionReady':False}
+              assert cleaned['cleanupPassed'] is True and cleaned['productionReady'] is False
+              assert os.environ['CLEANUP_VERIFIED'] == 'true'
+              diagnostics.append('Independent cleanup: verified')
+              ok = (os.environ['REQUIRED_OUTCOMES'].split() == ['success'] * 7
+                    and os.environ['INTEGRATION_EXIT'] == '0'
+                    and ids == checks and passed == 12 and result['result'] == 'passed')
+          except Exception:
+              # Never print reports, exceptions, SDK errors or private logs.
+              diagnostics.append('FAIL: incomplete or invalid verification evidence')
+          finally:
+              for name in ['RESULT_LOG','CLEANUP_LOG','PRIVATE_LOG','CLI_ARCHIVE','PACKAGE_CHECKSUMS']:
+                  if os.environ.get(name):
+                      Path(os.environ[name]).unlink(missing_ok=True)
+          lines = [message] + diagnostics + [('PASS' if ok else 'FAIL') + ': mandatory checks/steps; production readiness remains NO-GO']
+          for line in lines:
+              print(line)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('\n'.join(lines) + '\n')
+          sys.exit(0 if ok else 1)
+          PY
