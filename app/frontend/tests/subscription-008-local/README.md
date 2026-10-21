@@ -105,7 +105,7 @@ evidence. Extra/missing failures must be investigated, not mislabeled expected.
 | untrusted_denials | Missing/invalid JWT, foreign RPC targets, authenticated tier/trial/identity edits and direct DELETE/private-ledger reads denied; SQL role denial also observed. |
 | checkout_wins_race | Two live backend PIDs, real lock wait verified by pg_blocking_pids; committed checkout reservation makes auth DELETE fail specifically 42501; intent/user remain. |
 | active_billing_denial | Synthetic active ledger/paid period stops real handler and direct subscription/auth DELETE; no ledger/data/access changes. |
-| history_retention | Expired status still retains history under 008; records unchanged. This deliberately documents the unresolved deletion-resolution policy. |
+| history_retention | Historical-only account: all periods/reservations expired, all bindings expired, paid/legacy projection cleared, no pending plan/review/delivery; immutable billing evidence remains. Only then require the guard to block, with a clean trial-only control allowed. Always roll back and compare the original ledger. |
 | failed_delete_setup | Controlled Auth failure after real adapter cleanup; verified user remains. |
 | failed_delete_preserves_trial | Mandatory preservation assertion, expected FAIL at reviewed source. |
 | failed_delete_cannot_restart_trial | Mandatory second-trial denial assertion, expected FAIL at reviewed source. |
@@ -116,6 +116,14 @@ The sessions are separate interactive docker-exec psql processes. The coordinato
 polls actual lock state with a bounded deadline. Promise.all alone is not accepted
 as a race. SQLSTATE must match the intended denial; a timeout/other FK error cannot
 stand in for an observed guard rejection. No payment checkout API is called.
+
+The historical-only check temporarily expires periods and checkout reservations,
+marks bindings expired and clears only the current subscription projection. It
+compares retained billing identities/metadata before testing the guard, rejects
+remaining paid access, pending plans/deliveries or unresolved review, and requires
+the clean trial-only account to be allowed. No historical row is deleted. The SQL
+ends in ROLLBACK; an SQL error exits psql with ON_ERROR_STOP and disconnects, also
+rolling back. A finally check compares the complete original ledger afterward.
 
 ## Future operation — requires separate approval, not a request to execute now
 
@@ -173,11 +181,13 @@ The review tests import guards/cleanup only; commands are fake and temporary
 directories synthetic. They never call execute(), SDK, Docker, SQL, Auth or the
 integration assertions. A green OFFLINE review is not a green integration result.
 
-Prepared offline: 17 named guard/static/fake-cleanup tests passed, no skips/failures;
+Prepared offline: 21 named guard/static/fake-cleanup tests passed, no skips/failures;
 three module syntax checks passed. The npm graph/manifests and dependency order
 were inspected. SQL syntax/runtime, native Auth behavior, actual SDK import,
 RLS/EXECUTE, locks, startup and integration assertions have NOT executed.
 No full frontend build or Deno check was attempted.
+The four new history checks validate the generated SQL contract and reject the
+old expired-binding-only case; they do not execute SQL or prove database behavior.
 
 Estimated cold-run duration: 10–25 minutes, chiefly official image pulls/startup;
 assertions normally add less than two minutes, cleanup up to three minutes.

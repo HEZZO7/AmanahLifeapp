@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {workspace,allowedURL,commandCategory,summarize,CHECKS,SOURCE_COMMIT,SDK_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256} from './safety.mjs';
-import {cleanup,createWorkspace} from './integration.mjs';
+import {cleanup,createWorkspace,historyRetentionSQL} from './integration.mjs';
 
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
 const runner=read('./integration.mjs'),fixture=read('./fixture.sql'),meta=read('./metadata.sql');
@@ -145,4 +145,64 @@ test('failed native stop is a cleanup failure and retains ownership for fallback
     assert.equal(fs.existsSync(path.join(root,'owned.json')),true);
     assert.equal(fs.existsSync(path.join(root,'private-1.log')),false);
   }finally{if(old===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=old;fs.rmSync(base,{recursive:true,force:true});}
+});
+
+// This is a static SQL contract check, never a database or integration execution.
+const historicalUser='10000000-0000-4000-8000-000000000001';
+const cleanUser='10000000-0000-4000-8000-000000000002';
+function requireHistoryIsolation(text){
+  assert.match(text,/^begin;[\s\S]*rollback;$/);
+  assert.doesNotMatch(text,/\b(?:commit|delete|truncate|alter|grant|revoke|drop)\b/i);
+  for(const pattern of [
+    /access_end=least\(access_end,transaction_timestamp\(\)-interval '1 second'\)/,
+    /service_period_end=case when service_period_end is null then null/,
+    /expires_at=least\(expires_at,transaction_timestamp\(\)-interval '1 second'\)/,
+    /last_state=jsonb_set\(last_state,'\{provider_status\}','"expired"'::jsonb\)/,
+    /tier='free',status='expired'/,
+    /Historical evidence missing/,
+    /Historical evidence changed/,
+    /Synthetic account missing/,
+    /Current obligation or entitlement remains/,
+    /Clean control blocked/,
+  ])assert.match(text,pattern);
+  for(const name of ['accounts','intents','bindings','periods'])assert.ok(text.includes("'"+name+"'"));
+  for(const field of ['paid_access_from','paid_access_until','current_period_start','current_period_end',
+    'lemonsqueezy_customer_id','lemonsqueezy_subscription_id','paddle_customer_id','paddle_subscription_id']){
+    assert.ok(text.includes(field+'=null'));assert.ok(text.includes(field+' is not null'));
+  }
+  for(const condition of ["access_end>transaction_timestamp()","expires_at>transaction_timestamp()",
+    "last_state->>'provider_status' is distinct from 'expired'",'review_required',
+    'app_11941c8fec_payment_plan_changes','app_11941c8fec_payment_deliveries'])assert.ok(text.includes(condition));
+  const guard=text.indexOf('app_11941c8fec_account_deletion_allowed(\''+historicalUser+'\')');
+  assert.ok(guard>text.indexOf("raise exception 'Current obligation or entitlement remains'"));
+  assert.ok(guard>text.indexOf("raise exception 'Historical evidence changed'"));
+  assert.ok(guard>text.indexOf("raise exception 'Clean control blocked'"));
+}
+test('historical-only SQL requires evidence and absence of every seeded current obligation before the guard',()=>{
+  requireHistoryIsolation(historyRetentionSQL(historicalUser,cleanUser));
+});
+test('the previous expired-binding-only false-positive fixture fails the isolation contract',()=>{
+  const old="begin;update public.app_11941c8fec_payment_bindings set last_state='{\"provider_status\":\"expired\"}';"+
+    "select public.app_11941c8fec_account_deletion_allowed('"+historicalUser+"');rollback;";
+  assert.throws(()=>requireHistoryIsolation(old));
+  const fixed=historyRetentionSQL(historicalUser,cleanUser);
+  for(const text of ["access_end>transaction_timestamp()","expires_at>transaction_timestamp()",
+    "raise exception 'Historical evidence changed'","raise exception 'Current obligation or entitlement remains'",
+    "raise exception 'Clean control blocked'"]){
+    assert.throws(()=>requireHistoryIsolation(fixed.replace(text,'removed prerequisite')));
+  }
+});
+test('history SQL preserves billing identities and non-status metadata without inventing a service end',()=>{
+  const text=historyRetentionSQL(historicalUser,cleanUser);
+  assert.match(text,/to_jsonb\(t\)\|\|jsonb_build_object\('last_state',t\.last_state-'provider_status'\)/);
+  assert.match(text,/to_jsonb\(t\)-'access_end'-'service_period_end'/);
+  assert.match(text,/jsonb_array_length\(historical->part\)=0 then raise exception/);
+  assert.match(text,/previous_guard:=current_setting/);
+  assert.match(text,/coalesce\(previous_guard,''\)/);
+  assert.throws(()=>historyRetentionSQL(historicalUser,historicalUser));
+  assert.throws(()=>historyRetentionSQL('invalid',cleanUser));
+});
+test('history retention always verifies rollback while retaining exactly twelve required groups',()=>{
+  assert.match(runner,/try\{sql\(historyRetentionSQL\(A,B\)\);\}\s*finally\{assert\.deepEqual\(billingRows\(A\),billingBefore\);\}/);
+  assert.deepEqual([...runner.matchAll(/await check\('([^']+)'/g)].map(m=>m[1]),CHECKS);
 });

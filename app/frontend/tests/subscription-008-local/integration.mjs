@@ -199,6 +199,91 @@ function billingRows(user){
     " t where user_id="+quoted(user)+")").join(',')+');');
 }
 
+// Pure SQL builder; offline review must not execute it. All state changes target
+// the disposable synthetic account and roll back, including on psql disconnect.
+export function historyRetentionSQL(user,control){
+  const target=quoted(user),clean=quoted(control);assert.notEqual(user,control);
+  const retained=[
+    ['accounts','user_id','to_jsonb(t)'],
+    ['intents','intent_hash',"to_jsonb(t)-'expires_at'"],
+    ['bindings','mode,subscription_id',"to_jsonb(t)||jsonb_build_object('last_state',t.last_state-'provider_status')"],
+    ['periods','mode,subscription_id,proof_id',"to_jsonb(t)-'access_end'-'service_period_end'"],
+  ];
+  const evidence='jsonb_build_object('+retained.map(([name,order,value])=>
+    "'"+name+"',coalesce((select jsonb_agg("+value+' order by '+order.split(',').map(k=>'t.'+k).join(',')+
+    ') from public.app_11941c8fec_payment_'+name+' t where user_id='+target+"),'[]'::jsonb)").join(',')+')';
+  return `begin;
+do $history$
+declare historical jsonb; part text; previous_guard text;
+begin
+  if current_setting('amanahlife.local_test',true) is distinct from 'approved'
+     or current_user<>'postgres'
+     or not exists(select 1 from public.app_11941c8fec_payment_environment where mode='test') then
+    raise exception 'Owned local test required';
+  end if;
+  historical := ${evidence};
+  foreach part in array array['accounts','intents','bindings','periods'] loop
+    if jsonb_array_length(historical->part)=0 then raise exception 'Historical evidence missing'; end if;
+  end loop;
+
+  update public.app_11941c8fec_payment_periods
+    set access_end=least(access_end,transaction_timestamp()-interval '1 second'),
+        service_period_end=case when service_period_end is null then null
+          else least(service_period_end,transaction_timestamp()-interval '1 second') end
+    where user_id=${target};
+  update public.app_11941c8fec_payment_intents
+    set expires_at=least(expires_at,transaction_timestamp()-interval '1 second') where user_id=${target};
+  update public.app_11941c8fec_payment_bindings
+    set last_state=jsonb_set(last_state,'{provider_status}','"expired"'::jsonb) where user_id=${target};
+
+  -- Use the existing trusted fixture-write mechanism; never disable a trigger or RLS.
+  previous_guard:=current_setting('amanahlife.trusted_payment_write',true);
+  perform set_config('amanahlife.trusted_payment_write','yes',true);
+  update public.app_11941c8fec_subscriptions set tier='free',status='expired',
+    paid_access_from=null,paid_access_until=null,current_period_start=null,current_period_end=null,
+    lemonsqueezy_customer_id=null,lemonsqueezy_subscription_id=null,
+    paddle_customer_id=null,paddle_subscription_id=null where user_id=${target};
+  perform set_config('amanahlife.trusted_payment_write',coalesce(previous_guard,''),true);
+
+  if historical is distinct from ${evidence} then raise exception 'Historical evidence changed'; end if;
+  if not exists(select 1 from auth.users where id=${target})
+     or not exists(select 1 from public.app_11941c8fec_subscriptions where user_id=${target}) then
+    raise exception 'Synthetic account missing';
+  end if;
+  if exists(select 1 from public.app_11941c8fec_payment_periods where user_id=${target}
+       and (access_end>transaction_timestamp() or service_period_end>transaction_timestamp() or review_required))
+     or exists(select 1 from public.app_11941c8fec_payment_intents where user_id=${target} and expires_at>transaction_timestamp())
+     or exists(select 1 from public.app_11941c8fec_payment_bindings where user_id=${target}
+       and (last_state->>'provider_status' is distinct from 'expired'
+         or coalesce((last_state->>'review_required')::boolean,false)
+         or (last_state->>'paid_access_until')::timestamptz>transaction_timestamp()
+         or (last_state->>'ends_at')::timestamptz>transaction_timestamp()
+         or (last_state->>'renews_at')::timestamptz>transaction_timestamp()))
+     or exists(select 1 from public.app_11941c8fec_payment_accounts a where user_id=${target}
+       and (review_required or (subscription_id is not null and not exists(
+         select 1 from public.app_11941c8fec_payment_bindings b where b.user_id=a.user_id
+           and b.mode=a.mode and b.subscription_id=a.subscription_id and b.last_state->>'provider_status'='expired'))))
+     or exists(select 1 from public.app_11941c8fec_payment_plan_changes where user_id=${target} and status<>'activated')
+     or exists(select 1 from public.app_11941c8fec_payment_deliveries where status<>'done')
+     or exists(select 1 from public.app_11941c8fec_subscriptions where user_id=${target} and (
+       tier<>'free' or status<>'expired' or paid_access_from is not null or paid_access_until is not null
+       or current_period_start is not null or current_period_end is not null
+       or lemonsqueezy_subscription_id is not null or lemonsqueezy_customer_id is not null
+       or paddle_subscription_id is not null or paddle_customer_id is not null
+       or trial_started_at>transaction_timestamp()-interval '7 days')) then
+    raise exception 'Current obligation or entitlement remains';
+  end if;
+  -- Positive control: the same guard must allow the existing trial-only account.
+  if public.app_11941c8fec_account_deletion_allowed(${clean}) is distinct from true then
+    raise exception 'Clean control blocked';
+  end if;
+  if public.app_11941c8fec_account_deletion_allowed(${target}) is distinct from false then
+    raise exception 'Historical billing must block deletion';
+  end if;
+end $history$;
+rollback;`;
+}
+
 async function execute(opts){
   assert.equal(process.env.AMANAHLIFE_LOCAL_008_APPROVAL,approval);
   assert.equal(process.platform,'linux');assert.equal(process.arch,'x64');
@@ -414,8 +499,8 @@ async function exercise(source,credentials){
       assert.deepEqual(billingRows(A),billingBefore);
     },true);
     await check('history_retention',()=>{
-      const result=jsonSQL("begin;update public.app_11941c8fec_payment_bindings set last_state='{\"provider_status\":\"expired\"}' where user_id="+q(A)+";select to_jsonb(public.app_11941c8fec_account_deletion_allowed("+q(A)+"));rollback;");
-      assert.equal(result,false);assert.deepEqual(billingRows(A),billingBefore);
+      try{sql(historyRetentionSQL(A,B));}
+      finally{assert.deepEqual(billingRows(A),billingBefore);}
     });
     await check('failed_delete_setup',async()=>{
       assert.equal((await admin.rpc('app_11941c8fec_account_deletion_allowed',{p_user:B})).data,true);
