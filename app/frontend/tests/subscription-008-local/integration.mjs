@@ -431,6 +431,9 @@ async function exercise(source,credentials){
         assert.ok(calls.some(c=>c.method==='DELETE'&&c.path==='/rest/v1/app_11941c8fec_'+table&&c.status>=200&&c.status<300));
       }
       assert.ok(calls.some(c=>c.method==='DELETE'&&c.path==='/auth/v1/admin/users/'+B&&c.status>=400));
+      // A broken Auth session is a prerequisite failure, not evidence that the
+      // second-trial assertion reproduced the known subscription defect.
+      await login(1);
     },true);
     // Both remain ordinary MANDATORY assertions. There is no xfail/skip/pass
     // conversion. At the reviewed defective commit these must fail the run.
@@ -438,7 +441,6 @@ async function exercise(source,credentials){
       assert.deepEqual(currentRows(B).subscription,trialBefore,'Failed deletion must preserve trial-used evidence');
     });
     await check('failed_delete_cannot_restart_trial',async()=>{
-      await login(1);
       const r=await clients[1].rpc('app_11941c8fec_start_trial');
       assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used','Second trial must be refused');
       assert.deepEqual(currentRows(B).subscription,trialBefore);
