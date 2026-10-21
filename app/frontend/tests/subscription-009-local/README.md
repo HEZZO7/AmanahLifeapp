@@ -1,0 +1,182 @@
+# Migration 009 — isolated local integration package (NOT EXECUTED)
+
+Application: `c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc`.
+Preparation only. This directory installs no workflow and grants no execution,
+installation, deployment, production, provider or billing authorization.
+Every report has `productionReady=false`, including a fully passing report.
+
+## Exact inputs and scope
+
+- Node **24.19.0**, official Supabase CLI **2.121.0**, Linux amd64.
+- CLI archive: `supabase_2.121.0_linux_amd64.tar.gz` from
+  `https://github.com/supabase/cli/releases/download/v2.121.0/supabase_2.121.0_linux_amd64.tar.gz`.
+- Required archive SHA256:
+  `4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f`.
+- `@supabase/supabase-js` **2.110.0**; nine resolved packages, SRI SHA512
+  values in `package-lock.json`. Install using `npm ci --ignore-scripts
+  --audit=false --fund=false`, never `npm install` or a floating SDK URL.
+- `source-manifest.json` records Git blob SHA1 AND SHA256 for all twelve
+  application/reference inputs, the explicit migration order, and SHA256 for
+  the other nine package files. Package checksums exclude the manifest itself;
+  its trust anchor is the separately approved package commit.
+- Apply only the native fixture, **001 → 002 → 003 → 004 → 005 → 008 → 009**;
+  apply 009 twice. Never copy application migrations to the disposable CLI's
+  migrations directory. Never apply 006/007 or execute the historical 008 package.
+
+`fixture.sql` adapts the pinned subscription/family evidence fixtures without
+replacing native Auth tables or roles. The four personal cleanup tables deliberately
+model only `id`, `user_id`, marker data and restrictive Auth FKs. They are NOT a
+complete notification, reminder, storage or production-schema reproduction.
+Their live defaults, extra triggers and other personal tables remain unverified.
+Fixture grants reproduce the pre-hardening baseline; the actual application
+migrations must remove them. Test-only fault objects have all API grants revoked.
+
+## Mandatory coverage (21 groups, no skip/xfail conversion)
+
+| Group | Required assertion |
+|---|---|
+| schema_dependencies | Native Auth untouched; exact migration dependencies applied |
+| real_auth_jwt | Synthetic A/B created and signed in through real local Auth; verified JWT identities |
+| migration_idempotency_metadata | 009 twice preserves data, constraints, function definitions, effective ACLs, RLS and triggers |
+| untrusted_denials | Missing/invalid/forged JWT, foreign identity, paid/trial writes and privileged RPC calls denied |
+| service_role_history_denial | Actual REST and SQL DELETE on subscription history denied |
+| successful_auth_deletion | Actual adapter → real Auth hard deletion; five cleanup tables gone, other users unchanged |
+| rollback_each_cleanup_phase | Real HTTP deletion fails after each of five cleanup stages and after Auth deletion; sequence witness proves reachability; full snapshots restored |
+| failed_delete_preserves_trial | Original complete trial/account snapshot survives the witnessed failures |
+| failed_delete_cannot_restart_trial | Actual trial RPC using surviving real JWT returns trial_already_used without mutation |
+| checkout_wins_race | Independent PIDs, observed blocking, committed checkout retained and concurrent paid-projection update protected; DELETE denied with 42501 |
+| deletion_wins_race | Two backend PIDs, observed blocking, committed deletion, checkout rejected with 23503 |
+| trial_races_deletion | Real JWT RPC blocks behind DELETE; rollback preserves used trial, commit rejects orphan trial with 23503 |
+| simultaneous_auth_deletions | Two actual Auth DELETE requests overlap; both DB wait chains observed before release; final account absent |
+| billing_history_retention | Active, expired and refunded synthetic evidence blocks Edge AND direct Auth deletion; evidence unchanged |
+| family_member_privacy | Member deletion SET NULL preserves surviving family; retained display_name is explicitly observed |
+| family_owner_deletion | Never-billed trial owner deletion cascades shared family rows; member's personal account unchanged |
+| after_delete_null_control | Real Auth deletion succeeds despite additional AFTER DELETE RETURN NULL; readiness detection recorded |
+| unreviewed_trigger_readiness | Readiness MUST reject an unreviewed BEFORE DELETE RETURN NULL veto |
+| before_delete_null_preserves_trial | Vetoed Auth deletion must preserve trial/account and must not claim success |
+| before_delete_null_cannot_restart_trial | Vetoed deletion must not permit a second trial through the real JWT RPC |
+| isolation_and_billing_preservation | Control A's billing and A/B account data unchanged; no rejected outbound request hidden by SDK |
+
+The **AFTER** trigger is a negative control: PostgreSQL ignores its return value,
+so RETURN NULL cannot veto deletion. The reviewed concern requires **BEFORE**.
+On the approved source, the last three BEFORE-related security groups are
+expected to fail if the suspected veto scenario is reproduced. This is an
+expectation, NOT an executed result. Failures remain ordinary failures, exit 1;
+do not change application code, skip them or turn them into expected passes.
+
+## Runtime architecture and safety
+
+Use a fresh standard **GitHub-hosted ubuntu-24.04** runner, not a persistent or
+self-hosted machine. No workflow is supplied or activated by this package.
+Use two separate immutable checkouts: the approved application commit (`source`)
+and the separately approved package commit (`package`). The CLI workdir is a
+third, fresh direct child of RUNNER_TEMP, named `amanah-009-<digits>-<8 hex>`.
+
+The harness verifies source/package hashes, archive checksum, CLI version, native
+container ownership, local-only API/DB status, no linked project and no preexisting
+Supabase stack. It rejects hosted connection settings and passed-in Supabase or
+provider credentials. CLI subprocesses receive an allowlisted environment and
+private HOME. No Supabase login, project linking, provider SDK/API or deployment.
+
+Only official CLI defaults are used for init/start. No mirror, custom network,
+startup config, Auth replacements or weakened health checks. Container tags come
+from the pinned official CLI; Docker image bytes are NOT independently locked
+here. Supply-chain/image compatibility remains a runtime/review limitation.
+
+Inbound firewall protection precedes startup. After startup, fail-closed IPv4/IPv6
+firewall rules block external egress before importing/running the real adapter.
+Fetch permits only fixed loopback Auth/PostgREST routes, refuses redirects and
+records every attempt before validation. Rejected attempts fail the final group,
+even if caught inside the SDK. No URLs or request bodies enter the report.
+These firewall rules belong to the ephemeral runner and vanish with it.
+
+The actual TypeScript adapter is loaded through Node's built-in strip-types and
+module hook, mapping ONLY its existing remote SDK import to the locked SDK.
+This tests the real handler, real Auth, real JWTs and real PostgREST/database.
+It does NOT prove Deno runtime, hosted Edge gateway or deployed function parity.
+
+A/B are persistent synthetic controls. Destructive/race/family cases create fresh
+synthetic accounts to avoid resetting trial history or erasing billing evidence.
+All use `@example.invalid`; no real emails, payments, notifications or customer data.
+Committed fault configuration is visible to independent Auth DB connections.
+Only the fault sequence survives rollback, proving the intended cleanup stage;
+it is local test instrumentation, never part of an application migration.
+
+## Offline review now (no services)
+
+From this directory:
+
+```sh
+npm run review:offline
+npm ci --offline --ignore-scripts --audit=false --fund=false --dry-run
+node --check integration.mjs
+node --check local-runtime.mjs
+node --check safety.mjs
+node --check review.test.mjs
+git diff --check
+```
+
+Preparation evidence: 37 offline checks (including blocked subprocesses, source
+and package hashes, negative guard cases and filesystem-only cleanup regressions)
+and four JavaScript syntax checks passed. The offline npm ci dry run passed for
+the nine locked dependencies. No integration test, SQL, Docker or Supabase ran.
+
+The dry run verifies lock consistency; it does NOT download/verify tarball bytes
+or establish that the SDK can load. No SQL parser or database executes offline.
+
+## Later execution — separate explicit authorization required
+
+For Android use, a future separately reviewed manual workflow should perform the
+following on its runner; the owner must not paste credentials into chat or create
+hosted projects. Approval of this package does not authorize that workflow.
+
+1. Obtain the two pinned checkouts, Node version and official CLI archive above.
+2. Run the locked npm ci command in the package directory; do not use secrets,
+   hosted environments or production variables. Set a fresh safe workdir path.
+3. After explicit execution authorization, invoke the package entrypoint:
+
+```sh
+AMANAHLIFE_009_APPROVAL=disposable-local-migration-009-only \
+node integration.mjs --source /absolute/source \
+  --workdir "$RUNNER_TEMP/amanah-009-123-0123abcd" \
+  --cli-archive /absolute/supabase_2.121.0_linux_amd64.tar.gz
+```
+
+4. An independent `always()` step must invoke the fallback, including after
+   partial preparation, a timeout or failed assertions:
+
+```sh
+AMANAHLIFE_009_APPROVAL=disposable-local-migration-009-only \
+node integration.mjs --cleanup --workdir "$RUNNER_TEMP/amanah-009-123-0123abcd"
+```
+
+Cleanup uses only the owned CLI project, stop --no-backup, and verifies containers,
+volumes and networks by both label and project name. Failed cleanup retains the
+ownership marker/config/CLI for fallback and returns nonzero. It never prunes or
+deletes unrelated resources. Marker-creation failure removes only its own new
+empty directory. Unknown ownership fails closed.
+
+Final sanitized JSON is printed and retained at
+`$RUNNER_TEMP/<project>-report.json` outside the deleted workdir. It lists passed,
+failed, missing and infrastructure-failed groups, counts, phase/category/exit and
+cleanup status. Retain ONLY this report, never raw logs, status JSON, workdir,
+Auth data or tokens. Delete the report after review/retention requirements expire.
+The later workflow must independently require exit 0, all 21 groups passed,
+no missing/infrastructure failures and both cleanup outcomes verified. No
+continue-on-error, retry, rerun or acceptance based solely on cleanup success.
+
+## Limits and acceptance
+
+Estimated cold execution: **15–30 minutes**, dependency availability permitting;
+the CLI start has an 18-minute bound. Plan a bounded job with time for independent
+cleanup. Expected additional services cost: **$0**, using a standard public-repo
+GitHub runner subject to GitHub's applicable usage policy. No paid service needed.
+
+No local result establishes hosted Supabase parity, production prerequisites,
+provider cancellation/refund behavior, retained-data policy or payment readiness.
+Retained family display names and owner cascades require policy review; this
+package records current behavior without deleting additional shared data.
+Never-billed successful deletion does not implement an email-level lifetime
+trial ledger. Historical data already lost before this fix cannot be recovered.
+Before accepting the fix, all security groups must genuinely pass; the original
+008 integration evidence remains unchanged. Production subscriptions stay NO-GO.
