@@ -18,6 +18,28 @@ export class PaymentError extends Error {
   status: number;
   constructor(message: string, status = 503) { super(message); this.status = status; }
 }
+// Canonical REST objects expose integer minor-unit totals/refunded_amount. Neither
+// refunded=true alone nor a non-contract "partial_refund" status proves a full refund.
+function refundKind(a: Record<string, unknown>, kind: 'invoice' | 'order'): 'none' | 'partial' | 'full' {
+  const statuses = kind === 'invoice' ? ['pending', 'paid', 'void', 'refunded'] : ['pending', 'failed', 'paid', 'refunded', 'fraudulent'];
+  const total = a.total;
+  const amount = a.refunded_amount;
+  if (!statuses.includes(String(a.status)) || typeof a.refunded !== 'boolean'
+    || typeof total !== 'number' || !Number.isSafeInteger(total) || total < 0
+    || typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 0 || amount > total) {
+    throw new PaymentError('Refund evidence requires review');
+  }
+  if (amount === 0) {
+    if (a.refunded || a.status === 'refunded' || a.refunded_at != null) throw new PaymentError('Refund evidence requires review');
+    return 'none';
+  }
+  if (amount < total) {
+    if (a.status !== 'paid') throw new PaymentError('Refund evidence requires review');
+    return 'partial';
+  }
+  if (!a.refunded || !['paid', 'refunded'].includes(String(a.status))) throw new PaymentError('Refund evidence requires review');
+  return 'full';
+}
 const prefix = 'app_11941c8fec_payment_';
 const api = 'https://api.lemonsqueezy.com/v1/';
 const invoiceEvents = new Set(['subscription_payment_success', 'subscription_payment_failed', 'subscription_payment_recovered', 'subscription_payment_refunded']);
@@ -237,14 +259,14 @@ export async function synchronize(c: Config, d: Dependencies, input: SyncInput):
       .sort((x,y) => Date.parse(date(y.attributes.created_at))-Date.parse(date(x.attributes.created_at)) || Number(y.id)-Number(x.id))[0];
     const planConfirmed = changed && currentOffer && plan?.status === 'confirmed' && plan.variant_id === currentOffer.variant
       && plan.confirmed_after && newest?.attributes.billing_reason === 'renewal' && newest.attributes.status === 'paid'
-      && newest.attributes.refunded !== true && Number(newest.attributes.total)>0
+      && refundKind(newest.attributes, 'invoice') === 'none' && Number(newest.attributes.total)>0
       && newest.id !== plan.baseline_invoice && Date.parse(date(newest.attributes.created_at)) > Date.parse(date(plan.confirmed_after));
     if (planConfirmed && currentOffer) offer = currentOffer;
     const transition = reconcile(c, s, invoices, order, state, changed && !planConfirmed, d.now?.() ?? Date.now(), offer);
     transition.plan_change_id = planConfirmed ? plan?.id : null;
     // Canonical snapshot keys differ from delivery hashes. A missed later renewal can be repaired
     // even when an older webhook delivery has already been deduplicated.
-    const key = input.digest || await sha256(JSON.stringify(['canonical-v2', c.mode, sid, subscriptionVersion(s), invoices.map(i => [i.id,i.attributes.status,i.attributes.refunded,i.attributes.refunded_at,i.attributes.updated_at]).sort(), order.attributes.status, order.attributes.refunded_at, state.plan_change]));
+    const key = input.digest || await sha256(JSON.stringify(['canonical-v3', c.mode, sid, subscriptionVersion(s), invoices.map(i => [i.id,i.attributes.status,i.attributes.total,i.attributes.refunded_amount,i.attributes.refunded,i.attributes.refunded_at,i.attributes.updated_at]).sort(), order.attributes.status, order.attributes.total, order.attributes.refunded_amount, order.attributes.refunded, order.attributes.refunded_at, order.attributes.updated_at, state.plan_change]));
     const result = await rpc(d, 'commit_snapshot', { p_mode: c.mode, p_key: key, p_event: input.event, p_object: input.delivered?.id || sid,
       p_user: state.user_id, p_revision: state.revision, p_intent_hash: input.intentHash ?? null,
       p_subscription: sid, p_customer: customer, p_order: id(s.attributes.order_id), p_store: c.store,
@@ -329,20 +351,26 @@ export function reconcile(c: Config, s: ObjectData, invoices: ObjectData[], orde
     return { proof_id: String(p.proof_id), kind: String(p.kind), start: date(p.start), confirmed_at:p.confirmed_at ? date(p.confirmed_at):null, source_created_at:p.source_created_at ? date(p.source_created_at):null, end:date(p.end), end_source:String(p.end_source || 'legacy_unverified'), tier:String(p.tier || previous.tier || 'free'), billing:String(p.billing || previous.billing || 'monthly'), product:String(p.product || previous.product_id || ''), variant:String(p.variant || previous.variant_id || ''), revoked_at:p.revoked_at ? date(p.revoked_at):null,review:p.review===true };
   }) : [];
   const initialInvoices = invoices.filter(i => i.attributes.billing_reason === 'initial');
-  const initialFullRefund = order.attributes.refunded === true || ['refunded', 'fraudulent'].includes(String(order.attributes.status))
-    || initialInvoices.some(i => i.attributes.refunded === true || i.attributes.status === 'refunded');
-  let review = changedOffer || invoices.some(i => i.attributes.status === 'partial_refund') || order.attributes.status === 'partial_refund';
+  // Validate ALL canonical evidence before mutating a projection. Ambiguous data
+  // fails the webhook/recovery attempt; it cannot create, extend or revoke a proof.
+  const orderRefund = refundKind(order.attributes, 'order');
+  const refunds = new Map(invoices.map(i => [i.id, refundKind(i.attributes, 'invoice')]));
+  const initialFullRefund = orderRefund === 'full' || order.attributes.status === 'fraudulent'
+    || initialInvoices.some(i => refunds.get(i.id) === 'full');
+  const initialPartialRefund = orderRefund === 'partial' || initialInvoices.some(i => refunds.get(i.id) === 'partial');
+  let review = changedOffer || [...refunds.values()].includes('partial') || orderRefund === 'partial';
   for (const p of periods) {
     const source = invoices.find(i => i.id === p.proof_id)?.attributes;
-    const fullyRefunded = source?.refunded === true || source?.status === 'refunded' || (p.kind === 'initial' && initialFullRefund);
+    const fullyRefunded = refunds.get(p.proof_id) === 'full' || (p.kind === 'initial' && initialFullRefund);
     if (fullyRefunded && !p.revoked_at) p.revoked_at = source?.refunded_at ? date(source.refunded_at) : order.attributes.refunded_at && p.kind === 'initial' ? date(order.attributes.refunded_at) : version;
-    if (source?.status === 'partial_refund' || (p.kind === 'initial' && order.attributes.status === 'partial_refund')) p.review = true;
+    if (refunds.get(p.proof_id) === 'partial' || (p.kind === 'initial' && initialPartialRefund)) p.review = true;
     if (a.status === 'cancelled' && a.ends_at && Date.parse(date(a.ends_at)) < Date.parse(p.end)) p.end = date(a.ends_at);
     if (a.status === 'expired') p.revoked_at ||= a.ends_at ? date(a.ends_at) : version;
   }
   const end = a.status === 'cancelled' ? a.ends_at : a.status === 'active' ? a.renews_at : null;
-  const currentPartial = invoice?.status === 'partial_refund' || (invoice?.billing_reason === 'initial' && order.attributes.status === 'partial_refund');
-  const currentRefund = invoice?.status === 'refunded' || invoice?.refunded === true || (invoice?.billing_reason === 'initial' && initialFullRefund);
+  const latestRefund = latest?.type === 'initial-order-proof' ? orderRefund : latest ? refunds.get(latest.id) : undefined;
+  const currentPartial = latestRefund === 'partial' || (invoice?.billing_reason === 'initial' && initialPartialRefund);
+  const currentRefund = latestRefund === 'full' || (invoice?.billing_reason === 'initial' && initialFullRefund);
   // An unrelated old partial refund cannot block a later independently paid renewal.
   if (!currentRefund && !currentPartial && !changedOffer && invoice?.status === 'paid' && Number(invoice.total) > 0 && end) {
     const start = new Date(observedMs).toISOString(); const finish = date(end);
@@ -377,3 +405,4 @@ export function reconcile(c: Config, s: ObjectData, invoices: ObjectData[], orde
     invoice_id: chosen?.proof_id || null, entitlement_revoked_at: revoked,
     ends_at:a.ends_at?date(a.ends_at):null,review_required:review,periods,effective_tier:chosen?.tier||'free',effective_billing:chosen?.billing||'monthly',service_period_start:null,service_period_end:null,payment_processor:a.payment_processor||null,price_id:a.first_subscription_item?record(a.first_subscription_item).price_id:null,latest_source_created_at:invoice?.created_at||null,latest_invoice_id:latest?.id||null };
 }
+

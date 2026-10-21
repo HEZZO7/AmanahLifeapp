@@ -10,8 +10,8 @@ const end = new Date(now + 28 * 86400000).toISOString();
 const later = new Date(now + 58 * 86400000).toISOString();
 const c = { mode: 'test', apiKey: 'isolated-test-key', secret: 'isolated-test-secret', store: '1', origin: 'https://test.example', refundPolicy: 'review_keep_current', offers: { family_monthly: { tier: 'family', billing: 'monthly', variant: '2', product: '3' }, balanced_monthly: { tier:'balanced',billing:'monthly',variant:'4',product:'5' }, family_yearly:{tier:'family',billing:'yearly',variant:'6',product:'3'} } };
 const sub = (attrs = {}) => ({ type: 'subscriptions', id: '10', attributes: { test_mode: true, store_id: 1, customer_id: 6, product_id: 3, variant_id: 2, order_id: 20, status: 'active', created_at: start, updated_at: start, payment_processor:'stripe',first_subscription_item:{price_id:200},renews_at: end, ends_at: null, ...attrs } });
-const invoice = (attrs = {}, invoiceId = '30') => ({ type: 'subscription-invoices', id: invoiceId, attributes: { test_mode: true, store_id: 1, customer_id: 6, subscription_id: 10, billing_reason: 'initial', status: 'paid', total: 1299, created_at: start, updated_at: start, refunded: false, ...attrs } });
-const order = (attrs = {}) => ({ type: 'orders', id: '20', attributes: { test_mode: true, store_id: 1, customer_id: 6, status: 'paid', total: 1299, created_at: start, updated_at:start, refunded: false, ...attrs } });
+const invoice = (attrs = {}, invoiceId = '30') => ({ type: 'subscription-invoices', id: invoiceId, attributes: { test_mode: true, store_id: 1, customer_id: 6, subscription_id: 10, billing_reason: 'initial', status: 'paid', total: 1299, refunded_amount: 0, created_at: start, updated_at: start, refunded: false, ...attrs } });
+const order = (attrs = {}) => ({ type: 'orders', id: '20', attributes: { test_mode: true, store_id: 1, customer_id: 6, status: 'paid', total: 1299, refunded_amount: 0, created_at: start, updated_at:start, refunded: false, ...attrs } });
 const previous = { user_id: 'account-A', revision: 0, subscription_id: '10', customer_id: '6', variant_id: '2', product_id: '3', tier: 'family', billing: 'monthly', paid_access_from: start, paid_access_until: end, invoice_id: '30', entitlement_revoked_at: null, periods: [{ proof_id: '30', kind: 'initial', start, confirmed_at:start,source_created_at:start,tier:'family',billing:'monthly',product:'3',variant:'2',end, revoked_at: null, review: false }] };
 function fixture() {
   const calls = []; let state = { ...previous }; let apiSub = sub(); let invoices = [invoice()]; let apiOrder = order();
@@ -72,6 +72,7 @@ test('checkout binds verified identity, server catalog and opaque nonce; no user
   assert.deepEqual(Object.keys(custom).sort(), ['app_id', 'intent']);
   assert.equal(await sha256(custom.intent), intent.p_hash);
 });
+
 test('checkout rejects identity/tier/status/variant/mode manipulation before any writes', async () => {
   for (const extra of [{ user_id: 'victim' }, { tier: 'family' }, { status: 'active' }, { variant_id: 99 }, { mode: 'live' }, { skip_trial: false }, { successUrl: 'https://attacker.invalid' }]) {
     const f = fixture(); assert.equal((await checkout(checkoutRequest({ offer: 'family_monthly', ...extra }), c, f.d)).status, 400);
@@ -113,14 +114,14 @@ test('cancellation keeps only the independently verified paid period; expiration
   assert.ok(reconcile(c, sub({ status: 'expired', ends_at: start }), [invoice()], order(), previous).entitlement_revoked_at);
 });
 test('current full refund revokes; delayed success cannot resurrect refunded invoice', async () => {
-  const f = fixture(); f.setInvoices([invoice({ status: 'refunded', refunded: true, refunded_at: start })]);
+  const f = fixture(); f.setInvoices([invoice({ status: 'refunded', refunded_amount: 1299, refunded: true, refunded_at: start })]);
   assert.equal((await webhook(await signed('subscription_payment_success', invoice()), c, f.d)).status, 200);
   assert.ok(f.state().entitlement_revoked_at);
 });
 test('older refunded invoice/order does not erase a later paid renewal; partial blocks extension and flags review', () => {
   const renewal = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString() }, '31');
-  assert.equal(reconcile(c, sub({ renews_at: later }), [renewal, invoice({ status: 'refunded' })], order({ refunded: true }), previous).entitlement_revoked_at, null);
-  const partial = reconcile(c, sub({ renews_at: later }), [invoice({ status: 'partial_refund' })], order(), previous);
+  assert.equal(reconcile(c, sub({ renews_at: later }), [renewal, invoice({ status: 'refunded', refunded: true, refunded_amount: 1299 })], order({ status: 'refunded', refunded: true, refunded_amount: 1299 }), previous).entitlement_revoked_at, null);
+  const partial = reconcile(c, sub({ renews_at: later }), [invoice({ refunded_amount: 500 })], order(), previous);
   assert.equal(partial.paid_access_until, end); assert.equal(partial.review_required, true);
 });
 test('legacy active row, native trial, zero invoice and unpaid proration do not prove payment', () => {
@@ -174,17 +175,17 @@ test('full refund of latest period retains another independently verified live p
     { proof_id: '29', kind:'renewal',start:otherStart,confirmed_at:otherStart,source_created_at:otherStart,tier:'family',billing:'monthly',end, revoked_at: null, review: false },
     { proof_id: '30', kind:'renewal',start,confirmed_at:start,source_created_at:start,tier:'family',billing:'monthly',end:later, revoked_at: null, review: false },
   ];
-  const state = reconcile(c, sub(), [invoice({ billing_reason: 'renewal', status: 'refunded', refunded: true, refunded_at: start }), invoice({ billing_reason: 'renewal', created_at: otherStart }, '29')], order(), { ...previous, periods });
+  const state = reconcile(c, sub(), [invoice({ billing_reason: 'renewal', status: 'refunded', refunded_amount: 1299, refunded: true, refunded_at: start }), invoice({ billing_reason: 'renewal', created_at: otherStart }, '29')], order(), { ...previous, periods });
   assert.equal(state.invoice_id, '29'); assert.equal(state.paid_access_until, end); assert.equal(state.entitlement_revoked_at, null);
   assert.ok(state.periods.find(p => p.proof_id === '30').revoked_at);
 });
 test('old partial refund flags only that period and cannot block a later paid renewal', () => {
   const renewal = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString() }, '31');
-  const state = reconcile(c, sub({ renews_at: later }), [renewal, invoice({ status: 'partial_refund' })], order(), previous);
+  const state = reconcile(c, sub({ renews_at: later }), [renewal, invoice({ refunded_amount: 500 })], order(), previous);
   assert.equal(state.invoice_id, '31'); assert.equal(state.paid_access_until, later); assert.equal(state.entitlement_revoked_at, null); assert.equal(state.review_required, true);
 });
 test('partial refund does not change or extend its already verified window', () => {
-  const state = reconcile(c, sub({ renews_at: later }), [invoice({ status: 'partial_refund' })], order(), previous);
+  const state = reconcile(c, sub({ renews_at: later }), [invoice({ refunded_amount: 500 })], order(), previous);
   assert.equal(state.paid_access_from, start); assert.equal(state.paid_access_until, end); assert.equal(state.entitlement_revoked_at, null);
 });
 test('payment observation is not a manufactured service-period start', () => {
@@ -339,4 +340,129 @@ test('provider changes during canonical reads retry without committing the incon
   assert.equal((await synchronize(c,f.d,{subscription:'10',event:'periodic_reconciliation'})).applied,true);
   assert.equal(reads,4);assert.equal(f.calls.filter(x=>x.name.endsWith('_commit_snapshot')).length,1);
   assert.equal(f.state().paid_access_until,later);
+});
+
+test('partial refund amount preserves the confirmed period regardless of the coarse refunded flag', () => {
+  for (const refunded of [false, true]) {
+    const state = reconcile(c, sub({ renews_at: later }), [invoice({ refunded_amount: 500, refunded })], order(), previous);
+    assert.equal(state.review_required, true);
+    assert.equal(state.periods[0].review, true);
+    assert.equal(state.periods[0].revoked_at, null);
+    assert.equal(state.paid_access_until, end);
+    assert.equal(state.periods.length, 1);
+  }
+});
+test('partially refunded first payment cannot manufacture a new entitlement', () => {
+  const state = reconcile(c, sub(), [invoice({ refunded_amount: 500, refunded: true })], order(), {});
+  assert.equal(state.review_required, true);
+  assert.equal(state.paid_access_until, null);
+  assert.deepEqual(state.periods, []);
+});
+test('partial refund of a new renewal cannot extend or replace the currently paid tier', () => {
+  const renewal = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString(), refunded_amount: 500 }, '31');
+  const state = reconcile(c, sub({ renews_at: later }), [renewal, invoice()], order(), previous);
+  assert.equal(state.review_required, true);
+  assert.equal(state.paid_access_until, end);
+  assert.equal(state.periods.some(p => p.proof_id === '31'), false);
+});
+test('partial initial order preserves only the initial proof and cannot block an independent paid renewal', () => {
+  const renewed = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString() }, '31');
+  const state = reconcile(c, sub({ renews_at: later }), [renewed, invoice()], order({ refunded_amount: 500, refunded: true }), previous);
+  assert.equal(state.review_required, true);
+  assert.equal(state.periods.find(p => p.proof_id === '30').revoked_at, null);
+  assert.equal(state.periods.find(p => p.proof_id === '30').end, end);
+  assert.equal(state.paid_access_until, later);
+});
+test('a partial initial order without an invoice cannot activate or extend access', () => {
+  const state = reconcile(c, sub(), [], order({ refunded_amount: 500 }), {});
+  assert.equal(state.review_required, true);
+  assert.equal(state.paid_access_until, null);
+});
+test('full refund requires amount evidence and revokes only its identified payment proof', () => {
+  const state = reconcile(c, sub(), [invoice({ status: 'refunded', refunded: true, refunded_amount: 1299, refunded_at: start })], order(), previous);
+  assert.ok(state.periods[0].revoked_at);
+  assert.ok(state.entitlement_revoked_at);
+  assert.equal(state.periods[0].proof_id, '30');
+});
+test('full order refund cannot revoke a later independently paid renewal', () => {
+  const renewal = invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString() }, '31');
+  const state = reconcile(c, sub({ renews_at: later }), [renewal, invoice()], order({ status: 'refunded', refunded: true, refunded_amount: 1299, refunded_at: start }), previous);
+  assert.ok(state.periods.find(p => p.proof_id === '30').revoked_at);
+  assert.equal(state.periods.find(p => p.proof_id === '31').revoked_at, null);
+  assert.equal(state.entitlement_revoked_at, null);
+  assert.equal(state.paid_access_until, later);
+});
+test('duplicate full refunds and delayed paid snapshots cannot resurrect a revoked proof', () => {
+  const refundedInvoice = invoice({ status: 'refunded', refunded: true, refunded_amount: 1299, refunded_at: start });
+  const first = reconcile(c, sub(), [refundedInvoice], order(), previous);
+  const duplicate = reconcile(c, sub(), [refundedInvoice], order(), first);
+  const latePaid = reconcile(c, sub({ renews_at: later }), [invoice()], order(), duplicate);
+  assert.deepEqual(duplicate.periods, first.periods);
+  assert.equal(latePaid.periods[0].revoked_at, first.periods[0].revoked_at);
+  assert.equal(latePaid.periods[0].end, end);
+  assert.ok(latePaid.entitlement_revoked_at);
+});
+test('replaying a partial refund does not change dates or create a new paid period', () => {
+  const partial = invoice({ refunded_amount: 500 });
+  const first = reconcile(c, sub({ renews_at: later }), [partial], order(), previous);
+  const duplicate = reconcile(c, sub({ renews_at: later }), [partial], order(), first);
+  assert.deepEqual(duplicate.periods, first.periods);
+  assert.equal(duplicate.paid_access_until, end);
+});
+for (const [label, attrs] of [
+  ['absent amount', { refunded_amount: undefined }],
+  ['null amount', { refunded_amount: null }],
+  ['string amount', { refunded_amount: '500' }],
+  ['fractional amount', { refunded_amount: 1.5 }],
+  ['negative amount', { refunded_amount: -1 }],
+  ['over-refund', { refunded_amount: 1300 }],
+  ['non-finite amount', { refunded_amount: NaN }],
+  ['missing total', { total: undefined }],
+  ['string total', { total: '1299' }],
+  ['fractional total', { total: 1299.5 }],
+  ['unsafe total', { total: Number.MAX_SAFE_INTEGER + 1 }],
+  ['missing flag', { refunded: undefined }],
+  ['flag without amount', { refunded: true }],
+  ['timestamp without amount', { refunded_at: start }],
+  ['full status without amount', { status: 'refunded' }],
+  ['partial amount contradicts full status', { refunded_amount: 500, status: 'refunded', refunded: true }],
+  ['full amount without status or flag', { refunded_amount: 1299 }],
+  ['full status and amount contradict flag', { status: 'refunded', refunded_amount: 1299, refunded: false }],
+  ['partial amount on unpaid invoice', { refunded_amount: 500, status: 'pending' }],
+  ['non-contract partial status', { status: 'partial_refund', refunded_amount: 500 }],
+]) {
+  test('ambiguous refund evidence fails closed before a projection: ' + label, () => {
+    assert.throws(() => reconcile(c, sub({ renews_at: later }), [invoice(attrs)], order(), previous), /Refund evidence requires review/);
+  });
+}
+test('ambiguous ORDER evidence cannot be bypassed with a paid invoice', () => {
+  assert.throws(() => reconcile(c, sub(), [invoice()], order({ refunded: true }), previous), /Refund evidence requires review/);
+});
+test('a signed webhook with ambiguous canonical refund data is retryable and never commits entitlement', async () => {
+  const f = fixture();
+  f.setInvoices([invoice({ refunded_amount: undefined })]);
+  const r = await webhook(await signed('subscription_payment_refunded', invoice()), c, f.d);
+  assert.equal(r.status, 503);
+  assert.equal(f.calls.some(x => x.name.endsWith('_receive_delivery')), true);
+  assert.equal(f.calls.some(x => x.name.endsWith('_commit_snapshot')), false);
+  assert.equal(f.calls.some(x => x.name.endsWith('_complete_delivery')), false);
+});
+test('refund amount changes affect canonical reconciliation keys even if status and timestamps are unchanged', async () => {
+  const f = fixture();
+  await synchronize(c, f.d, { subscription: '10', event: 'periodic_reconciliation' });
+  f.setInvoices([invoice({ refunded_amount: 500 })]);
+  await synchronize(c, f.d, { subscription: '10', event: 'periodic_reconciliation' });
+  const commits = f.calls.filter(x => x.name.endsWith('_commit_snapshot'));
+  assert.notEqual(commits[0].args.p_key, commits[1].args.p_key);
+  assert.equal(f.state().review_required, true);
+});
+test('a partially refunded renewal cannot activate a confirmed plan change', async () => {
+  const f = fixture();
+  f.setState({ ...previous, plan_change: { id: 'plan-fixture', status: 'confirmed', variant_id: '4', confirmed_after: start, baseline_invoice: '30' } });
+  f.setSub(sub({ variant_id: 4, product_id: 5, renews_at: later }));
+  f.setInvoices([invoice({ billing_reason: 'renewal', created_at: new Date(now).toISOString(), refunded_amount: 500 }, '31'), invoice()]);
+  await synchronize(c, f.d, { subscription: '10', event: 'periodic_reconciliation' });
+  assert.equal(f.state().plan_change_id, null);
+  assert.equal(f.state().effective_tier, 'family');
+  assert.equal(f.state().paid_access_until, end);
 });

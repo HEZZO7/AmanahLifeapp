@@ -151,6 +151,15 @@ export default function Settings() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (['billing_review_required', 'billing_verification_unavailable'].includes(errorData.code)) {
+          toast.error(
+            isAr
+              ? 'لم يُحذف الحساب ولم يُلغَ الاشتراك. افتح إدارة الاشتراك ثم تواصل مع الدعم لمراجعة حذف الحساب وسجلات الفوترة.'
+              : 'Account not deleted and subscription not cancelled. Open subscription management, then contact support for account and billing-record deletion review.',
+            { action: { label: isAr ? 'إدارة الاشتراك' : 'Manage subscription', onClick: () => navigate('/subscription') } },
+          );
+          return;
+        }
         throw new Error(errorData.error || 'Failed to delete account');
       }
 
@@ -164,10 +173,11 @@ export default function Settings() {
           ? error.message
           : (isAr ? 'فشل حذف الحساب' : 'Failed to delete account')
       );
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+      setDeleteConfirmText('');
     }
-    setDeleteLoading(false);
-    setShowDeleteDialog(false);
-    setDeleteConfirmText('');
   };
 
   const exportFinanceCSV = () => {
