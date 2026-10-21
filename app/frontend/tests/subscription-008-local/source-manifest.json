@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "e4607cee6817f76d552e38b10ac68396e71d3a6a",
+  "files": {
+    "app/frontend/tests/subscription-security-fixture.sql": "9ae1f36035c238a9741c0f98af9aa43b88641a83",
+    "app/frontend/tests/family-helper-fixture.sql": "863ed95ed80f4eb151b33a04d6b698cbd118e5f7",
+    "app/frontend/supabase/migrations/202610140001_subscription_authority.sql": "860a4bc638676b5ebcb04712f503cb6f0aa89095",
+    "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql": "1e9b84b6854986a31e46f16b5a662a0ae5b84a11",
+    "app/frontend/supabase/migrations/202610150003_family_authority.sql": "2246b9ed39f3c7d6480f76057c49b46518f281f2",
+    "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql": "98b079b7565a7517a135beca92706b739e4f5543",
+    "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql": "59e37ef8c8596471bd98f5e1825c1fe46fc1f055",
+    "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql": "1dd1534d3a3d7eb4e8356e770d4f0d34639da26c",
+    "app/frontend/supabase/functions/app_11941c8fec_delete_account/index.ts": "354796ead9578987027b5646c6e2dae3c0f13b37",
+    "app/frontend/supabase/functions/app_11941c8fec_delete_account/handler.ts": "14bd695880a67685b6a430c9a6a86e56c352eb39"
+  }
+}

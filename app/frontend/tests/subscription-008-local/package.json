@@ -1,0 +1,15 @@
+{
+  "name": "amanahlife-subscription-008-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "review:offline": "node --test --test-isolation=none review.test.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.110.0"
+  }
+}
