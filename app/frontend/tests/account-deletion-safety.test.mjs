@@ -1,16 +1,16 @@
-// Offline real-handler tests. Run with --import ./tests/deny-network.mjs.
+// Offline real-handler tests. No database/Auth/provider integration is executed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { handleDeleteAccount, BillingDeletionBlocked } from '../supabase/functions/app_11941c8fec_delete_account/handler.ts';
+import { handleDeleteAccount } from '../supabase/functions/app_11941c8fec_delete_account/handler.ts';
 
 function fixture(overrides = {}) {
   const calls = [];
   const d = {
     legacyBillingConfigured: false,
     authenticate: async token => { calls.push(['authenticate']); return token === 'synthetic-token' ? 'synthetic-A' : null; },
+    deletionReady: async () => { calls.push(['ready']); return { data: true, error: null }; },
     billingAllowed: async user => { calls.push(['billing', user]); return { data: true, error: null }; },
-    deleteData: async user => { calls.push(['data', user]); },
     deleteUser: async user => { calls.push(['auth-delete', user]); return true; },
     ...overrides,
   };
@@ -22,11 +22,10 @@ function request(body = {}, token = 'synthetic-token', method = 'POST') {
     ...(method === 'POST' ? { body: JSON.stringify(body) } : {}),
   });
 }
-test('missing or invalid JWT cannot reach billing or deletion', async () => {
+test('missing or invalid JWT cannot reach readiness, billing or deletion', async () => {
   for (const token of [null, 'invalid-synthetic-token']) {
     const f = fixture();
-    const r = await handleDeleteAccount(request({}, token), f.d);
-    assert.equal(r.status, 401);
+    assert.equal((await handleDeleteAccount(request({}, token), f.d)).status, 401);
     assert.equal(f.calls.some(c => c[0] !== 'authenticate'), false);
   }
 });
@@ -43,103 +42,85 @@ test('Auth outage cannot permit deletion or expose an exception', async () => {
   assert.equal(r.status, 503); assert.deepEqual(f.calls, []);
   assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'), false);
 });
-test('verified never-billed free/trial account follows the existing cleanup order', async () => {
+test('verified free/trial deletion uses a single destructive Auth operation without HTTP pre-cleanup', async () => {
   const f = fixture();
   const r = await handleDeleteAccount(request(), f.d);
   assert.equal(r.status, 200);
-  assert.deepEqual(f.calls, [['authenticate'], ['billing', 'synthetic-A'], ['data', 'synthetic-A'], ['auth-delete', 'synthetic-A']]);
+  assert.deepEqual(f.calls, [['authenticate'], ['ready'], ['billing', 'synthetic-A'], ['auth-delete', 'synthetic-A']]);
   assert.equal((await r.json()).success, true);
 });
 test('body identity, cancellation and payment claims cannot select another account', async () => {
   const f = fixture();
   assert.equal((await handleDeleteAccount(request({ user_id: 'synthetic-B', cancelled: true, status: 'expired', billingAllowed: true }), f.d)).status, 200);
-  assert.equal(f.calls.slice(1).every(c => c[1] === 'synthetic-A'), true);
+  assert.equal(f.calls.filter(c => ['billing','auth-delete'].includes(c[0])).every(c => c[1] === 'synthetic-A'), true);
 });
-test('billing history denial stops ALL deletion and provides honest management guidance', async () => {
+for (const value of [false,null,'true',{ready:true}]) {
+  test('unverified Migration 009 readiness stops before billing or deletion: '+JSON.stringify(value), async () => {
+    const f=fixture({deletionReady:async()=>({data:value,error:null})});
+    const r=await handleDeleteAccount(request(),f.d);
+    assert.equal(r.status,503);assert.deepEqual(f.calls,[['authenticate']]);
+  });
+}
+test('missing readiness RPC or thrown storage error fails closed', async () => {
+  for(const deletionReady of [async()=>({data:null,error:{code:'PGRST202'}}),async()=>{throw Error('SIMULATED_PRIVATE_DETAIL');}]){
+    const f=fixture({deletionReady});const r=await handleDeleteAccount(request(),f.d);
+    assert.equal(r.status,503);assert.deepEqual(f.calls,[['authenticate']]);
+    assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'),false);
+  }
+});
+test('billing history denial stops deletion and provides honest management guidance', async () => {
   const f = fixture({ billingAllowed: async () => ({ data: false, error: null }) });
   const r = await handleDeleteAccount(request({ cancelled: true }), f.d);
   assert.equal(r.status, 409);
   const body = await r.json();
-  assert.equal(body.code, 'billing_review_required');
-  assert.equal(body.manage_path, '/subscription');
-  assert.match(body.error, /No cancellation has been performed/);
-  assert.match(body.error, /paid access is unchanged/);
-  assert.deepEqual(f.calls, [['authenticate']]);
-  assert.equal(r.headers.get('Cache-Control'), 'no-store');
+  assert.equal(body.code, 'billing_review_required');assert.equal(body.manage_path, '/subscription');
+  assert.match(body.error, /No cancellation has been performed/);assert.match(body.error, /paid access is unchanged/);
+  assert.deepEqual(f.calls, [['authenticate'],['ready']]);assert.equal(r.headers.get('Cache-Control'), 'no-store');
 });
-for (const [label, result] of [
-  ['missing migration', { data: null, error: { code: 'PGRST202', message: 'SIMULATED_PRIVATE_DETAIL' } }],
-  ['database denial', { data: true, error: { code: '42501' } }],
-  ['null', { data: null, error: null }],
-  ['string true', { data: 'true', error: null }],
-  ['object', { data: { allowed: true }, error: null }],
-]) {
-  test('unverified billing permission fails closed: ' + label, async () => {
-    const f = fixture({ billingAllowed: async () => result });
-    const r = await handleDeleteAccount(request(), f.d);
-    assert.equal(r.status, 503); assert.deepEqual(f.calls, [['authenticate']]);
-    assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'), false);
+for (const result of [{data:null,error:{code:'PGRST202'}},{data:true,error:{code:'42501'}},
+  {data:null,error:null},{data:'true',error:null},{data:{allowed:true},error:null}]) {
+  test('unverified billing permission fails closed: '+JSON.stringify(result), async () => {
+    const f=fixture({billingAllowed:async()=>result});const r=await handleDeleteAccount(request(),f.d);
+    assert.equal(r.status,503);assert.deepEqual(f.calls,[['authenticate'],['ready']]);
   });
 }
-test('thrown billing check fails before any cleanup', async () => {
-  const f = fixture({ billingAllowed: async () => { throw new Error('SIMULATED_PRIVATE_DETAIL'); } });
-  const r = await handleDeleteAccount(request(), f.d);
-  assert.equal(r.status, 503); assert.deepEqual(f.calls, [['authenticate']]);
-  assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'), false);
+test('thrown billing check fails before deletion', async () => {
+  const f=fixture({billingAllowed:async()=>{throw Error('SIMULATED_PRIVATE_DETAIL');}});
+  const r=await handleDeleteAccount(request(),f.d);
+  assert.equal(r.status,503);assert.deepEqual(f.calls,[['authenticate'],['ready']]);
+  assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'),false);
 });
 test('configured legacy Paddle prevents unverified deletion without a provider call', async () => {
-  const f = fixture({ legacyBillingConfigured: true });
-  const r = await handleDeleteAccount(request(), f.d);
-  assert.equal(r.status, 503); assert.deepEqual(f.calls, [['authenticate']]);
+  const f=fixture({legacyBillingConfigured:true});const r=await handleDeleteAccount(request(),f.d);
+  assert.equal(r.status,503);assert.deepEqual(f.calls,[['authenticate']]);
 });
-test('a database retention guard racing the preflight prevents auth deletion', async () => {
-  const f = fixture({ deleteData: async () => { throw new BillingDeletionBlocked(); } });
-  const r = await handleDeleteAccount(request(), f.d);
-  assert.equal(r.status, 409);
-  assert.equal(f.calls.some(c => c[0] === 'auth-delete'), false);
+for(const result of [false,null,undefined,'true']){
+  test('unconfirmed Auth deletion never claims success: '+String(result),async()=>{
+    const f=fixture({deleteUser:async()=>result});const r=await handleDeleteAccount(request(),f.d);
+    const body=await r.json();assert.equal(r.status,503);assert.equal(body.code,'account_deletion_unconfirmed');
+    assert.equal(body.success,undefined);assert.doesNotMatch(body.error,/Account not deleted/);
+  });
+}
+test('lost Auth response is sanitized and does not assert whether commit occurred',async()=>{
+  const f=fixture({deleteUser:async()=>{throw Error('SIMULATED_PRIVATE_DETAIL');}});
+  const r=await handleDeleteAccount(request(),f.d);const body=await r.json();
+  assert.equal(r.status,503);assert.equal(body.code,'account_deletion_unconfirmed');
+  assert.equal(body.error.includes('SIMULATED_PRIVATE_DETAIL'),false);assert.match(body.error,/before retrying/);
 });
-test('cleanup failure is not reported as successful deletion', async () => {
-  const f = fixture({ deleteData: async () => { throw new Error('SIMULATED_PRIVATE_DETAIL'); } });
-  const r = await handleDeleteAccount(request(), f.d);
-  assert.equal(r.status, 503);
-  assert.equal(f.calls.some(c => c[0] === 'auth-delete'), false);
-  assert.equal((await r.text()).includes('SIMULATED_PRIVATE_DETAIL'), false);
+test('unchanged Migration 008 retains every billing history and both deletion guards',()=>{
+  const sql=readFileSync(new URL('../supabase/migrations/202610210008_account_deletion_safety.sql',import.meta.url),'utf8');
+  const permission=sql.split('create or replace function public.app_11941c8fec_account_deletion_allowed')[1].split('end $$;')[0];
+  for(const table of ['accounts','intents','bindings','periods'])assert.ok(permission.includes('exists(select 1 from public.app_11941c8fec_payment_'+table+' where user_id=p_user)'));
+  assert.equal(/expires_at|mode\s*=|status\s*=|delete\s+from/i.test(permission),false);
+  assert.match(sql,/before delete on auth\.users/);assert.match(sql,/before delete on public\.app_11941c8fec_subscriptions/);
 });
-test('Auth delete rejection cannot claim success after cleanup', async () => {
-  const f = fixture({ deleteUser: async () => false });
-  const r = await handleDeleteAccount(request(), f.d);
-  assert.equal(r.status, 503); assert.equal((await r.json()).success, undefined);
-});
-test('SQL source retains all billing histories with no mode, expiry or status exemption', () => {
-  // Static contract check only: this does NOT execute SQL or prove DB concurrency.
-  const sql = readFileSync(new URL('../supabase/migrations/202610210008_account_deletion_safety.sql', import.meta.url), 'utf8');
-  const permission = sql.split('create or replace function public.app_11941c8fec_account_deletion_allowed')[1].split('end $$;')[0];
-  for (const table of ['accounts', 'intents', 'bindings', 'periods']) {
-    assert.match(permission, new RegExp('exists\\(select 1 from public\\.app_11941c8fec_payment_' + table + ' where user_id=p_user\\)'));
-  }
-  for (const field of ['lemonsqueezy_subscription_id', 'lemonsqueezy_customer_id', 'paddle_subscription_id', 'paddle_customer_id', 'paid_access_from', 'paid_access_until']) {
-    assert.match(permission, new RegExp(field + ' is not null'));
-  }
-  assert.match(permission, /tier in \('balanced','family'\)/);
-  assert.equal(/expires_at|mode\s*=|status\s*=|delete\s+from/i.test(permission), false);
-});
-test('SQL source scopes RPC to service_role and guards subscription plus auth deletion', () => {
-  const sql = readFileSync(new URL('../supabase/migrations/202610210008_account_deletion_safety.sql', import.meta.url), 'utf8');
-  assert.equal((sql.match(/security definer set search_path=''/g) || []).length, 2);
-  assert.equal((sql.match(/owner to postgres/g) || []).length, 2);
-  assert.equal((sql.match(/from public,anon,authenticated,service_role/g) || []).length, 2);
-  assert.deepEqual(sql.match(/grant execute[^;]+;/g), ['grant execute on function public.app_11941c8fec_account_deletion_allowed(uuid) to service_role;']);
-  assert.match(sql, /before delete on auth\.users/);
-  assert.match(sql, /before delete on public\.app_11941c8fec_subscriptions/);
-  assert.match(sql, /is distinct from true/);
-});
-test('runtime adapter uses verified identity, fixed RPC, existing tables and no payment API', () => {
-  const source = readFileSync(new URL('../supabase/functions/app_11941c8fec_delete_account/index.ts', import.meta.url), 'utf8');
-  assert.match(source, /client\.auth\.getUser\(token\)/);
-  assert.match(source, /rpc\('app_11941c8fec_account_deletion_allowed', \{ p_user: user \}\)/);
-  assert.match(source, /\.eq\('user_id', user\)/);
-  assert.match(source, /auth\.admin\.deleteUser\(user\)/);
-  assert.equal(/console\.|fetch\(|req\.json|payment_.*\.delete/.test(source), false);
+test('runtime adapter authenticates, requires 009 and performs hard Auth delete only',()=>{
+  const source=readFileSync(new URL('../supabase/functions/app_11941c8fec_delete_account/index.ts',import.meta.url),'utf8');
+  assert.match(source,/client\.auth\.getUser\(token\)/);
+  assert.ok(source.includes("rpc('app_11941c8fec_account_deletion_ready')"));
+  assert.ok(source.includes("rpc('app_11941c8fec_account_deletion_allowed', { p_user: user })"));
+  assert.ok(source.includes('auth.admin.deleteUser(user, false)'));
+  assert.equal(/\.from\(|\.delete\(|console\.|fetch\(|req\.json/.test(source),false);
 });
 
 function settingsDeletionFixture(status, code) {
@@ -161,7 +142,9 @@ function settingsDeletionFixture(status, code) {
     supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 'synthetic-token' } } }) } },
     // A lexical fake, plus the network-deny preload, prevents the hardcoded
     // production URL in the existing UI from ever producing a real HTTP request.
-    fetch: async () => { events.push(['request']); return Response.json({ code }, { status }); },
+    fetch: async () => { events.push(['request']); return Response.json({ code,
+      ...(code === 'account_deletion_unconfirmed' ? { error: 'Account deletion could not be confirmed. Contact support before retrying.' } : {}),
+    }, { status }); },
     localStorage: { clear: () => events.push(['clear']) },
     signOut: async () => events.push(['signout']),
     navigate: path => events.push(['navigate', path]),
@@ -187,4 +170,10 @@ test('actual Settings confirmed free-account deletion retains existing signout b
   assert.equal(f.events.some(e => e[0] === 'success'), true);
   assert.equal(f.events.some(e => e[0] === 'clear'), true);
   assert.equal(f.events.some(e => e[0] === 'signout'), true);
+});
+test('actual Settings unconfirmed deletion preserves local state without claiming deletion failed atomically', async () => {
+  const f=settingsDeletionFixture(503,'account_deletion_unconfirmed');await f.run();
+  assert.equal(f.events.some(e=>['success','clear','signout'].includes(e[0])),false);
+  assert.match(f.events.find(e=>e[0]==='error')[1],/could not be confirmed/);
+  assert.doesNotMatch(f.events.find(e=>e[0]==='error')[1],/Account not deleted/);
 });

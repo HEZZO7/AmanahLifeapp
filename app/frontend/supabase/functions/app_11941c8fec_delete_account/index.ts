@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { BillingDeletionBlocked, handleDeleteAccount } from './handler.ts';
+import { handleDeleteAccount } from './handler.ts';
 
 Deno.serve(async (req: Request) => {
   const url = Deno.env.get('SUPABASE_URL')!;
@@ -18,22 +18,19 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await client.auth.getUser(token);
       return error ? null : data.user?.id ?? null;
     },
+    deletionReady: async () => {
+      const { data, error } = await getAdmin().rpc('app_11941c8fec_account_deletion_ready');
+      return { data, error };
+    },
     billingAllowed: async user => {
       const { data, error } = await getAdmin().rpc('app_11941c8fec_account_deletion_allowed', { p_user: user });
       return { data, error };
     },
-    deleteData: async user => {
-      // Keep the existing cleanup scope. Unknown cleanup errors stop deletion.
-      for (const table of ['app_11941c8fec_subscriptions', 'app_11941c8fec_search_history',
-        'app_11941c8fec_email_digest', 'app_11941c8fec_notification_preferences', 'app_11941c8fec_push_subscriptions']) {
-        const { error } = await getAdmin().from(table).delete().eq('user_id', user);
-        if (error?.code === '42501') throw new BillingDeletionBlocked();
-        if (error) throw new Error('Account cleanup unavailable');
-      }
-    },
     deleteUser: async user => {
-      const { error } = await getAdmin().auth.admin.deleteUser(user);
-      return !error;
+      // The hard-delete statement runs Migration 009 cleanup in its own database
+      // transaction. Never pre-delete trial/subscription rows over PostgREST.
+      const { error } = await getAdmin().auth.admin.deleteUser(user, false);
+      return error === null;
     },
   });
 });
