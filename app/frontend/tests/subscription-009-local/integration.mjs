@@ -6,23 +6,26 @@ import {randomBytes} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
-  trafficGuard,uuid,summarize,workspace} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,Session,waitForBlock,waitForBlockedCount} from './local-runtime.mjs';
+  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus} from './safety.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
 const sub='public.app_11941c8fec_subscriptions',prefix='app_11941c8fec_';
 const q=id=>"'"+uuid(id)+"'";
 const results=[],observations={};let phase='preflight',cleanupPassed=false,workingDirectory;
+const assertSQLState=(error,expected)=>{throwIfDatabaseInfrastructure(error);assert.equal(error?.code,expected);};
 const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
 export function options(args){
   const out={};
   for(let i=0;i<args.length;i++){
-    const key=args[i];assert.ok(['--source','--workdir','--cli-archive','--cleanup'].includes(key));
-    assert.equal(out[key],undefined);out[key]=key==='--cleanup'?true:args[++i];assert.ok(out[key]);
+    const key=args[i];assert.ok(['--source','--workdir','--cli-archive','--cleanup','--worker'].includes(key));
+    assert.equal(out[key],undefined);out[key]=['--cleanup','--worker'].includes(key)?true:args[++i];assert.ok(out[key]);
   }
   assert.equal(typeof out['--workdir'],'string');
-  if(!out['--cleanup'])for(const key of ['--source','--cli-archive'])assert.equal(typeof out[key],'string');
+  assert.ok(!(out['--cleanup']&&out['--worker']));
+  if(!out['--cleanup'])assert.equal(typeof out['--source'],'string');
+  if(!out['--cleanup']&&!out['--worker'])assert.equal(typeof out['--cli-archive'],'string');
   return out;
 }
 async function check(id,fn,fatal=false){
@@ -142,7 +145,7 @@ async function exercise(source,credentials){
     },true);
     async function rpc(client,name,args){
       const deadline=Date.now()+8000;
-      while(true){const r=await client.rpc(prefix+name,args);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
+      while(true){const r=await client.rpc(prefix+name,args);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
     }
     async function newAccount(trial=true){
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
@@ -199,15 +202,15 @@ async function exercise(source,credentials){
           const r=await user.client.rpc(prefix+name,args);assert.ok(r.error);assert.ok([401,403,404].includes(r.status));
         }
         const r=await user.client.from(prefix+'subscriptions').select('user_id');assert.equal(r.error,null);assert.deepEqual(r.data,[{user_id:user.id}]);
-        for(const patch of [{tier:'family'},{trial_used:false},{user_id:A.id}])assert.equal((await user.client.from(prefix+'subscriptions').update(patch).eq('user_id',B.id)).error?.code,'42501');
-        assert.equal((await user.client.from(prefix+'subscriptions').insert({user_id:user.id,tier:'family'})).error?.code,'42501');
-        assert.equal((await user.client.from(prefix+'subscriptions').delete().eq('user_id',B.id)).error?.code,'42501');
-        assert.equal((await user.client.from(prefix+'payment_accounts').select('user_id')).error?.code,'42501');
+        for(const patch of [{tier:'family'},{trial_used:false},{user_id:A.id}])assertSQLState((await user.client.from(prefix+'subscriptions').update(patch).eq('user_id',B.id)).error,'42501');
+        assertSQLState((await user.client.from(prefix+'subscriptions').insert({user_id:user.id,tier:'family'})).error,'42501');
+        assertSQLState((await user.client.from(prefix+'subscriptions').delete().eq('user_id',B.id)).error,'42501');
+        assertSQLState((await user.client.from(prefix+'payment_accounts').select('user_id')).error,'42501');
       }
       assert.deepEqual(accountRows(A.id),baselineA);assert.deepEqual(accountRows(B.id),baselineB);
     });
     await check('service_role_history_denial',async()=>{
-      assert.equal((await admin.from(prefix+'subscriptions').delete().eq('user_id',B.id)).error?.code,'42501');
+      assertSQLState((await admin.from(prefix+'subscriptions').delete().eq('user_id',B.id)).error,'42501');
       assert.deepEqual(accountRows(B.id),baselineB);
       // An HTTP schema-cache denial alone is insufficient; also require SQL ACL denial.
       sql("begin;set local role service_role;do $$ begin begin delete from "+sub+' where user_id='+q(B.id)+";exception when insufficient_privilege then return;end;raise exception 'Unexpected service deletion';end $$;rollback;");
@@ -242,44 +245,53 @@ async function exercise(source,credentials){
       assert.deepEqual(accountRows(B.id),baselineB);
     });
     await check('checkout_wins_race',async()=>{
-      const user=await newAccount(false),checkout=new Session('a009-checkout-first'),deletion=new Session('a009-delete-second');
+      const user=await newAccount(false);
+      await withSessions(['a009-checkout-first','a009-delete-second'],async([checkout,deletion])=>{
       const [cpid,dpid]=await Promise.all([checkout.pid(),deletion.pid()]);assert.notEqual(cpid,dpid);
       await checkout.query('begin;'+reserveSQL(user.id,'a'));await deletion.query('begin;');
       const pending=deletion.query('delete from auth.users where id='+q(user.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(dpid,cpid);await checkout.finish('commit;');
-      const outcome=await pending;assert.equal(outcome.ok,false);assert.equal(outcome.error.sqlState,'42501');
+      const outcome=await pending;expectSQLFailure(outcome,'42501');
       assert.ok(accountRows(user.id).auth);assert.equal(billingRows(user.id).intents.length,1);
+      });
       // Also exercise an already-locked subscription projection update. The
       // nested 008 subscription DELETE guard must see the committed paid state.
-      const projected=await newAccount(),writer=new Session('a009-paid-update'),blockedDelete=new Session('a009-paid-delete');
+      const projected=await newAccount();
+      await withSessions(['a009-paid-update','a009-paid-delete'],async([writer,blockedDelete])=>{
       const [wpid,bpid]=await Promise.all([writer.pid(),blockedDelete.pid()]);assert.notEqual(wpid,bpid);
       await writer.query("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";");
       await blockedDelete.query('begin;');
       const blocked=blockedDelete.query('delete from auth.users where id='+q(projected.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(bpid,wpid);await writer.finish('commit;');
-      const denied=await blocked;assert.equal(denied.ok,false);assert.equal(denied.error.sqlState,'42501');
+      const denied=await blocked;expectSQLFailure(denied,'42501');
       const surviving=accountRows(projected.id);assert.ok(surviving.auth);assert.equal(surviving.subscriptions[0].tier,'balanced');assert.equal(surviving.subscriptions[0].trial_used,true);
+      });
     });
     await check('deletion_wins_race',async()=>{
-      const user=await newAccount(),deletion=new Session('a009-delete-first'),checkout=new Session('a009-checkout-second');
+      const user=await newAccount();
+      await withSessions(['a009-delete-first','a009-checkout-second'],async([deletion,checkout])=>{
       const [dpid,cpid]=await Promise.all([deletion.pid(),checkout.pid()]);assert.notEqual(dpid,cpid);
       await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');await checkout.query('begin;');
       const pending=checkout.query(reserveSQL(user.id,'b')).then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(cpid,dpid);await deletion.finish('commit;');
-      const outcome=await pending;assert.equal(outcome.ok,false);assert.equal(outcome.error.sqlState,'23503');assertDeleted(user.id);
+      const outcome=await pending;expectSQLFailure(outcome,'23503');assertDeleted(user.id);
+      });
     });
     await check('trial_races_deletion',async()=>{
       for(const rollback of [true,false]){
-        const user=await newAccount(rollback),before=accountRows(user.id),deletion=new Session(rollback?'a009-trial-rollback':'a009-trial-commit');
+        const user=await newAccount(rollback),before=accountRows(user.id);
+        await withSessions([rollback?'a009-trial-rollback':'a009-trial-commit'],async([deletion])=>{
         const pid=await deletion.pid();await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');
         const pending=rpc(user.client,'start_trial');await waitForBlockedCount(pid);
         await deletion.finish(rollback?'rollback;':'commit;');const r=await pending;
         if(rollback){assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used');assert.deepEqual(accountRows(user.id),before);}
-        else{assert.equal(r.error?.code,'23503');assertDeleted(user.id);}
+        else{assertSQLState(r.error,'23503');assertDeleted(user.id);}
+        });
       }
     });
     await check('simultaneous_auth_deletions',async()=>{
-      const user=await newAccount(),locker=new Session('a009-double-delete');const pid=await locker.pid();
+      const user=await newAccount();
+      await withSessions(['a009-double-delete'],async([locker])=>{const pid=await locker.pid();
       await locker.query('begin;select id from auth.users where id='+q(user.id)+' for update;');
       const start=guard.state.calls.length;
       const pending=Promise.all([remove(user),remove(user)]).then(responses=>({responses}),()=>({failure:true}));
@@ -291,6 +303,7 @@ async function exercise(source,credentials){
       await waitForBlockedCount(pid,2);await locker.finish('commit;');
       const outcome=await pending;assert.equal(outcome.failure,undefined);const responses=outcome.responses;assert.ok(responses.some(r=>r.status===200));
       for(const r of responses)assert.ok([200,503].includes(r.status));assertDeleted(user.id);
+      });
     });
     let billingBefore;
     await check('billing_history_retention',async()=>{
@@ -401,35 +414,56 @@ export async function execute(opts){
   if(opts['--cleanup']){phase='cleanup';cleanupPassed=cleanup(workingDirectory);assert.equal(cleanupPassed,true);return;}
   try{
     const prepared=await prepare(opts,manifest,name=>{phase=name;emit({phase:name,result:'started'});});
-    await exercise(prepared.source,prepared.credentials);
+    phase='isolated_worker';const {report}=runIsolatedWorker(prepared,new URL(import.meta.url).pathname);
+    results.push(...report.checks);Object.assign(observations,report.observations);
+    if(report.infrastructureFailure)throw new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
+    if(!report.cleanupPassed)throw new Failure('session_cleanup_failed');
   }finally{
     const previous=phase;phase='cleanup';cleanupPassed=await shutdown(workingDirectory);
     emit({phase:'cleanup',result:cleanupPassed?'passed':'failed'});phase=previous;
   }
 }
+async function worker(opts){
+  phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
+  initializeWorker(workingDirectory);const source=fs.realpathSync(opts['--source']);
+  workspace(workingDirectory,fs.realpathSync(process.env.RUNNER_TEMP),source);
+  verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);verifySource(source,manifest);
+  // Private stdin only: no local JWT/key in argv, environment, or console.
+  const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
+  const input=JSON.parse(raw);assert.equal(input.approval,APPROVAL);
+  const credentials=localStatus({API_URL:input.credentials.url,
+    DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres',ANON_KEY:input.credentials.anon,SERVICE_ROLE_KEY:input.credentials.service});
+  try{await exercise(source,credentials);}
+  finally{cleanupPassed=await stopSessions();}
+}
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
   for(const method of ['log','info','warn','error','debug','trace','dir','table'])console[method]=()=>{};
-  let asynchronousFailure=false;
-  process.on('unhandledRejection',()=>{asynchronousFailure=true;});
-  process.setUncaughtExceptionCaptureCallback(()=>{
-    // Never let Node print an uncaught SDK/assertion object containing credentials.
-    void (async()=>{
-      let removed=false;if(workingDirectory)try{removed=await shutdown(workingDirectory);}catch{}
-      emit({mode:'integration',result:'failed',productionReady:false,category:'uncaught_failure',cleanupPassed:removed});process.exit(1);
-    })();
-  });
-  let opts,infrastructureFailure=null;
-  try{opts=options(process.argv.slice(2));await execute(opts);}
-  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1};}
-  if(opts?.['--cleanup']){
-    emit({mode:'cleanup',cleanupPassed:cleanupPassed&&!infrastructureFailure,productionReady:false});process.exitCode=cleanupPassed&&!infrastructureFailure?0:1;
-  }else{
-    if(asynchronousFailure)infrastructureFailure={phase,category:'asynchronous_failure',exit:1};
-    const report={...summarize(results,cleanupPassed,infrastructureFailure),observations};emit(report);
+  let opts;
+  const publish=report=>{
+    // A late rejection rewrites the already-published report as FAILED.
     if(workingDirectory){
       const base=fs.realpathSync(process.env.RUNNER_TEMP);workspace(workingDirectory,base);
-      fs.writeFileSync(path.join(base,path.basename(workingDirectory)+'-report.json'),JSON.stringify(report)+'\n',{mode:0o600});
+      const file=opts?.['--worker']?path.join(workingDirectory,'worker-report.json'):
+        path.join(base,path.basename(workingDirectory)+'-report.json');
+      fs.writeFileSync(file,JSON.stringify(report)+'\n',{mode:0o600});
     }
-    process.exitCode=report.result==='passed'?0:1;
-  }
+    emit(report);
+  };
+  const latch=failureLatch(process,publish);
+  process.on('unhandledRejection',latch.reject);
+  process.setUncaughtExceptionCaptureCallback(()=>{
+    process.exitCode=1;latch.reject();
+    void (async()=>{
+      let removed=false;
+      if(workingDirectory)try{removed=opts?.['--worker']?await stopSessions():await shutdown(workingDirectory);}catch{}
+      latch.publish(summarize(results,removed,{phase:'uncaught',category:'uncaught_failure',exit:1}));process.exit(1);
+    })();
+  });
+  let infrastructureFailure=null;
+  try{opts=options(process.argv.slice(2));if(opts['--worker'])await worker(opts);else await execute(opts);}
+  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1};}
+  if(opts?.['--cleanup']){
+    latch.publish({mode:'cleanup',result:cleanupPassed&&!infrastructureFailure?'passed':'failed',
+      cleanupPassed:cleanupPassed&&!infrastructureFailure,productionReady:false,infrastructureFailure});
+  }else latch.publish({...summarize(results,cleanupPassed,infrastructureFailure),observations});
 }

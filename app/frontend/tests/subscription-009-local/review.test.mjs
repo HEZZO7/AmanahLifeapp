@@ -5,12 +5,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import childProcess from 'node:child_process';
+import {EventEmitter} from 'node:events';
 import {syncBuiltinESMExports} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,SDK_VERSION,
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
-  trafficGuard,commandCategory,summarize,sha256,gitBlob,assertCleanEnvironment} from './safety.mjs';
-import {cleanup,createWorkspace,verifySource,verifyPackage,shutdown} from './local-runtime.mjs';
+  trafficGuard,commandCategory,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix} from './safety.mjs';
+import {cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL} from './local-runtime.mjs';
+import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
 const processMethods=['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork'];
@@ -34,7 +36,7 @@ test('all twenty-one required groups are reachable exactly once in declared orde
 });
 test('security failures remain nonzero even if cleanup succeeds',()=>{
   for(const id of CHECKS){const r=complete();r.find(x=>x.id===id).result='failed';assert.equal(summarize(r,true).result,'failed');}
-  assert.match(runner,/process\.exitCode=report\.result==='passed'\?0:1/);
+  assert.match(runner,/failureLatch\(process,publish\)/);
 });
 test('missing, duplicate, unsupported and infrastructure-failed groups cannot pass',()=>{
   for(const r of [[],complete().slice(1),[...complete(),complete()[0]],
@@ -127,7 +129,7 @@ test('source verification rejects a changed hash, filename or migration order',(
   for(const mutate of [m=>{m.files[SOURCE_FILES[0]].sha256='0'.repeat(64);},m=>{m.files['../escape']=m.files[SOURCE_FILES[0]];},
     m=>{m.migrationOrder.reverse();}]){const m=structuredClone(manifest);mutate(m);assert.throws(()=>verifySource(source,m));}
 });
-test('all nine package file hashes match; one byte change is rejected',()=>{
+test('all ten package file hashes match; one byte change is rejected',()=>{
   verifyPackage(directory,manifest);const m=structuredClone(manifest);m.packageFiles['fixture.sql']='0'.repeat(64);
   assert.throws(()=>verifyPackage(directory,m));
 });
@@ -181,9 +183,9 @@ test('races require independent backend PIDs, actual blocking and expected SQLST
   assert.match(runner,/waitForBlock\(dpid,cpid\)/);assert.match(runner,/waitForBlock\(cpid,dpid\)/);
   assert.match(runner,/waitForBlockedCount\(pid,2\)/);
   assert.match(runner,/waitForBlock\(bpid,wpid\)/);
-  assert.match(runner,/denied\.error\.sqlState,'42501'/);
+  assert.match(runner,/expectSQLFailure\(denied,'42501'\)/);
   assert.match(runtime,/with recursive blocked\(pid\)/);assert.match(runtime,/wait_event_type='Lock'/);
-  assert.match(runner,/outcome\.error\.sqlState,'42501'/);assert.match(runner,/outcome\.error\.sqlState,'23503'/);
+  assert.match(runner,/expectSQLFailure\(outcome,'42501'\)/);assert.match(runner,/expectSQLFailure\(outcome,'23503'\)/);
   assert.match(runner,/for\(const rollback of \[true,false\]\)/);
   assert.throws(()=>reserveSQL('unsafe','a'));assert.throws(()=>reserveSQL(id,"';DROP"));
 });
@@ -208,7 +210,7 @@ test('locked dependencies have exact versions, fixed public URLs and SHA512 inte
   assert.equal(CLI_VERSION,'2.121.0');assert.equal(CLI_ARCHIVE_SHA256,'4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f');
 });
 test('startup uses default owned CLI workdir; no linked project, custom network or provider',()=>{
-  assert.match(runtime,/protectInbound\(\)/);assert.match(runtime,/sealOutbound\(\)/);
+  assert.match(runtime,/installIsolation\(root,null,command\)/);assert.match(runtime,/verifyIsolation\(root,command\)/);
   assert.match(runtime,/\['--workdir',root,name\]/);assert.match(runtime,/supabase\/\.temp\/project-ref/);
   assert.doesNotMatch(runtime,/docker[^\n]*network[^\n]*create|supabase login|db push|functions deploy|registry mirror/);
   assert.match(runtime,/assertCleanEnvironment\(process\.env\)/);
@@ -216,11 +218,11 @@ test('startup uses default owned CLI workdir; no linked project, custom network 
 test('finally cleanup cannot overwrite a previous security failure or failure phase',()=>{
   assert.match(runner,/finally\{[\s\S]*cleanupPassed=await shutdown\(workingDirectory\)/);
   assert.match(runner,/phase=previous/);assert.match(runner,/if\(opts\['--cleanup'\]\)/);
-  assert.match(runtime,/try\{stopped=await stopSessions\(\);\}catch/);
-  assert.match(runtime,/try\{removed=cleanup\(workdir\);\}catch/);
+  assert.match(runtime,/try\{return cleanup\(workdir\);\}catch\{return false;\}/);
+  assert.match(runner,/finally\{cleanupPassed=await stopSessions\(\);\}/);
   assert.match(runtime,/if\(!acquired\)return !fs\.existsSync\(workdir\)/);
   assert.match(runtime,/createWorkspace\(root\);acquired=true/);
-  assert.match(runtime,/childEnv\.HOME=workdir;childEnv\.XDG_CONFIG_HOME=path\.join\(workdir,'\.config'\);childEnv\.DOCKER_CONFIG=/);
+  assert.match(runtime,/childEnv\.HOME=root;childEnv\.XDG_CONFIG_HOME=path\.join\(root,'\.config'\);childEnv\.DOCKER_CONFIG=/);
 });
 function scratch(fn){
   const base=fs.mkdtempSync(path.join(os.tmpdir(),'amanah009-offline-')),previous=process.env.RUNNER_TEMP;
@@ -261,3 +263,169 @@ test('preflight failure never acquires or removes a preexisting run',async()=>{
     assert.equal(await shutdown(path.join(base,'absent')),true);
   }finally{fs.rmSync(base,{recursive:true,force:true});}
 });
+
+
+// New regressions are pure/injected: subprocesses remain disabled above.
+const projectName='amanah-009-1-aabbccdd';
+const identity=()=>({pid:101,bridge:'br-0123456789ab',namespace:'net:[1001]',hostNamespace:'net:[999]',
+  uid:1001,gid:1001,groups:[1001,121],kongUid:0,handle:'/tmp/'+projectName+'/kong-netns',subnet:'172.18.0.0/16',
+  hostEntries:['172.18.0.2 kong','172.18.0.3 db','172.18.0.4 auth','172.18.0.5 rest'],
+  peers:Array.from({length:4},(_,i)=>({id:String(i+1).repeat(64),pid:101+i,namespace:'net:['+(1001+i)+']',
+    handle:'/tmp/'+projectName+'/'+(i?'netns-'+String(i+1).repeat(12):'kong-netns')}))});
+function fakeRules(){
+  const installed=new Set(),calls=[];let inserts=0,failAt=Infinity;
+  const run=(exe,args)=>{
+    assert.equal(exe,'sudo');calls.push(args);
+    const op=args.find(x=>['-C','-I','-D'].includes(x));
+    if(!op){assert.ok(args.includes('-S'));return [...installed].join('\n');}
+    const at=args.indexOf(op),copy=[...args];copy[at]='OP';if(op==='-I')copy.splice(at+2,1);
+    const key=JSON.stringify(copy);
+    if(op==='-C'){if(!installed.has(key))throw new Failure('command_failed',1);return '';}
+    if(op==='-I'){if(++inserts===failAt)throw new Failure('command_failed',2);installed.add(key);return '';}
+    installed.delete(key);return '';
+  };
+  return {run,calls,installed,failAfter:n=>{failAt=n;}};
+}
+test('unsafe legacy host OUTPUT and IPv4/IPv6 blanket egress plans are rejected',()=>{
+  const journal={version:1,project:projectName,identity:identity(),rules:isolationRules(projectName,identity())};
+  validateIsolation(journal);
+  assert.ok(journal.rules.filter(r=>r.scope==='host').every(r=>['INPUT','FORWARD'].includes(r.chain)));
+  for(const tool of ['iptables','ip6tables']){
+    const old=structuredClone(journal);old.rules.push({scope:'host',tool,table:'filter',chain:'OUTPUT',args:['-j','REJECT']});
+    assert.throws(()=>validateIsolation(old));
+  }
+  const namespaces=journal.rules.filter(r=>r.chain==='OUTPUT');assert.ok(namespaces.length);
+  for(const r of namespaces){const args=ruleCommand(r,'-I',journal.identity);assert.ok(args.includes('nsenter'));assert.ok(args.some(x=>x.startsWith('--net=/tmp/')));}
+});
+test('network policy protects the worker and every owned container in BOTH address families',()=>{
+  const i=identity(),rules=isolationRules(projectName,i);
+  for(const scope of ['kong',...i.peers.map(p=>p.id)])for(const tool of ['iptables','ip6tables']){
+    assert.ok(rules.some(r=>r.scope===scope&&r.tool===tool&&r.chain==='OUTPUT'&&r.args.includes('REJECT')));
+  }
+  assert.ok(rules.some(r=>r.scope==='kong'&&r.table==='nat'&&r.args.includes('8000')));
+  for(const peer of i.peers)assert.ok(rules.some(r=>r.scope===peer.id&&r.args.includes('127.0.0.11')&&r.args.includes('REJECT')));
+  assert.match(runtime,/identity.hostEntries.join/);assert.match(runtime,/runIsolatedWorker|worker-report/);
+  assert.match(runtime,/--no-new-privs/);assert.match(runtime,/--bounding-set=-all/);
+  assert.match(runtime,/env:\{\.\.\.childEnv,RUNNER_TEMP/);assert.doesNotMatch(runtime,/env:process.env/);
+});
+test('host namespace, root worker, Kong UID collision and foreign bind paths fail closed',()=>{
+  for(const change of [{namespace:'net:[999]'},{uid:0},{kongUid:1001},{handle:'/unrelated/kong-netns'},
+    {subnet:'0.0.0.0/0'},{groups:[]},{peers:identity().peers.map(p=>({...p,namespace:'net:[999]'}))}]){
+    assert.throws(()=>isolationRules(projectName,{...identity(),...change}));
+  }
+  const isolation=read('isolation.mjs');
+  assert.ok(isolation.indexOf('save(root,journal);')<isolation.indexOf("run('sudo',['-n','mount'"));
+  assert.match(isolation,/verifyNamespaceHandle\(\{\.\.\.peer,hostNamespace:identity.hostNamespace\}\)/);
+  assert.match(isolation,/resourcesStopped,true/);
+});
+test('partial firewall installation is journalled and independent cleanup removes only owned rules',()=>scratch(base=>{
+  const root=path.join(base,projectName);createWorkspace(root);
+  const fake=fakeRules();fake.installed.add('unrelated-rule');fake.failAfter(3);
+  assert.throws(()=>installIsolation(root,null,fake.run));
+  assert.equal(fake.installed.size,3);assert.ok(fs.existsSync(path.join(root,'isolation.json')));
+  assert.equal(cleanup(root,fake.run),true);assert.deepEqual([...fake.installed],['unrelated-rule']);
+  assert.equal(fs.existsSync(root),false);assert.equal(assertNoHostRules(projectName,fake.run),true);
+}));
+test('firewall verification/cleanup failure retains journal and explicitly fails fallback',()=>scratch(base=>{
+  const root=path.join(base,projectName);createWorkspace(root);const fake=fakeRules();installIsolation(root,null,fake.run);
+  assert.equal(cleanup(root,()=>{throw new Failure('command_failed',2);}),false);
+  assert.ok(fs.existsSync(path.join(root,'isolation.json')));assert.ok(fs.existsSync(path.join(root,'owned.json')));
+  assert.equal(cleanup(root,fake.run),true);
+}));
+test('namespace cleanup never enters an invalid bind and requires stopped resources',()=>scratch(base=>{
+  const root=path.join(base,projectName);createWorkspace(root);const fake=fakeRules();installIsolation(root,null,fake.run);
+  assert.throws(()=>removeIsolation(root,fake.run,false));
+  assert.equal(removeIsolation(root,fake.run,true),true);
+  assert.ok(fake.calls.every(args=>!args.includes('nsenter')));
+}));
+test('late unhandled rejection invalidates an already published success and immediately sets exit 1',async()=>{
+  const target=new EventEmitter();target.exitCode=0;const published=[];
+  const latch=failureLatch(target,r=>published.push(structuredClone(r)));target.on('unhandledRejection',latch.reject);
+  latch.publish(summarize(complete(),true));assert.equal(target.exitCode,0);assert.equal(published.at(-1).result,'passed');
+  await Promise.resolve().then(()=>{
+    target.emit('unhandledRejection',new Error('SIMULATED-JWT password=private https://private.invalid'));
+    assert.equal(target.exitCode,1);
+  });
+  assert.equal(latch.failed,true);assert.equal(published.at(-1).result,'failed');
+  assert.equal(published.at(-1).infrastructureFailure.category,'asynchronous_failure');
+  assert.equal(published.at(-1).productionReady,false);
+  assert.doesNotMatch(JSON.stringify(published),/SIMULATED|password|https:/);
+  latch.publish(summarize(complete(),true));assert.equal(target.exitCode,1);assert.equal(published.at(-1).result,'failed');
+  assert.match(runner,/process.on\('unhandledRejection',latch.reject\)/);
+});
+test('rejection before publication and report-write failure cannot reset exit status',()=>{
+  const target={exitCode:0},reports=[];const latch=failureLatch(target,r=>reports.push(r));
+  latch.reject();assert.equal(target.exitCode,1);latch.publish(summarize(complete(),true));
+  assert.equal(reports.at(-1).result,'failed');assert.equal(target.exitCode,1);
+  const other={exitCode:0};failureLatch(other,()=>{throw Error('simulated sink failure');}).publish(summarize(complete(),true));
+  assert.equal(other.exitCode,1);
+});
+test('PostgreSQL server bounds precede client cutoff and intended lock observation deadline',()=>{
+  assert.ok(PG_LIMITS.lock>6000);assert.ok(PG_LIMITS.statement>PG_LIMITS.lock);assert.ok(PG_LIMITS.client>PG_LIMITS.statement);
+  for(const value of ['statement_timeout=15000','lock_timeout=12000','idle_in_transaction_session_timeout=20000'])assert.ok(PG_OPTIONS.includes(value));
+  assert.match(runtime,/PGAPPNAME='\+this.name/);assert.match(runtime,/PGOPTIONS='\+PG_OPTIONS/);
+});
+test('transport, connection and timeout failures cannot masquerade as a security SQLSTATE',()=>{
+  for(const error of [new Failure('session_transport_failed'),new Failure('session_timeout',124),
+    {sqlState:undefined},...['08006','57P01','53300','57014','55P03','25P03'].map(sqlState=>({sqlState}))]){
+    assert.throws(()=>expectSQLFailure({ok:false,error},'42501'),e=>e instanceof Failure);
+  }
+  for(const code of ['08001','57014','55P03','25P03','PGRST000','PGRST001','PGRST002',undefined]){
+    assert.throws(()=>throwIfDatabaseInfrastructure({code}),e=>e instanceof Failure);
+  }
+  expectSQLFailure({ok:false,error:{sqlState:'42501'}},'42501');expectSQLFailure({ok:false,error:{sqlState:'23503'}},'23503');
+  assert.throws(()=>expectSQLFailure({ok:false,error:{sqlState:'23503'}},'42501'),e=>e.code==='ERR_ASSERTION');
+  assert.throws(()=>expectSQLFailure({ok:true},'42501'));
+});
+test('every race closes independent sessions in finally while preserving the original security assertion',async()=>{
+  const closed=[],failure=new assert.AssertionError({message:'synthetic required security failure'});
+  await assert.rejects(withSessions(['one','two'],async()=>{throw failure;},name=>({close:async()=>{closed.push(name);return true;}})),e=>e===failure);
+  assert.deepEqual(closed,['one','two']);
+  const success=[];assert.equal(await withSessions(['a','b'],async()=>42,name=>({close:async()=>{success.push(name);return true;}})),42);
+  assert.deepEqual(success,['a','b']);
+  assert.equal([...runner.matchAll(/await withSessions\(/g)].length,5);assert.doesNotMatch(runner,/new Session/);
+  assert.match(runtime,/finally\{if\(!await closeRaceSessions\(items\)/);
+});
+test('partial race construction and session close failures remain nonzero',async()=>{
+  let closed=0;
+  await assert.rejects(withSessions(['a','b'],async()=>assert.fail('unreachable'),name=>{
+    if(name==='b')throw new Failure('session_transport_failed');return {close:async()=>{closed++;return true;}};
+  }),e=>e instanceof Failure);assert.equal(closed,1);
+  await assert.rejects(withSessions(['a','b'],async()=>{},()=>({close:async()=>false})),e=>e.category==='session_cleanup_failed');
+});
+test('backend termination is restricted to project-owned postgres sessions and verified independently',()=>{
+  const root='/tmp/'+projectName,name=sessionPrefix(projectName)+'aabbcc';
+  for(const queries of [ownedSessionSQL(root),ownedSessionSQL(root,name)]){
+    assert.match(queries.kill,/pg_terminate_backend\(pid\)/);assert.match(queries.kill,/pid<>pg_backend_pid\(\)/);
+    assert.match(queries.kill,/usename='postgres'/);assert.ok(queries.kill.includes(sessionPrefix(projectName)));
+    assert.ok(queries.count.includes('count(*)'));assert.ok(queries.count.includes(sessionPrefix(projectName)));
+  }
+  assert.throws(()=>ownedSessionSQL(root,'unrelated'));assert.throws(()=>ownedSessionSQL(root,name+"';select"));
+  assert.match(runtime,/if\(running\)\{const queries=ownedSessionSQL\(workdir\);sql\(queries.kill,run\);assert.equal\(jsonSQL\(queries.count,run\),0\)/);
+  assert.match(runtime,/while\(Date.now\(\)<deadline\).*jsonSQL\(queries.count\)===0/);
+  assert.match(runtime,/this.child.kill\('SIGKILL'\)/);assert.match(runtime,/return closed&&absent&&!sessionCleanupFailed/);
+});
+
+test('partial namespace bind failure removes owned handles without entering an unverified namespace',()=>scratch(base=>{
+  const root=path.join(base,projectName);createWorkspace(root);const fake=fakeRules();installIsolation(root,null,fake.run);
+  const i=identity();i.handle=path.join(root,'kong-netns');
+  for(const p of i.peers)p.handle=path.join(root,path.basename(p.handle));
+  // Model a write-ahead journal followed by touch-before-bind failure. No mount
+  // or namespace command executes in this offline test.
+  fs.writeFileSync(path.join(root,'isolation.json'),JSON.stringify({version:1,project:projectName,identity:i,rules:isolationRules(projectName,i)}));
+  for(const p of i.peers)fs.writeFileSync(p.handle,'',{mode:0o600});
+  assert.equal(removeIsolation(root,fake.run,true),true);
+  for(const p of i.peers)assert.equal(fs.existsSync(p.handle),false);
+  assert.ok(fake.calls.every(args=>!args.includes('nsenter')&&!args.includes('mount')&&!args.includes('umount')));
+  assert.equal(fake.installed.size,0);assert.equal(cleanup(root,fake.run),true);
+}));
+test('resource leftovers keep isolation intact until independent fallback verifies removal',()=>scratch(base=>{
+  const root=path.join(base,projectName);createWorkspace(root);const fake=fakeRules();installIsolation(root,null,fake.run);
+  fs.writeFileSync(path.join(root,'start-attempted'),'1');
+  const busy=(exe,args,...rest)=>exe==='sudo'?fake.run(exe,args,...rest):
+    args.includes('stop')?'':args.some(a=>a.startsWith('name='))?'owned-leftover':'';
+  assert.equal(cleanup(root,busy),false);assert.equal(fake.installed.size,6);
+  assert.ok(fs.existsSync(path.join(root,'isolation.json')));
+  const gone=(exe,args,...rest)=>exe==='sudo'?fake.run(exe,args,...rest):'';
+  assert.equal(cleanup(root,gone),true);assert.equal(fake.installed.size,0);
+}));

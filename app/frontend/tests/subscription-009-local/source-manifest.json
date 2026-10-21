@@ -60,14 +60,15 @@
     "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql"
   ],
   "packageFiles": {
-    "README.md": "dc9d6e8d4395f4bfa5f9f4b139303c3d165abfe95f40ca9701ffafdc75918b21",
+    "README.md": "64038825ce3d51a59951c68f819e8187ca35e18035bd5c8d15a4518ca84097e7",
     "fixture.sql": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721",
-    "integration.mjs": "340040c540f8e6882271802dc1ec9abca32a07a9533284a222a400440626b2bc",
-    "local-runtime.mjs": "e1bb36daf58dab9ea4272404388af8eb18ec067af88a6cda54392efa5242a863",
+    "integration.mjs": "85388a65eae0a8fe3fb44a43bd67cc0a3072e79126a4519f21598aab5447ff67",
+    "local-runtime.mjs": "706d1837da26e21167a306d4f5fa036e29b19e53378e83467bb686838b75ff38",
     "metadata.sql": "c0e94ba3ff7b23af9ac57eb78d64d1d4f5ccb1dc2001bc1fcbdc1817d221eb9a",
     "package-lock.json": "1c256eb7885c127bc679f6b0e381098591ac894d9321e5a4f7a6ef6ec8e43221",
     "package.json": "5ba58dfc7e3faa74cc053aa1ed6f87b5781b39888f617bc5efacebd5c2e3fbb5",
-    "review.test.mjs": "d794234d15514b0782acff48f4ab5d6c0c7e647d2bab54d98e9ad1d349afffbd",
-    "safety.mjs": "339bd7f854e868db021eca62b171dc0bc65d55817fcd0014f0782f30c32dff4b"
+    "review.test.mjs": "a1d2c03a3a6702cbd002f53238fd6332f1765ab73eb05a8cf9a2aad481527dc6",
+    "safety.mjs": "d36702083bac56c42eee3bfa4ad34870a084f71a4669ce0ce4803eb57605615c",
+    "isolation.mjs": "3394aad4cf6db3fffb16438b2cf674edb2b2e800d2e92b79121cbe8308f448db"
   }
 }

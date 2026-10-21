@@ -17,7 +17,7 @@ Every report has `productionReady=false`, including a fully passing report.
   --audit=false --fund=false`, never `npm install` or a floating SDK URL.
 - `source-manifest.json` records Git blob SHA1 AND SHA256 for all twelve
   application/reference inputs, the explicit migration order, and SHA256 for
-  the other nine package files. Package checksums exclude the manifest itself;
+  the other ten package files. Package checksums exclude the manifest itself;
   its trust anchor is the separately approved package commit.
 - Apply only the native fixture, **001 → 002 → 003 → 004 → 005 → 008 → 009**;
   apply 009 twice. Never copy application migrations to the disposable CLI's
@@ -83,12 +83,70 @@ startup config, Auth replacements or weakened health checks. Container tags come
 from the pinned official CLI; Docker image bytes are NOT independently locked
 here. Supply-chain/image compatibility remains a runtime/review limitation.
 
-Inbound firewall protection precedes startup. After startup, fail-closed IPv4/IPv6
-firewall rules block external egress before importing/running the real adapter.
-Fetch permits only fixed loopback Auth/PostgREST routes, refuses redirects and
-records every attempt before validation. Rejected attempts fail the final group,
-even if caught inside the SDK. No URLs or request bodies enter the report.
-These firewall rules belong to the ephemeral runner and vanish with it.
+### Scoped network isolation (no runner-wide OUTPUT deny)
+
+The controller and GitHub runner agent retain their original network namespace.
+The controller only prepares/stops the pinned official stack and captures output;
+it never imports the SDK or the account-deletion adapter. Before startup, narrowly
+scoped IPv4/IPv6 INPUT/FORWARD guards protect only the unused local service ports
+54321–54329 and 8083. There is **no host OUTPUT rule**, default-policy change,
+global firewall flush, custom Docker network, proxy, mirror or extra service.
+
+After startup, the harness verifies every container's project label, bridge,
+ports and nonprivileged status. It bind-pins each container network namespace to
+an owned file and verifies NSFS/inode identity against the captured namespace,
+which must differ from the host. The rule plan is journalled **before** any bind
+or rule is created. Failed or partial preparation retains recoverable ownership.
+IPv4/IPv6 bridge guards block container-to-host initiation and off-bridge egress.
+Container-namespace OUTPUT rules allow only loopback and the owned IPv4 subnet;
+IPv6 permits only ::1. Embedded Docker DNS (127.0.0.11) is blocked to prevent
+resolver forwarding; verified local service aliases are added only to these
+owned disposable containers' /etc/hosts. This preserves internal resolution
+without permitting external DNS. No existing containers are reused or changed.
+
+The SDK and real adapter run in a child process inside the owned Kong namespace,
+with the original nonroot runner UID, no-new-privileges, and all process
+capabilities dropped. Its UID must differ from Kong's. UID-scoped rules allow
+only 127.0.0.1:54321 (redirected locally to Kong:8000); other IPv4 and all IPv6
+worker egress are denied. The same namespace remains pinned across container
+PID reuse. Before loading the SDK, the child checks its namespace, UID, no-new-
+privileges, marker, hashes, and cancellation flag. Credentials travel via private
+stdin, never argv/environment/logs. Child stdout/stderr are captured and discarded;
+only structurally validated, fixed-field reports are accepted by the controller.
+
+Fetch additionally permits only fixed local Auth/PostgREST routes, refuses
+redirects and records attempts before validation, including SDK-caught failures.
+This URL guard supplements kernel isolation and is not its replacement.
+
+The child retains access to the local Docker Unix socket for the existing SQL
+plumbing. This is isolation of the **reviewed, hash-pinned test code**, not a
+sandbox against malicious code capable of abusing Docker's privileged socket.
+All subprocesses and downloads must remain reviewed and immutable. Startup and
+dependency acquisition occur before application isolation; no adapter runs then.
+Ubuntu availability of nsenter, setpriv, mount, iptables/ip6tables, namespace
+binding, container hosts-file writes and these rule interactions still requires
+an authorized isolated run. Missing support fails closed, never silently skips.
+
+### PostgreSQL session lifecycle and asynchronous failures
+
+Every psql connection sets server statement_timeout=15s, lock_timeout=12s and
+idle_in_transaction_session_timeout=20s, with a 22s Docker-client cutoff. The
+six-second lock-observation bound precedes the intentional lock timeout.
+All psql sessions, including one-shot control queries, are tagged. Each race uses independent sessions inside try/finally, including partial
+construction and failing assertions. Sessions have a project-hashed, random
+PGAPPNAME. Closing terminates only matching postgres backends, then closes/kills
+the Docker client and polls pg_stat_activity until the owned session is absent.
+Final worker cleanup and independent controller cleanup repeat the ownership-
+scoped backend termination/count check; container removal is separately verified.
+No transport error, missing SQLSTATE, connection failure, lock timeout or statement
+timeout is accepted as a successful authorization/constraint denial. Genuine
+unexpected security SQLSTATEs remain mandatory assertion failures.
+
+An unhandled promise rejection immediately sets exitCode=1. A latched failure
+invalidates and rewrites an already-published nominal success report, using only
+a fixed asynchronous_failure category. Report-write failure also stays nonzero.
+The controller checks the child's exit status against a recomputed report and
+performs cleanup regardless of security failures. No raw exception is emitted.
 
 The actual TypeScript adapter is loaded through Node's built-in strip-types and
 module hook, mapping ONLY its existing remote SDK import to the locked SDK.
@@ -112,15 +170,16 @@ npm ci --offline --ignore-scripts --audit=false --fund=false --dry-run
 node --check integration.mjs
 node --check local-runtime.mjs
 node --check safety.mjs
+node --check isolation.mjs
 node --check review.test.mjs
 git diff --check
 ```
 
-Preparation evidence: 37 offline checks (including blocked subprocesses, source
-and package hashes, negative guard cases and filesystem-only cleanup regressions)
-and four JavaScript syntax checks passed. The offline npm ci dry run passed for
-the nine locked dependencies. No integration test, SQL, Docker or Supabase ran.
-
+Preparation evidence is the offline regression run reported with the correction
+commit: child-process APIs are disabled during tests, and all isolation commands
+are pure plans or injected fakes. No integration test, SQL, Docker or Supabase is
+permitted during preparation. JavaScript syntax and source/package hashes are
+checked independently.
 The dry run verifies lock consistency; it does NOT download/verify tarball bytes
 or establish that the SDK can load. No SQL parser or database executes offline.
 
@@ -150,9 +209,16 @@ AMANAHLIFE_009_APPROVAL=disposable-local-migration-009-only \
 node integration.mjs --cleanup --workdir "$RUNNER_TEMP/amanah-009-123-0123abcd"
 ```
 
-Cleanup uses only the owned CLI project, stop --no-backup, and verifies containers,
+Cleanup first cancels/stops only the owned worker and terminates/checks owned
+PostgreSQL sessions if the database is running. It uses only the owned CLI
+project, stop --no-backup, and verifies containers,
 volumes and networks by both label and project name. Failed cleanup retains the
-ownership marker/config/CLI for fallback and returns nonzero. It never prunes or
+ownership marker/config/CLI/journal for fallback and returns nonzero. After
+verified resource removal, only journalled/comment-tagged rules are removed;
+valid pinned namespaces are checked before entering them. Partial/wrong binds
+are unmounted without entering them. Namespace handles are unmounted/unlinked,
+and absence of owned host rules is checked independently. Missing or unknown
+ownership never authorizes deleting a resource. It never prunes or
 deletes unrelated resources. Marker-creation failure removes only its own new
 empty directory. Unknown ownership fails closed.
 
@@ -168,7 +234,7 @@ continue-on-error, retry, rerun or acceptance based solely on cleanup success.
 ## Limits and acceptance
 
 Estimated cold execution: **15–30 minutes**, dependency availability permitting;
-the CLI start has an 18-minute bound. Plan a bounded job with time for independent
+the CLI start has an 18-minute bound and the isolated worker an 8-minute bound. Plan a bounded job with time for independent
 cleanup. Expected additional services cost: **$0**, using a standard public-repo
 GitHub runner subject to GitHub's applicable usage policy. No paid service needed.
 

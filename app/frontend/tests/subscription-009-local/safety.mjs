@@ -8,6 +8,42 @@ export const NODE_VERSION='24.19.0', SDK_VERSION='2.110.0', CLI_VERSION='2.121.0
 export const CLI_ARCHIVE_SHA256='4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f';
 export const API_ORIGIN='http://127.0.0.1:54321';
 export const APPROVAL='disposable-local-migration-009-only';
+export class Failure extends Error {
+  constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
+}
+export const PG_LIMITS=Object.freeze({statement:15000,lock:12000,idle:20000,client:22000});
+export const PG_OPTIONS='-c statement_timeout='+PG_LIMITS.statement+' -c lock_timeout='+PG_LIMITS.lock+' -c idle_in_transaction_session_timeout='+PG_LIMITS.idle;
+export function sessionPrefix(project){return 'al009-'+sha256(Buffer.from(project)).slice(0,16)+'-';}
+export function expectSQLFailure(outcome,expected){
+  assert.equal(outcome.ok,false);const error=outcome.error;
+  const code=error?.sqlState;
+  if(error instanceof Failure&&error.category!=='sql_session_failed')throw error;
+  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300'].includes(code))throw new Failure('database_connection_failed');
+  if(['57014','55P03','25P03'].includes(code))throw new Failure('database_timeout',124);
+  assert.equal(code,expected); // Wrong security/constraint SQLSTATE remains a failed assertion.
+}
+export function throwIfDatabaseInfrastructure(error){
+  if(!error)return;
+  const code=error.code;
+  if(['57014','55P03','25P03'].includes(code))throw new Failure('database_timeout',124);
+  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300','PGRST000','PGRST001','PGRST002'].includes(code))throw new Failure('database_connection_failed');
+}
+export function failureLatch(target,publish){
+  let report=null,failed=false;
+  const send=()=>{
+    try{publish(report);}catch{failed=true;report.result='failed';target.exitCode=1;}
+  };
+  const invalidate=()=>{
+    failed=true;target.exitCode=1; // Immediate, even AFTER a nominal success report.
+    if(report){report={...report,result:'failed',productionReady:false,
+      infrastructureFailure:{phase:'asynchronous',category:'asynchronous_failure',exit:1}};send();}
+  };
+  return {reject:invalidate,get failed(){return failed;},publish(value){
+    report=structuredClone(value);
+    if(failed){report.result='failed';report.infrastructureFailure={phase:'asynchronous',category:'asynchronous_failure',exit:1};}
+    send();target.exitCode=failed||report.result!=='passed'?1:0;return report;
+  }};
+}
 export const CHECKS=Object.freeze([
   'schema_dependencies','real_auth_jwt','migration_idempotency_metadata',
   'untrusted_denials','service_role_history_denial','successful_auth_deletion',
