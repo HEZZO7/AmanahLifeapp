@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -22,6 +22,14 @@ export default function Login() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Only permit internal, known destinations. Never trust arbitrary return URLs.
+  const returnTo = searchParams.get('next') === '/subscription' || sessionStorage.getItem('amanahlife_auth_return') === '/subscription'
+    ? '/subscription' : '/';
+  const finishLogin = () => {
+    sessionStorage.removeItem('amanahlife_auth_return');
+    navigate(returnTo, { replace: true });
+  };
 
   const isAr = language === 'ar';
 
@@ -33,7 +41,7 @@ export default function Login() {
       toast.error(error.message);
     } else {
       toast.success('Welcome back!');
-      navigate('/');
+      finishLogin();
     }
     setLoading(false);
   };
@@ -46,6 +54,9 @@ export default function Login() {
       toast.error(error.message);
     } else {
       toast.success('Account created! Please check your email to verify.');
+      // When email confirmation is disabled, signUp can immediately establish a session.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) finishLogin();
     }
     setLoading(false);
   };

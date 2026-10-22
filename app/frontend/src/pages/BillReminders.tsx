@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
-import { useNavigate } from 'react-router-dom';
 
 interface Bill {
   id: string;
@@ -46,7 +45,6 @@ async function syncBillsToSupabase(bills: Bill[], userId: string | undefined) {
 export default function BillReminders() {
   const { language, isRTL } = useLanguage();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
