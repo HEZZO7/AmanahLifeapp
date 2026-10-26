@@ -1,0 +1,267 @@
+name: Subscription 009 native validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      approve_disposable_run:
+        description: 'Run the pinned 21-group suite on disposable local Supabase only'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: subscription-009-native-validation
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  native-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      SOURCE_SHA: e6dd3fc5e014ea0539df8da12a6ee84582b302b9
+      PACKAGE_SHA: 8d5cdd246233a4a7ef4ad7ea2a62815ece08b153
+      AMANAHLIFE_009_APPROVAL: disposable-local-migration-009-only
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Require approved hosted disposable execution
+        id: paths
+        env:
+          APPROVED: ${{ inputs.approve_disposable_run }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$APPROVED" = true
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REPOSITORY" = HEZZO7/AmanahLifeapp
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$(uname -m)" = x86_64
+          test "$(id -u)" -ne 0
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          assert event['repository']['private'] is False
+          assert dict(line.split('=',1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)['VERSION_ID'].strip('"')=='24.04'
+          PY
+          suffix="$(openssl rand -hex 4)"
+          project="amanah-009-${GITHUB_RUN_ID}-${suffix}"
+          evidence="$RUNNER_TEMP/evidence-009-${GITHUB_RUN_ID}"
+          mkdir -m 0700 "$evidence"
+          {
+            echo "SOURCE_DIR=$GITHUB_WORKSPACE/source"
+            echo "PACKAGE_DIR=$GITHUB_WORKSPACE/package/app/frontend/tests/subscription-009-local"
+            echo "WORK_DIR=$RUNNER_TEMP/$project"
+            echo "EVIDENCE_DIR=$evidence"
+            echo "CLI_ARCHIVE=$RUNNER_TEMP/supabase_2.121.0_linux_amd64.tar.gz"
+            echo "PRIVATE_LOG=$RUNNER_TEMP/${project}-private.log"
+            echo "CLEANUP_LOG=$RUNNER_TEMP/${project}-cleanup-private.log"
+            echo "BILLING_LOG=$RUNNER_TEMP/${project}-billing-private.log"
+            echo "REVIEW_LOG=$RUNNER_TEMP/${project}-review-private.log"
+            echo "INSTALL_LOG=$RUNNER_TEMP/${project}-install-private.log"
+          } >> "$GITHUB_ENV"
+          printf '%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > "$evidence/run-url.txt"
+
+      - name: Check out immutable application
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: e6dd3fc5e014ea0539df8da12a6ee84582b302b9
+          path: source
+          persist-credentials: false
+
+      - name: Check out immutable test package
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: 8d5cdd246233a4a7ef4ad7ea2a62815ece08b153
+          path: package
+          persist-credentials: false
+
+      - name: Install exact Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+
+      - name: Verify immutable inputs and independent checksums
+        id: verify
+        run: |
+          set -euo pipefail
+          test "$(node -p process.versions.node)" = 24.19.0
+          test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE/package" rev-parse HEAD)" = "$PACKAGE_SHA"
+          test -z "$(git -C "$SOURCE_DIR" status --porcelain)"
+          test -z "$(git -C "$GITHUB_WORKSPACE/package" status --porcelain)"
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          source=Path(os.environ['SOURCE_DIR']); package=Path(os.environ['PACKAGE_DIR'])
+          raw=(package/'source-manifest.json').read_bytes()
+          assert raw==subprocess.check_output(['git','-C',str(package),'show',os.environ['PACKAGE_SHA']+':app/frontend/tests/subscription-009-local/source-manifest.json'])
+          m=json.loads(raw); assert m['sourceCommit']==os.environ['SOURCE_SHA']
+          assert len(m['files'])==12 and len(m['packageFiles'])==10
+          for base, entries in [(source,m['files']),(package,m['packageFiles'])]:
+            for name, expected in entries.items():
+              p=base/name; assert p.resolve()==p and p.is_file() and not p.is_symlink()
+              sha=hashlib.sha256(p.read_bytes()).hexdigest()
+              assert sha==subprocess.check_output(['sha256sum',str(p)],text=True).split()[0]
+              assert sha==(expected['sha256'] if isinstance(expected,dict) else expected)
+              if isinstance(expected,dict):
+                blob=subprocess.check_output(['git','-C',str(source),'hash-object','--',name],text=True).strip()
+                assert blob==expected['gitBlob']
+                assert p.read_bytes()==subprocess.check_output(['git','-C',str(source),'show',os.environ['SOURCE_SHA']+':'+name])
+          evidence=Path(os.environ['EVIDENCE_DIR'])
+          (evidence/'source-manifest.json').write_bytes(raw)
+          (evidence/'provenance.json').write_text(json.dumps({'application':os.environ['SOURCE_SHA'],'package':os.environ['PACKAGE_SHA'],'workflow':os.environ['GITHUB_SHA'],'runner':'ubuntu-24.04/github-hosted','node':'24.19.0','sdk':'2.110.0','cli':'2.121.0','manifestSha256':hashlib.sha256(raw).hexdigest(),'productionReady':False},indent=2)+'\n')
+          PY
+          node --input-type=module <<'JS'
+          import {pathToFileURL} from 'node:url';
+          import fs from 'node:fs';
+          const directory=process.env.PACKAGE_DIR;
+          const {verifySource,verifyPackage}=await import(pathToFileURL(directory+'/local-runtime.mjs'));
+          const {assertCleanEnvironment}=await import(pathToFileURL(directory+'/safety.mjs'));
+          const manifest=JSON.parse(fs.readFileSync(directory+'/source-manifest.json'));
+          assertCleanEnvironment(process.env);
+          verifySource(process.env.SOURCE_DIR,manifest);verifyPackage(directory,manifest);
+          const p=JSON.parse(fs.readFileSync(directory+'/package.json'));
+          const lock=JSON.parse(fs.readFileSync(directory+'/package-lock.json'));
+          if(p.engines.node!=='24.19.0'||p.dependencies['@supabase/supabase-js']!=='2.110.0'||lock.packages['node_modules/@supabase/supabase-js'].version!=='2.110.0')throw Error('Dependency version mismatch');
+          JS
+
+      - name: Verify isolation prerequisites before services
+        run: |
+          set -euo pipefail
+          for tool in sudo docker ss nsenter setpriv mount umount iptables ip6tables unshare; do command -v "$tool" >/dev/null; done
+          sudo -n true
+          docker info >/dev/null
+          test -z "$(docker ps -aq --filter label=com.supabase.cli.project)"
+          sudo -n iptables -w 5 -t filter -S >/dev/null
+          sudo -n ip6tables -w 5 -t filter -S >/dev/null
+          sudo -n unshare --net -- sh -c 'iptables -w 5 -t filter -S >/dev/null; ip6tables -w 5 -t filter -S >/dev/null'
+          # The pinned harness journals and verifies every actual namespace/rule
+          # before loading the SDK or adapter. Missing support fails closed.
+
+      - name: Acquire checksum-pinned CLI and locked SDK
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          umask 077
+          curl --fail --location --silent --show-error --max-time 180 \
+            https://github.com/supabase/cli/releases/download/v2.121.0/supabase_2.121.0_linux_amd64.tar.gz \
+            --output "$CLI_ARCHIVE" > "$INSTALL_LOG" 2>&1
+          printf '4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f  %s\n' "$CLI_ARCHIVE" | sha256sum --check --status
+          cd "$PACKAGE_DIR"
+          npm ci --ignore-scripts --audit=false --fund=false >> "$INSTALL_LOG" 2>&1
+          node -e "if(require('./node_modules/@supabase/supabase-js/package.json').version!=='2.110.0')process.exit(1)"
+
+      - name: Run pinned offline package and billing regressions
+        id: offline
+        run: |
+          set -euo pipefail
+          cd "$PACKAGE_DIR"
+          set +e
+          node --test --test-isolation=none --test-reporter=tap review.test.mjs > "$REVIEW_LOG" 2>&1
+          review_exit=$?
+          cd "$SOURCE_DIR/app/frontend"
+          node --experimental-strip-types --import ./tests/deny-network.mjs --test --test-reporter=tap \
+            tests/lemon-payments.test.mjs tests/webhook-signature.test.mjs > "$BILLING_LOG" 2>&1
+          billing_exit=$?
+          set -e
+          printf '%s\n' "$review_exit" > "$EVIDENCE_DIR/review-exit.txt"
+          printf '%s\n' "$billing_exit" > "$EVIDENCE_DIR/billing-exit.txt"
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          for name,key in [('review','REVIEW_LOG'),('billing','BILLING_LOG')]:
+            text=Path(os.environ[key]).read_text()
+            fields={k:int(v) for k,v in re.findall(r'^# (tests|pass|fail|skipped|cancelled|todo) (\d+)\s*$',text,re.M)}
+            Path(os.environ['EVIDENCE_DIR'],name+'-summary.json').write_text(json.dumps(fields,sort_keys=True)+'\n')
+          PY
+          test "$review_exit" = 0
+          test "$billing_exit" = 0
+
+      - name: Execute all 21 native Auth groups
+        id: harness
+        timeout-minutes: 32
+        run: |
+          set -euo pipefail
+          umask 077
+          cd "$PACKAGE_DIR"
+          set +e
+          node integration.mjs --source "$SOURCE_DIR" --workdir "$WORK_DIR" --cli-archive "$CLI_ARCHIVE" > "$PRIVATE_LOG" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" > "$EVIDENCE_DIR/harness-exit.txt"
+          exit "$status"
+
+      - name: Independent ownership-scoped cleanup
+        id: cleanup
+        if: ${{ always() && steps.verify.outcome == 'success' }}
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          umask 077
+          report="$RUNNER_TEMP/$(basename "$WORK_DIR")-report.json"
+          # Cleanup writes the same report path. Preserve integration first.
+          if test -f "$report"; then cp "$report" "$EVIDENCE_DIR/integration.json"; fi
+          cd "$PACKAGE_DIR"
+          set +e
+          node integration.mjs --cleanup --workdir "$WORK_DIR" > "$CLEANUP_LOG" 2>&1
+          status=$?
+          set -e
+          printf '%s\n' "$status" > "$EVIDENCE_DIR/cleanup-exit.txt"
+          if test -f "$report"; then cp "$report" "$EVIDENCE_DIR/cleanup.json"; fi
+          exit "$status"
+
+      - name: Independently require complete results and verified cleanup
+        if: ${{ always() && steps.paths.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          e=Path(os.environ['EVIDENCE_DIR'])
+          ids=['schema_dependencies','real_auth_jwt','migration_idempotency_metadata','untrusted_denials','service_role_history_denial','successful_auth_deletion','rollback_each_cleanup_phase','failed_delete_preserves_trial','failed_delete_cannot_restart_trial','checkout_wins_race','deletion_wins_race','trial_races_deletion','simultaneous_auth_deletions','billing_history_retention','family_member_privacy','family_owner_deletion','after_delete_null_control','unreviewed_trigger_readiness','before_delete_null_preserves_trial','before_delete_null_cannot_restart_trial','isolation_and_billing_preservation']
+          def read(name):
+            try: return json.loads((e/name).read_text())
+            except (OSError,ValueError): return None
+          def zero(name):
+            try: return (e/name).read_text().strip()=='0'
+            except OSError: return False
+          r=read('integration.json') or {}; c=read('cleanup.json') or {}
+          rows=r.get('checks',[])
+          valid=isinstance(rows,list) and all(isinstance(x,dict) for x in rows)
+          complete=valid and [x.get('id') for x in rows]==ids and all(x.get('result')=='passed' for x in rows)
+          integration=complete and zero('harness-exit.txt') and r.get('source')==os.environ['SOURCE_SHA'] and r.get('mode')=='integration' and r.get('result')=='passed' and r.get('productionReady') is False and r.get('cleanupPassed') is True and r.get('required')==21 and r.get('completed')==21 and r.get('passed')==21 and r.get('invalid') is False and all(r.get(k)==[] for k in ['failed','missing','infrastructureFailed']) and r.get('infrastructureFailure') is None
+          cleanup=zero('cleanup-exit.txt') and c.get('mode')=='cleanup' and c.get('result')=='passed' and c.get('cleanupPassed') is True and c.get('infrastructureFailure') is None and c.get('productionReady') is False
+          offline=True
+          for name in ['review','billing']:
+            s=read(name+'-summary.json') or {}
+            offline &= zero(name+'-exit.txt') and s.get('tests',0)>0 and s.get('tests')==s.get('pass') and all(s.get(k)==0 for k in ['fail','skipped','cancelled','todo'])
+          passed=bool(integration and cleanup and offline)
+          verdict={'result':'passed' if passed else 'failed','productionReady':False,'integrationVerified':bool(integration),'independentCleanupVerified':bool(cleanup),'offlineVerified':bool(offline),'groups':[{'id':id,'result':next((x.get('result') for x in rows if isinstance(x,dict) and x.get('id')==id),'not_tested')} for id in ids] if valid else [{'id':id,'result':'unresolved'} for id in ids]}
+          (e/'verdict.json').write_text(json.dumps(verdict,indent=2)+'\n')
+          (e/'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(e.iterdir()) if p.is_file() and p.name!='SHA256SUMS'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+            f.write('## Subscription 009\n\n'+json.dumps(verdict,indent=2)+'\n\nProduction/billing remain NO-GO.\n')
+          # Private command logs can contain transient local credentials. Never upload them.
+          for key in ['PRIVATE_LOG','CLEANUP_LOG','BILLING_LOG','REVIEW_LOG','INSTALL_LOG']:
+            Path(os.environ[key]).unlink(missing_ok=True)
+          raise SystemExit(0 if passed else 1)
+          PY
+
+      - name: Preserve sanitized evidence only
+        if: ${{ always() && steps.paths.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: subscription-009-native-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
