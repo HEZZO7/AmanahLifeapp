@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 55
     env:
       SOURCE_SHA: e6dd3fc5e014ea0539df8da12a6ee84582b302b9
-      PACKAGE_SHA: 1df108401c0a64e6a7689971287c6cb4f22ecffd
+      PACKAGE_SHA: 5543bb6aa96aa0b7da991dc9a894821139cc0c97
       AMANAHLIFE_009_APPROVAL: disposable-local-migration-009-only
       DO_NOT_TRACK: '1'
     steps:

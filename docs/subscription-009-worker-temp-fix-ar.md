@@ -57,3 +57,17 @@ capabilities أو namespace pinning أو owned marker/journal أو firewall/DNS.
 
 المجموعات الأصلية الـ21 لم تُنفذ محليًا. لا نشر أو تعديل main أو تشغيل workflow
 أو تعامل مع الإنتاج. يظل القرار NO-GO حتى تنفيذ الأدلة المطلوبة بنجاح.
+
+## التثبيت التالي على main
+
+commit الحزمة: `5543bb6aa96aa0b7da991dc9a894821139cc0c97`.
+التغيير اليدوي الوحيد المطلوب في workflow على main:
+
+```yaml
+PACKAGE_SHA: 5543bb6aa96aa0b7da991dc9a894821139cc0c97
+```
+
+يظل `SOURCE_SHA=e6dd3fc5e014ea0539df8da12a6ee84582b302b9`، وcheckout
+الحزمة `ref: ${{ env.PACKAGE_SHA }}` وشرط فرع main وسائر الضوابط كما هي.
+لا يحدّث هذا العمل main ولا يطلق أي تشغيل. ثُبت المرجع الجديد في نسخة workflow
+على فرع الاسترداد وحده لتسهيل المراجعة.
