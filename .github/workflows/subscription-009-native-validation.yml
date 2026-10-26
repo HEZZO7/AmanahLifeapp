@@ -81,7 +81,7 @@ jobs:
       - name: Check out immutable test package
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: 8d5cdd246233a4a7ef4ad7ea2a62815ece08b153
+          ref: ${{ env.PACKAGE_SHA }}
           path: package
           persist-credentials: false
 
