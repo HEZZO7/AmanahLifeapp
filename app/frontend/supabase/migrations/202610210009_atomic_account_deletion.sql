@@ -23,6 +23,13 @@ begin
      or tg_when<>'BEFORE' or tg_level<>'ROW' then
     raise exception 'Unsupported atomic cleanup context' using errcode='42501';
   end if;
+  -- A later BEFORE trigger may RETURN NULL without raising: PostgreSQL would
+  -- keep auth.users but commit our child deletes. Recheck readiness under this
+  -- DELETE's relation lock, not only in the earlier HTTP preflight. Concurrent
+  -- trigger DDL cannot pass this lock while the statement is executing.
+  if public.app_11941c8fec_account_deletion_ready() is distinct from true then
+    raise exception 'Unreviewed account deletion configuration' using errcode='42501';
+  end if;
   -- Recheck the unchanged 008 policy before touching any data. The parent row is
   -- already locked by DELETE; checkout FK checks serialize against this lock.
   if public.app_11941c8fec_account_deletion_allowed(old.id) is distinct from true then
@@ -53,6 +60,13 @@ revoke delete on public.app_11941c8fec_subscriptions from service_role;
 create or replace function public.app_11941c8fec_account_deletion_ready()
 returns boolean language sql stable security definer set search_path='' as $$
   select
+    -- Reject row AND statement BEFORE DELETE triggers, including conditional
+    -- or replica-enabled ones. AFTER return values cannot veto deletion.
+    not exists(select 1 from pg_trigger t where t.tgrelid='auth.users'::regclass
+      and not t.tgisinternal and t.tgenabled<>'D'
+      and (t.tgtype::int & 10)=10
+      and t.tgname not in ('app_11941c8fec_billing_retention','app_11941c8fec_transactional_account_cleanup'))
+    and
     not has_table_privilege('anon','public.app_11941c8fec_subscriptions','DELETE')
     and not has_table_privilege('authenticated','public.app_11941c8fec_subscriptions','DELETE')
     and not has_table_privilege('service_role','public.app_11941c8fec_subscriptions','DELETE')

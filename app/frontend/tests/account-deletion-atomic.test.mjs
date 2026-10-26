@@ -44,7 +44,11 @@ function fixture(options={}){
           throw Error('Unexpected RPC');
         },
         auth:{getUser:async token=>{assert.equal(key,'offline-anon');calls.push('authenticate');return{data:{user:token==='synthetic-token'?{id:A}:null},error:token==='synthetic-token'?null:{message:'invalid'}};},
-          admin:{deleteUser:async(user,soft)=>{
+          admin:{getUserById:async user=>{
+            assert.equal(user,A);calls.push('confirm-absence');
+            return db.users[user]?{data:{user:{id:user}},error:null}
+              :{data:{user:null},error:{status:404,code:'user_not_found'}};
+          },deleteUser:async(user,soft)=>{
             assert.equal(key,'offline-service');
             calls.push('auth-delete');assert.equal(user,A);assert.equal(soft,false);
             if(options.billingRace)db.billing[A]={paid:false,pendingCheckout:true};

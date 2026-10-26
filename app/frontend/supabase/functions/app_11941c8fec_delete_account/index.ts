@@ -30,7 +30,14 @@ Deno.serve(async (req: Request) => {
       // The hard-delete statement runs Migration 009 cleanup in its own database
       // transaction. Never pre-delete trial/subscription rows over PostgREST.
       const { error } = await getAdmin().auth.admin.deleteUser(user, false);
-      return error === null;
+      if (error !== null) return false;
+      // GoTrue may acknowledge DELETE even when a BEFORE trigger vetoed the
+      // row operation. Only an explicit Auth user_not_found proves absence;
+      // transport failures, permission errors and malformed results do not.
+      const confirmed = await getAdmin().auth.admin.getUserById(user);
+      return confirmed.data?.user === null
+        && confirmed.error?.status === 404
+        && confirmed.error?.code === 'user_not_found';
     },
   });
 });
