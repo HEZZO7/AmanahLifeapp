@@ -110,6 +110,24 @@ resolver forwarding; verified local service aliases are added only to these
 owned disposable containers' /etc/hosts. This preserves internal resolution
 without permitting external DNS. No existing containers are reused or changed.
 
+Aliases are appended **in place** to each owned container's Docker-managed hosts
+backing file. Docker rejects replacement of its `/etc/hosts` bind mount with
+`docker cp` (`resource busy`, reproduced separately). The local daemon's
+`DockerRootDir` and the inspected container's `HostsPath` must agree exactly on
+`<DockerRootDir>/containers/<full-container-id>/hosts`. Labels, running state,
+PID, nonprivileged status, private IP and pinned namespace are checked again.
+The already-required host sudo runs a fixed `python3 -I` writer with private
+stdin; no shell or utility inside a service image is assumed. Directory-FD walks
+reject symlinks, and the existing single-link regular file is opened with
+`O_APPEND|O_NOFOLLOW`, never create/truncate/rename. Only validated aliases for
+discovered private peer addresses are added; conflicting existing aliases fail
+closed. Existing bytes, inode, owner and mode must survive unchanged. A read-only
+`docker cp` from the container independently verifies the result's SHA256; its
+private temporary snapshot is deleted. Unsupported daemon layout, unavailable
+sudo/storage access or a readback mismatch aborts setup before any worker.
+No DNS/firewall rule is changed by this correction. Docker removes the backing
+file with its owned container during normal ownership-scoped cleanup.
+
 The SDK and real adapter run in a child process inside the owned Kong namespace,
 with the original nonroot runner UID, no-new-privileges, and all process
 capabilities dropped. Its UID must differ from Kong's. UID-scoped rules allow
@@ -252,7 +270,7 @@ establish a root cause, and cleanup success does not establish startup readiness
 Failed controller subprocesses now add only
 `infrastructureFailure.diagnostic.operation` and `.reason`, selected from fixed
 allowlists. For example `supabase_status_json`, `inspect_auth_labels`,
-`bind_namespace`, `namespace_rule_insert`, or `write_owned_hosts` identifies the
+`bind_namespace`, `namespace_rule_insert`, or `append_owned_hosts` identifies the
 operation without publishing its arguments or resource identifiers. Reasons such
 as `permission_denied`, `object_missing`, or `resource_busy` are bounded hints
 from captured output, not verified root-cause conclusions. Unknown messages stay

@@ -10,7 +10,7 @@ import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHI
   workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
-import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle} from './isolation.mjs';
+import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
 const childEnv={PATH:process.env.PATH,LANG:'C.UTF-8',DO_NOT_TRACK:'1',CI:'true',DOCKER_HOST:'unix:///var/run/docker.sock'};
 let root,project,cli,acquired=false;
 export function command(exe,args,input,timeout=30000,execute=spawnSync){
@@ -48,6 +48,84 @@ export function verifyPackage(directory,manifest){
 function context(workdir){
   root=workdir;project=path.basename(workdir);
   childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');childEnv.DOCKER_CONFIG=path.join(root,'.docker');
+}
+// Docker bind-mounts this daemon-owned file as /etc/hosts. Never replace the
+// mountpoint using docker cp, and do not assume utilities exist in every image.
+// All input travels over stdin. Only a digest, never file bytes, is returned.
+export const OWNED_HOSTS_APPEND_SCRIPT=String.raw`
+import contextlib, hashlib, ipaddress, json, os, re, stat, sys
+try:
+    raw=sys.stdin.read(65537); assert len(raw)<=65536
+    value=json.loads(raw); assert set(value)=={'dockerRoot','container','subnet','entries'}
+    root=value['dockerRoot']; cid=value['container']; entries=value['entries']
+    assert isinstance(root,str) and root.startswith('/') and root!='/' and os.path.normpath(root)==root and not root.startswith('//')
+    assert re.fullmatch('[a-f0-9]{64}',cid) and isinstance(entries,list) and 0<len(entries)<=256
+    subnet=ipaddress.IPv4Network(value['subnet']); assert subnet.is_private
+    desired={}
+    for line in entries:
+        fields=line.split(' '); assert len(fields)>=2 and all(fields)
+        address=ipaddress.IPv4Address(fields[0])
+        assert address in subnet and not address.is_loopback and not address.is_multicast and not address.is_unspecified
+        for name in fields[1:]:
+            assert re.fullmatch('[A-Za-z0-9_.-]{1,253}',name)
+            assert name not in desired or desired[name]==str(address)
+            desired[name]=str(address)
+    with contextlib.ExitStack() as stack:
+        def own(fd): stack.callback(os.close,fd); return fd
+        directory=own(os.open('/',os.O_PATH|os.O_DIRECTORY|os.O_CLOEXEC))
+        for part in root.split('/')[1:]+['containers',cid]:
+            assert part and part not in ('.','..')
+            directory=own(os.open(part,os.O_PATH|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory))
+        fd=own(os.open('hosts',os.O_RDWR|os.O_APPEND|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=directory))
+        before=os.fstat(fd); assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size<=1048576
+        saved=os.read(fd,1048577); assert len(saved)<=1048576
+        present=set()
+        for line in saved.decode('utf8').splitlines():
+            fields=line.split('#',1)[0].split()
+            if not fields: continue
+            for name in fields[1:]:
+                if name in desired:
+                    assert fields[0]==desired[name]
+                    present.add(name)
+        missing={}
+        for name,address in desired.items():
+            if name not in present: missing.setdefault(address,[]).append(name)
+        suffix=('\n'+'\n'.join(address+' '+' '.join(names) for address,names in missing.items())+'\n').encode() if missing else b''
+        remaining=suffix
+        while remaining:
+            written=os.write(fd,remaining); assert written>0; remaining=remaining[written:]
+        os.fsync(fd); after=os.fstat(fd)
+        assert (before.st_dev,before.st_ino,before.st_mode,before.st_uid,before.st_gid)==(after.st_dev,after.st_ino,after.st_mode,after.st_uid,after.st_gid)
+        os.lseek(fd,0,os.SEEK_SET); actual=os.read(fd,1048577)
+        assert actual==saved+suffix and len(actual)<=1048576
+        print(hashlib.sha256(actual).hexdigest())
+except PermissionError:
+    sys.stderr.write('permission denied\n'); sys.exit(1)
+except Exception:
+    sys.exit(1)
+`;
+export function installOwnedHosts(workdir,identity,run=command,verify=verifyNamespaceHandle){
+  const name=path.basename(workdir);isolationRules(name,identity);
+  assert.equal(path.dirname(identity.handle),workdir);
+  const dockerRoot=run('docker',['info','--format','{{.DockerRootDir}}']);
+  assert.ok(path.isAbsolute(dockerRoot)&&dockerRoot!=='/'&&path.normalize(dockerRoot)===dockerRoot);
+  for(const [index,peer]of identity.peers.entries()){
+    verify({...peer,hostNamespace:identity.hostNamespace});
+    const item=JSON.parse(run('docker',['inspect',peer.id]))[0];
+    assert.equal(item.Id,peer.id);assert.equal(item.Config.Labels['com.supabase.cli.project'],name);
+    assert.equal(item.State.Running,true);assert.equal(item.State.Pid,peer.pid);assert.equal(item.HostConfig.Privileged,false);
+    const networks=Object.values(item.NetworkSettings.Networks);assert.equal(networks.length,1);
+    assert.equal(networks[0].IPAddress,identity.hostEntries[index].split(' ')[0]);
+    assert.equal(item.HostsPath,path.join(dockerRoot,'containers',peer.id,'hosts'));
+    const digest=run('sudo',['-n','python3','-I','-c',OWNED_HOSTS_APPEND_SCRIPT],JSON.stringify({
+      dockerRoot,container:peer.id,subnet:identity.subnet,entries:identity.hostEntries,
+    }));
+    assert.match(digest,/^[a-f0-9]{64}$/);
+    const snapshot=path.join(workdir,'hosts-'+peer.id);assert.ok(!fs.existsSync(snapshot));
+    run('docker',['cp',peer.id+':/etc/hosts',snapshot]);
+    assert.ok(fs.lstatSync(snapshot).isFile()&&!fs.lstatSync(snapshot).isSymbolicLink());
+    assert.equal(sha256(fs.readFileSync(snapshot)),digest);fs.unlinkSync(snapshot);
+  }
 }
 function discoverIsolation(){
   const kong=JSON.parse(command('docker',['inspect','supabase_kong_'+project]))[0];
@@ -242,13 +320,7 @@ export async function prepare(opts,manifest,notify){
   const identity=discoverIsolation();installIsolation(root,identity,command);verifyIsolation(root,command);
   // Docker embedded DNS is blocked before the SDK loads. Preserve LOCAL service
   // resolution with owned-container aliases only; never add an external host.
-  for(const peer of identity.peers){
-    const hosts=path.join(root,'hosts-'+peer.id);
-    command('docker',['cp',peer.id+':/etc/hosts',hosts]);
-    assert.ok(fs.lstatSync(hosts).isFile()&&!fs.lstatSync(hosts).isSymbolicLink());
-    fs.appendFileSync(hosts,'\n'+identity.hostEntries.join('\n')+'\n');
-    command('docker',['cp',hosts,peer.id+':/etc/hosts']);fs.unlinkSync(hosts);
-  }
+  installOwnedHosts(root,identity);
   return {source,credentials,project,identity};
 }
 export async function shutdown(workdir){

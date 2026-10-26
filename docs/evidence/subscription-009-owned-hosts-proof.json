@@ -1,0 +1,14 @@
+{
+  "dockerVersion": "28.4.0",
+  "replacementExit": 1,
+  "replacementResourceBusy": true,
+  "inPlaceAppendExit": 0,
+  "originalPrefixPreserved": true,
+  "inodePreserved": true,
+  "localAliasResolutionVerified": true,
+  "networkMode": "none",
+  "privileged": false,
+  "nativeAuthGroupsExecuted": 0,
+  "liveCheckMethod": "in-container append; production Python writer tested separately on temporary daemon-layout fixtures",
+  "ownedContainerRemoved": true
+}

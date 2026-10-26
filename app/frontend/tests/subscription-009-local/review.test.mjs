@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,SDK_VERSION,
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL} from './local-runtime.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -138,6 +138,7 @@ test('status subprocess diagnostics identify fixed operations without retaining 
     ['docker',['cp','/private/secret','SIMULATED_SECRET:/etc/hosts'],'write_owned_hosts'],
     ['sudo',['-n','readlink','/proc/secret/ns/net'],'read_namespace'],
     ['sudo',['-n','mount','--bind','/proc/secret/ns/net','/private/secret'],'bind_namespace'],
+    ['sudo',['-n','python3','-c','SIMULATED_SECRET'],'append_owned_hosts'],
     ['unreviewed-secret-executable',['SIMULATED_SECRET'],'other'],
   ];
   for(const scope of ['host','namespace'])for(const [flag,operation]of [['-C','probe'],['-I','insert'],['-D','delete']]){
@@ -365,10 +366,75 @@ test('network policy protects the worker and every owned container in BOTH addre
   }
   assert.ok(rules.some(r=>r.scope==='kong'&&r.table==='nat'&&r.args.includes('8000')));
   for(const peer of i.peers)assert.ok(rules.some(r=>r.scope===peer.id&&r.args.includes('127.0.0.11')&&r.args.includes('REJECT')));
-  assert.match(runtime,/identity.hostEntries.join/);assert.match(runtime,/runIsolatedWorker|worker-report/);
+  assert.match(runtime,/entries:identity.hostEntries/);assert.match(runtime,/installOwnedHosts\(root,identity\)/);assert.match(runtime,/runIsolatedWorker|worker-report/);
   assert.match(runtime,/--no-new-privs/);assert.match(runtime,/--bounding-set=-all/);
   assert.match(runtime,/env:\{\.\.\.childEnv,RUNNER_TEMP/);assert.doesNotMatch(runtime,/env:process.env/);
 });
+function ownedHostsFixture(base,mutate=()=>{}){
+  const workdir=path.join(base,projectName);fs.mkdirSync(workdir);
+  const i=identity();i.handle=path.join(workdir,'kong-netns');
+  for(const peer of i.peers)peer.handle=path.join(workdir,path.basename(peer.handle));
+  const writes=[],calls=[],content=Buffer.from('127.0.0.1 localhost\n'+i.hostEntries.join('\n')+'\n');
+  let copyContent=content;
+  const run=(exe,args,input)=>{
+    calls.push([exe,args]);
+    if(exe==='docker'&&args[0]==='info')return '/var/lib/docker';
+    if(exe==='docker'&&args[0]==='inspect'){
+      const peer=i.peers.find(p=>p.id===args[1]),index=i.peers.indexOf(peer);
+      const item={Id:peer.id,Config:{Labels:{'com.supabase.cli.project':projectName}},State:{Pid:peer.pid,Running:true},
+        HostConfig:{Privileged:false},NetworkSettings:{Networks:{owned:{IPAddress:i.hostEntries[index].split(' ')[0]}}},
+        HostsPath:'/var/lib/docker/containers/'+peer.id+'/hosts'};
+      mutate(item);return JSON.stringify([item]);
+    }
+    if(exe==='sudo'){
+      assert.deepEqual(args,['-n','python3','-I','-c',OWNED_HOSTS_APPEND_SCRIPT]);
+      const value=JSON.parse(input);assert.deepEqual(value.entries,i.hostEntries);assert.equal(value.subnet,i.subnet);
+      assert.equal(value.dockerRoot,'/var/lib/docker');assert.ok(i.peers.some(p=>p.id===value.container));
+      writes.push(value.container);return sha256(content);
+    }
+    assert.equal(exe,'docker');assert.equal(args[0],'cp');
+    assert.ok(args[1].endsWith(':/etc/hosts'));assert.equal(path.dirname(args[2]),workdir);
+    fs.writeFileSync(args[2],copyContent);return '';
+  };
+  const verify=peer=>{assert.equal(path.dirname(peer.handle),workdir);assert.notEqual(peer.namespace,peer.hostNamespace);};
+  return {workdir,identity:i,run,verify,writes,calls,corruptReadback(){copyContent=Buffer.from('mismatch');}};
+}
+test('owned hosts append never replaces Docker mountpoints and verifies every readback',()=>scratch(base=>{
+  assert.throws(()=>command('docker',['cp','/private/replacement','owned:/etc/hosts'],undefined,30000,
+    ()=>({status:1,stderr:'Device or resource busy'})),error=>{
+    assert.equal(error.exitCode,1);assert.deepEqual(commandFailureDetails(error),{
+      diagnostic:{operation:'write_owned_hosts',reason:'resource_busy'},
+    });return true;
+  });
+  const f=ownedHostsFixture(base);installOwnedHosts(f.workdir,f.identity,f.run,f.verify);
+  assert.equal(f.writes.length,4);assert.equal(f.calls.filter(([exe,args])=>exe==='docker'&&args[0]==='cp').length,4);
+  assert.deepEqual(fs.readdirSync(f.workdir),[]);
+  assert.match(OWNED_HOSTS_APPEND_SCRIPT,/os\.O_APPEND\|os\.O_NOFOLLOW/);
+  assert.doesNotMatch(OWNED_HOSTS_APPEND_SCRIPT,/O_CREAT|O_TRUNC|os\.rename|os\.replace|os\.unlink/);
+}));
+test('foreign ownership, stale PID, wrong hosts path and changed network fail before any write',()=>{
+  for(const mutate of [item=>item.Config.Labels['com.supabase.cli.project']='foreign',item=>item.State.Pid++,
+    item=>item.HostsPath='/etc/hosts',item=>item.HostConfig.Privileged=true,item=>item.State.Running=false,
+    item=>item.NetworkSettings.Networks.owned.IPAddress='172.18.99.99'])scratch(base=>{
+      const f=ownedHostsFixture(base,mutate);assert.throws(()=>installOwnedHosts(f.workdir,f.identity,f.run,f.verify));
+      assert.deepEqual(f.writes,[]);
+    });
+});
+test('hosts helper failure is propagated without retries, fallbacks or subsequent writes',()=>scratch(base=>{
+  const f=ownedHostsFixture(base);let attempts=0;
+  const run=(exe,args,input)=>{if(exe==='sudo'){attempts++;throw new Failure('command_failed',1);}return f.run(exe,args,input);};
+  assert.throws(()=>installOwnedHosts(f.workdir,f.identity,run,f.verify),e=>e instanceof Failure&&e.exitCode===1);
+  assert.equal(attempts,1);assert.equal(f.calls.some(([exe,args])=>exe==='docker'&&args[0]==='cp'),false);
+}));
+test('container hosts readback mismatch stops setup before processing another peer',()=>scratch(base=>{
+  const f=ownedHostsFixture(base);f.corruptReadback();
+  assert.throws(()=>installOwnedHosts(f.workdir,f.identity,f.run,f.verify));assert.equal(f.writes.length,1);
+}));
+test('invalid pinned namespace never authorizes a hosts append',()=>scratch(base=>{
+  const f=ownedHostsFixture(base);
+  assert.throws(()=>installOwnedHosts(f.workdir,f.identity,f.run,()=>{throw Error('invalid namespace');}));
+  assert.deepEqual(f.writes,[]);
+}));
 test('host namespace, root worker, Kong UID collision and foreign bind paths fail closed',()=>{
   for(const change of [{namespace:'net:[999]'},{uid:0},{kongUid:1001},{handle:'/unrelated/kong-netns'},
     {subnet:'0.0.0.0/0'},{groups:[]},{peers:identity().peers.map(p=>({...p,namespace:'net:[999]'}))}]){

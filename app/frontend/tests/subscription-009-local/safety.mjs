@@ -13,7 +13,7 @@ export class Failure extends Error {
 }
 const COMMAND_OPERATIONS=Object.freeze(['supabase_status_json','supabase_init','supabase_start','supabase_stop',
   'inspect_db_labels','inspect_auth_labels','inspect_rest_labels','inspect_kong_labels',
-  'inspect_container','inspect_network','container_uid','read_owned_hosts','write_owned_hosts',
+  'inspect_container','inspect_network','container_uid','read_owned_hosts','write_owned_hosts','append_owned_hosts',
   'read_namespace','bind_namespace','host_rule_probe','host_rule_insert','host_rule_delete',
   'namespace_rule_probe','namespace_rule_insert','namespace_rule_delete','other']);
 const COMMAND_REASONS=Object.freeze(['timeout','executable_missing','permission_denied','resource_busy',
@@ -34,7 +34,8 @@ export function commandDiagnostic(exe,args,result){
     else if(args[0]==='exec'&&args.at(-2)==='id'&&args.at(-1)==='-u')operation='container_uid';
     else if(args[0]==='cp')operation=args[1]?.endsWith(':/etc/hosts')?'read_owned_hosts':'write_owned_hosts';
   }else if(tool==='sudo'){
-    if(args[1]==='readlink')operation='read_namespace';
+    if(args[1]==='python3'&&args.includes('-c'))operation='append_owned_hosts';
+    else if(args[1]==='readlink')operation='read_namespace';
     else if(args[1]==='mount'&&args.includes('--bind'))operation='bind_namespace';
     else if(args.includes('iptables')||args.includes('ip6tables')){
       const scope=args.includes('nsenter')?'namespace':'host';
