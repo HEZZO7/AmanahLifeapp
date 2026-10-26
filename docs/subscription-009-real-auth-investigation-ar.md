@@ -77,3 +77,14 @@ infrastructure_failed، ويرفض القيم غير المعروفة أو ال�
 المنفصلة. الخطوة التالية هي تحديث PACKAGE_SHA في workflow اليدوي على main إلى
 commit الحزمة الجديد بعد مراجعته؛ ثم الحصول على checks[].authStage من تشغيل
 مصرح به لاحقًا إن تكرر الفشل. لم يُعدّل main ولم يُطلق أي workflow هنا.
+
+commit الحزمة المراجع محليًا: `172a0774dfd4cde1a8d794fa4a91a6ebdae6ac23`.
+التغيير المطلوب يدويًا في workflow على main:
+
+```yaml
+PACKAGE_SHA: 172a0774dfd4cde1a8d794fa4a91a6ebdae6ac23
+```
+
+يبقى `SOURCE_SHA=e6dd3fc5e014ea0539df8da12a6ee84582b302b9` وcheckout الحزمة
+`ref: ${{ env.PACKAGE_SHA }}` وشرط فرع main وسائر الضوابط كما هي.
+ثُبت المرجع على نسخة workflow في فرع الاسترداد وحده؛ لم يُمس main أو يُرسل dispatch.
