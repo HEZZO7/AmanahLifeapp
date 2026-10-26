@@ -10,8 +10,9 @@ import {syncBuiltinESMExports} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,SDK_VERSION,
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
-  trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT} from './local-runtime.mjs';
+  trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
+  WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,runIsolatedWorker} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -176,7 +177,7 @@ test('actual command failure plumbing preserves nonzero exit and emits only clas
     });
   }
   assert.equal(command('docker',['inspect'],undefined,30000,()=>({status:0,stdout:'  ok\n'})),'ok');
-  assert.match(runner,/infrastructureFailure=\{phase,[^\n]*commandFailureDetails\(error\)/);
+  assert.match(runner,/commandFailureDetails\(failure\)/);
 });
 test('failure reporting rejects unknown diagnostic values and strips extra keys',()=>{
   const error=new Failure('command_failed',1);
@@ -556,3 +557,133 @@ test('resource leftovers keep isolation intact until independent fallback verifi
   const gone=(exe,args,...rest)=>exe==='sudo'?fake.run(exe,args,...rest):'';
   assert.equal(cleanup(root,gone),true);assert.equal(fake.installed.size,0);
 }));
+
+function preflightFixture(){
+  const i=identity(),journal={version:1,project:projectName,identity:i,rules:isolationRules(projectName,i)};
+  const state={marker:{project:projectName,source:SOURCE_COMMIT},journal,namespace:i.namespace,uid:i.uid,gid:i.gid,
+    status:'NoNewPrivs:\t1\n',cancelled:false,badHandle:false};
+  const probe={
+    fs:{realpathSync:()=>'/tmp',readFileSync:file=>file.endsWith('owned.json')?JSON.stringify(state.marker):
+      file.endsWith('isolation.json')?JSON.stringify(state.journal):state.status,
+      readlinkSync:()=>state.namespace,existsSync:()=>state.cancelled},
+    uid:()=>state.uid,gid:()=>state.gid,
+    verifyNamespaceHandle:()=>{assert.equal(state.badHandle,false);},
+  };
+  return {state,probe,identity:i};
+}
+function controllerFixture(){
+  const i=identity(),state={report:{...summarize(complete(),true),observations:{}},outcome:{status:0,stdout:workerStageSignal(null)},
+    isolationError:null,readError:null,raw:null,launched:null};
+  const prepared={identity:i,source:'/tmp/source',credentials:{url:API_ORIGIN,anon:'offline-anon',service:'offline-service'}};
+  const probe={workdir:'/tmp/'+projectName,
+    verifyIsolation:()=>{if(state.isolationError)throw state.isolationError;return {identity:i};},
+    launch:(exe,args,options)=>{state.launched={exe,args,options};return state.outcome;},
+    readReport:()=>{if(state.readError)throw state.readError;return state.raw??JSON.stringify(state.report);},
+  };
+  return {state,prepared,probe,run:()=>runIsolatedWorker(prepared,'/tmp/package/integration.mjs',probe)};
+}
+test('worker stage protocol only accepts fixed two-field codes and clears before native groups',()=>{
+  for(const stage of WORKER_PREFLIGHT_STAGES){assert.equal(lastWorkerPreflightStage(workerStageSignal(stage)),stage);}
+  for(const output of ['SIMULATED_PRIVATE',JSON.stringify({type:'worker_stage',code:'SIMULATED_PRIVATE'}),
+    JSON.stringify({type:'worker_stage',code:'worker_uid',token:'SIMULATED_PRIVATE'}),'x'.repeat(1024*1024+1)]){
+    assert.equal(lastWorkerPreflightStage(output),null);
+  }
+  assert.equal(lastWorkerPreflightStage(workerStageSignal('worker_uid')+'SIMULATED_PRIVATE\n'), 'worker_uid');
+  assert.equal(lastWorkerPreflightStage(workerStageSignal('worker_uid')+workerStageSignal(null)),null);
+  assert.throws(()=>workerStageSignal('SIMULATED_PRIVATE'));
+  assert.deepEqual(workerFailureDetails({workerStage:'SIMULATED_PRIVATE',workerPreflightStage:'SIMULATED_PRIVATE',token:'SIMULATED_PRIVATE'}),{});
+});
+test('initializeWorker preserves every identity assertion and identifies each failed stage',()=>{
+  const previous=process.env.RUNNER_TEMP;process.env.RUNNER_TEMP='/tmp';
+  try{
+    const good=preflightFixture(),stages=[];
+    assert.deepEqual(initializeWorker('/tmp/'+projectName,stage=>stages.push(stage),good.probe),good.identity);
+    assert.deepEqual(stages,WORKER_PREFLIGHT_STAGES.slice(0,10));
+    for(const [stage,mutate]of [
+      ['worker_marker',s=>s.marker.source='SIMULATED_PRIVATE'],
+      ['worker_journal',s=>s.journal.project='foreign'],
+      ['worker_namespace_handle',s=>s.badHandle=true],
+      ['worker_namespace_identity',s=>s.namespace='net:[999]'],
+      ['worker_uid',s=>s.uid++],['worker_gid',s=>s.gid++],
+      ['worker_no_new_privileges',s=>s.status='NoNewPrivs:\t0\n'],
+      ['worker_cancelled',s=>s.cancelled=true],
+    ]){
+      const f=preflightFixture();mutate(f.state);
+      assert.throws(()=>initializeWorker('/tmp/'+projectName,()=>{},f.probe),error=>{
+        assert.ok(error instanceof Failure);assert.equal(error.exitCode,1);assert.equal(error.workerStage,stage);
+        assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE/);return true;
+      });
+    }
+  }finally{if(previous===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=previous;}
+});
+test('missing actual RUNNER_TEMP fails at a fixed stage without touching resources',()=>{
+  const previous=process.env.RUNNER_TEMP;delete process.env.RUNNER_TEMP;
+  try{
+    const signals=[];
+    assert.throws(()=>initializeWorker('/tmp/'+projectName,stage=>signals.push(stage)),error=>error.workerStage==='worker_runtime_temp'&&error.exitCode===1);
+    assert.deepEqual(signals,['worker_runtime_temp']);
+  }finally{if(previous!==undefined)process.env.RUNNER_TEMP=previous;}
+});
+test('worker launch retains namespace, credentials stdin, no-new-privileges and all capability drops',()=>{
+  const f=controllerFixture();assert.equal(f.run().report.result,'passed');
+  const {exe,args,options}=f.state.launched;assert.equal(exe,'sudo');assert.equal(args[0],'-n');
+  assert.ok(args.includes('nsenter'));assert.ok(args.includes('--net='+f.prepared.identity.handle));
+  for(const flag of ['--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs'])assert.ok(args.includes(flag));
+  assert.ok(args.includes('--reuid='+f.prepared.identity.uid));assert.ok(args.includes('--regid='+f.prepared.identity.gid));
+  assert.ok(args.includes('--groups='+f.prepared.identity.groups.join(',')));
+  assert.equal(options.timeout,480000);assert.equal(options.env.DOCKER_HOST,'unix:///var/run/docker.sock');
+  assert.deepEqual(JSON.parse(options.input).credentials,f.prepared.credentials);
+  assert.doesNotMatch(args.join(' '),/offline-service|offline-anon/);
+});
+test('controller validation tags exact failed assertions without accepting incomplete or forged reports',()=>{
+  for(const [stage,mutate]of [
+    ['controller_isolation',f=>f.state.isolationError=new Failure('isolation_not_established',7)],
+    ['controller_identity',f=>f.prepared.identity={...f.prepared.identity,uid:9999}],
+    ['controller_launch',f=>f.state.outcome={error:{code:'ETIMEDOUT'},stdout:''}],
+    ['controller_report_file',f=>f.state.readError=Error('SIMULATED_PRIVATE')],
+    ['controller_report_json',f=>f.state.raw='SIMULATED_PRIVATE'],
+    ['controller_report_source',f=>f.state.report.source='SIMULATED_PRIVATE'],
+    ['controller_report_production',f=>f.state.report.productionReady=true],
+    ['controller_report_checks',f=>f.state.report.checks=[{id:'SIMULATED_PRIVATE',result:'passed'}]],
+    ['controller_report_infrastructure',f=>f.state.report.infrastructureFailure={phase:'worker_preflight',category:'assertion_failed',exit:1,workerStage:'SIMULATED_PRIVATE'}],
+    ['controller_report_observations',f=>f.state.report.observations=null],
+    ['controller_report_result',f=>f.state.report.result='failed'],
+    ['controller_exit_status',f=>f.state.outcome.status=1],
+  ]){
+    const f=controllerFixture();mutate(f);
+    assert.throws(f.run,error=>{
+      assert.ok(error instanceof Failure);assert.equal(error.workerStage,stage);assert.ok(error.exitCode>0);
+      assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE|offline-service/);return true;
+    });
+  }
+});
+test('missing report preserves an allowlisted child preflight hint even when publishing failed',()=>{
+  const f=controllerFixture();f.state.readError=Error('SIMULATED_PRIVATE');
+  f.state.outcome={status:1,stdout:workerStageSignal('worker_runtime_temp')+'SIMULATED_PRIVATE\n',stderr:'SIMULATED_PRIVATE'};
+  assert.throws(f.run,error=>{
+    assert.deepEqual(workerFailureDetails(error),{workerStage:'controller_report_file',workerPreflightStage:'worker_runtime_temp',workerExit:1});
+    assert.equal(error.exitCode,1);assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE/);return true;
+  });
+});
+test('valid failed worker report keeps its preflight code when forwarded and can never become green',()=>{
+  const f=controllerFixture(),infra={phase:'worker_preflight',category:'assertion_failed',exit:1,workerStage:'worker_uid'};
+  f.state.report={...summarize([],false,infra),observations:{}};f.state.outcome={status:1,stdout:workerStageSignal('worker_uid')};
+  const r=f.run().report;assert.equal(r.result,'failed');assert.equal(r.completed,0);
+  assert.equal(r.infrastructureFailure.workerStage,'worker_uid');
+  const forwarded=Object.assign(new Failure(r.infrastructureFailure.category,r.infrastructureFailure.exit),workerFailureDetails(r.infrastructureFailure));
+  assert.equal(forwarded.workerStage,'worker_uid');assert.equal(forwarded.exitCode,1);
+  assert.match(runner,/Object.assign\(failure,workerFailureDetails\(report.infrastructureFailure\)\)/);
+  assert.match(runner,/notifyWorkerStage\(null\);\s*await check\('schema_dependencies'/);
+  const original=new Failure('worker_timeout',124);assert.equal(workerStageFailure('controller_launch',original),original);
+  assert.equal(original.exitCode,124);assert.throws(()=>workerStageFailure('SIMULATED_PRIVATE',original));
+});
+test('launcher diagnostics expose only fixed stderr origins and bounded exit numbers',()=>{
+  for(const [prefix,code]of [['sudo','launch_sudo'],['nsenter','launch_namespace'],['setpriv','launch_privileges'],['node','launch_node']]){
+    const details=workerLaunchDetails({status:2,stderr:prefix+': SIMULATED_PRIVATE /private/token'});
+    assert.deepEqual(details,{workerExit:2,workerLaunchStage:code});
+    assert.doesNotMatch(JSON.stringify(details),/SIMULATED_PRIVATE|\/private/);
+  }
+  assert.deepEqual(workerLaunchDetails({status:0,stderr:'sudo: SIMULATED_PRIVATE'}),{workerExit:0});
+  assert.deepEqual(workerLaunchDetails({status:999,stderr:'unknown SIMULATED_PRIVATE'}),{});
+  assert.deepEqual(workerFailureDetails({workerLaunchStage:'SIMULATED_PRIVATE',workerExit:999}),{});
+});

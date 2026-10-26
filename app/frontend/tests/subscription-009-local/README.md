@@ -257,6 +257,36 @@ continue-on-error, retry, rerun or acceptance based solely on cleanup success.
 
 ## Limits and acceptance
 
+### Worker preflight diagnostics (no relaxed checks)
+
+The report from run `40315180426` identifies only `isolated_worker` and
+`assertion_failed` with zero groups accepted by the controller. That label includes controller isolation and
+identity checks, sudo/nsenter/setpriv launch, worker initialization, SDK setup and
+validation of `worker-report.json`; it does not identify a root cause by itself.
+The controller copies group results only after report validation, so zero accepted
+groups alone cannot prove that the child never attempted a group.
+
+Infrastructure reports now retain a fixed `workerStage` code for each boundary:
+controller isolation/identity/launch and report file/JSON/source/checks/observations/
+result/exit checks, or worker workspace/marker/journal/namespace/UID/GID/NoNewPrivs/
+cancel/source/package/stdin/credential/SDK/migration-order checks. No actual UID,
+path, environment value, argument, credential or error message is published.
+Before each worker preflight operation, the worker emits a two-field stage marker
+on its captured private stdout. The controller accepts only exact allowlisted
+markers and discards all other output. A `workerPreflightStage` hint can therefore
+identify the last attempted preflight check even if report publication itself
+fails. The hint is cleared before the first native group; it is never a pass.
+Valid failed worker reports preserve these codes when forwarded by the controller.
+If the child fails before producing a report, bounded `workerExit` and an optional
+fixed `workerLaunchStage` hint distinguish stderr origins `sudo`, `nsenter`,
+`setpriv` and `node`. No stderr text or arguments are retained or emitted.
+
+Missing `RUNNER_TEMP` is locally reproducible as one possible early failure: it
+prevents both initialization and report publication. Its presence in the real
+failed worker was not observed, so this is NOT a diagnosis of the historical run.
+No sudo environment policy, namespace check, UID/GID assertion, capability flag,
+NoNewPrivs condition, report integrity requirement or cleanup behavior is bypassed.
+
 ### Sanitized infrastructure command diagnostics
 
 The historical run `40272569296` exited before all groups with

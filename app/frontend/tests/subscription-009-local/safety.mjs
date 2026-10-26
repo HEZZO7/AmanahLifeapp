@@ -11,6 +11,60 @@ export const APPROVAL='disposable-local-migration-009-only';
 export class Failure extends Error {
   constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
 }
+export const WORKER_PREFLIGHT_STAGES=Object.freeze([
+  'worker_runtime_temp','worker_workspace','worker_marker','worker_journal','worker_namespace_handle',
+  'worker_namespace_identity','worker_uid','worker_gid','worker_no_new_privileges','worker_cancelled',
+  'worker_source_path','worker_source_workspace','worker_package_integrity','worker_source_integrity',
+  'worker_private_input','worker_approval','worker_credentials','worker_sdk_import','worker_sdk_version',
+  'worker_client_setup','worker_migration_order',
+]);
+const WORKER_STAGES=Object.freeze([...WORKER_PREFLIGHT_STAGES,
+  'controller_isolation','controller_identity','controller_launch','controller_report_file','controller_report_json',
+  'controller_report_source','controller_report_production','controller_report_checks','controller_report_infrastructure',
+  'controller_report_observations','controller_report_result','controller_exit_status',
+]);
+const WORKER_LAUNCH_STAGES=Object.freeze(['launch_sudo','launch_namespace','launch_privileges','launch_node']);
+export function workerStageFailure(stage,error,preflight=null){
+  assert.ok(WORKER_STAGES.includes(stage));
+  const failure=error instanceof Failure?error:new Failure('assertion_failed',1);
+  failure.workerStage=stage;
+  if(preflight!==null){assert.ok(WORKER_PREFLIGHT_STAGES.includes(preflight));failure.workerPreflightStage=preflight;}
+  return failure;
+}
+export function workerFailureDetails(value){
+  const details={};
+  if(WORKER_STAGES.includes(value?.workerStage))details.workerStage=value.workerStage;
+  if(WORKER_PREFLIGHT_STAGES.includes(value?.workerPreflightStage))details.workerPreflightStage=value.workerPreflightStage;
+  if(WORKER_LAUNCH_STAGES.includes(value?.workerLaunchStage))details.workerLaunchStage=value.workerLaunchStage;
+  if(Number.isInteger(value?.workerExit)&&value.workerExit>=0&&value.workerExit<=255)details.workerExit=value.workerExit;
+  return details;
+}
+export function workerStageSignal(stage){
+  assert.ok(stage===null||WORKER_PREFLIGHT_STAGES.includes(stage));
+  return JSON.stringify({type:'worker_stage',code:stage??'native_groups_started'})+'\n';
+}
+export function lastWorkerPreflightStage(stdout){
+  let stage=null;
+  if(typeof stdout!=='string'||stdout.length>1024*1024)return stage;
+  for(const line of stdout.split('\n')){
+    let value;try{value=JSON.parse(line);}catch{continue;}
+    if(!value||Object.keys(value).sort().join(',')!=='code,type'||value.type!=='worker_stage')continue;
+    if(WORKER_PREFLIGHT_STAGES.includes(value.code))stage=value.code;
+    else if(value.code==='native_groups_started')stage=null;
+  }
+  return stage;
+}
+export function workerLaunchDetails(outcome){
+  const details={};
+  if(Number.isInteger(outcome.status)&&outcome.status>=0&&outcome.status<=255)details.workerExit=outcome.status;
+  if(outcome.status!==0){
+    const text=typeof outcome.stderr==='string'?outcome.stderr.slice(-65536):'';
+    for(const [prefix,stage]of [['sudo','launch_sudo'],['nsenter','launch_namespace'],['setpriv','launch_privileges'],['node','launch_node']]){
+      if(new RegExp('^'+prefix+':','m').test(text)){details.workerLaunchStage=stage;break;}
+    }
+  }
+  return details;
+}
 const COMMAND_OPERATIONS=Object.freeze(['supabase_status_json','supabase_init','supabase_start','supabase_stop',
   'inspect_db_labels','inspect_auth_labels','inspect_rest_labels','inspect_kong_labels',
   'inspect_container','inspect_network','container_uid','read_owned_hosts','write_owned_hosts','append_owned_hosts',

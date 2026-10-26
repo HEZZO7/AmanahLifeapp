@@ -6,7 +6,8 @@ import {randomBytes} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
-  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails} from './safety.mjs';
+  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
+  workerStageFailure,workerFailureDetails,workerStageSignal} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -16,6 +17,11 @@ const q=id=>"'"+uuid(id)+"'";
 const results=[],observations={};let phase='preflight',cleanupPassed=false,workingDirectory;
 const assertSQLState=(error,expected)=>{throwIfDatabaseInfrastructure(error);assert.equal(error?.code,expected);};
 const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
+let workerMode=false,activeWorkerStage=null;
+function notifyWorkerStage(stage){
+  const signal=workerStageSignal(stage);activeWorkerStage=stage;
+  if(workerMode)process.stdout.write(signal);
+}
 export function options(args){
   const out={};
   for(let i=0;i<args.length;i++){
@@ -129,15 +135,21 @@ function verifyMetadata(m){
 }
 
 async function exercise(source,credentials){
+  notifyWorkerStage('worker_client_setup');
   const originalFetch=globalThis.fetch,originalDeno=globalThis.Deno;
   const guard=trafficGuard(originalFetch);globalThis.fetch=guard.fetch;
   try{
+    notifyWorkerStage('worker_sdk_import');
     const {createClient}=await import('@supabase/supabase-js');
+    notifyWorkerStage('worker_sdk_version');
     assert.equal(JSON.parse(read('./node_modules/@supabase/supabase-js/package.json')).version,SDK_VERSION);
+    notifyWorkerStage('worker_client_setup');
     const sdk=key=>createClient(API_ORIGIN,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     const admin=sdk(credentials.service),anon=sdk(credentials.anon);
     const migrationFiles=manifest.migrationOrder;
+    notifyWorkerStage('worker_migration_order');
     assert.deepEqual(migrationFiles.map(f=>f.match(/00([1-9])_/)[1]),['1','2','3','4','5','8','9']);
+    notifyWorkerStage(null);
     await check('schema_dependencies',()=>{
       sql(read('./fixture.sql'));
       for(const file of migrationFiles.slice(0,6))sql(fs.readFileSync(path.join(source,file),'utf8'));
@@ -423,7 +435,10 @@ export async function execute(opts){
     const prepared=await prepare(opts,manifest,name=>{phase=name;emit({phase:name,result:'started'});});
     phase='isolated_worker';const {report}=runIsolatedWorker(prepared,new URL(import.meta.url).pathname);
     results.push(...report.checks);Object.assign(observations,report.observations);
-    if(report.infrastructureFailure)throw new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
+    if(report.infrastructureFailure){
+      const failure=new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
+      Object.assign(failure,workerFailureDetails(report.infrastructureFailure));throw failure;
+    }
     if(!report.cleanupPassed)throw new Failure('session_cleanup_failed');
   }finally{
     const previous=phase;phase='cleanup';cleanupPassed=await shutdown(workingDirectory);
@@ -431,13 +446,18 @@ export async function execute(opts){
   }
 }
 async function worker(opts){
-  phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
-  initializeWorker(workingDirectory);const source=fs.realpathSync(opts['--source']);
+  workerMode=true;phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
+  initializeWorker(workingDirectory,notifyWorkerStage);
+  notifyWorkerStage('worker_source_path');const source=fs.realpathSync(opts['--source']);
+  notifyWorkerStage('worker_source_workspace');
   workspace(workingDirectory,fs.realpathSync(process.env.RUNNER_TEMP),source);
-  verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);verifySource(source,manifest);
+  notifyWorkerStage('worker_package_integrity');verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);
+  notifyWorkerStage('worker_source_integrity');verifySource(source,manifest);
   // Private stdin only: no local JWT/key in argv, environment, or console.
-  const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
-  const input=JSON.parse(raw);assert.equal(input.approval,APPROVAL);
+  notifyWorkerStage('worker_private_input');const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
+  const input=JSON.parse(raw);
+  notifyWorkerStage('worker_approval');assert.equal(input.approval,APPROVAL);
+  notifyWorkerStage('worker_credentials');
   const credentials=localStatus({API_URL:input.credentials.url,
     DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres',ANON_KEY:input.credentials.anon,SERVICE_ROLE_KEY:input.credentials.service});
   try{await exercise(source,credentials);}
@@ -468,7 +488,11 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   });
   let infrastructureFailure=null;
   try{opts=options(process.argv.slice(2));if(opts['--worker'])await worker(opts);else await execute(opts);}
-  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1,...commandFailureDetails(error)};}
+  catch(error){
+    const failure=activeWorkerStage?workerStageFailure(activeWorkerStage,error):error;
+    infrastructureFailure={phase,category:failure instanceof Failure?failure.category:'assertion_failed',exit:failure instanceof Failure?failure.exitCode:1,
+      ...commandFailureDetails(failure),...workerFailureDetails(failure)};
+  }
   if(opts?.['--cleanup']){
     latch.publish({mode:'cleanup',result:cleanupPassed&&!infrastructureFailure?'passed':'failed',
       cleanupPassed:cleanupPassed&&!infrastructureFailure,productionReady:false,infrastructureFailure});

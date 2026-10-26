@@ -1,0 +1,15 @@
+{
+  "historicalRun": 40315180426,
+  "historicalRootCauseEstablished": false,
+  "localCase": "missing_runner_temp",
+  "workerExit": 1,
+  "allowlistedStageCodes": [
+    "worker_runtime_temp"
+  ],
+  "workerReportCreated": false,
+  "resourceDirectoryCreated": false,
+  "nativeGroupsExecuted": 0,
+  "networkDeniedByPreload": true,
+  "sudoNsenterSetprivExecuted": false,
+  "scope": "possible failure reproduced; not evidence of the historical runner environment"
+}

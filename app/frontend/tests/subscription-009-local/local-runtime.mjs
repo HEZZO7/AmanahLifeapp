@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -161,49 +161,76 @@ function discoverIsolation(){
   return {pid,bridge,namespace,hostNamespace:fs.readlinkSync('/proc/self/ns/net'),uid,gid,
     peers,subnet,hostEntries,groups:process.getgroups(),kongUid:Number(command('docker',['exec','supabase_kong_'+project,'id','-u'])),handle:path.join(root,'kong-netns')};
 }
-export function initializeWorker(workdir){
-  workspace(workdir,fs.realpathSync(process.env.RUNNER_TEMP));context(workdir);
-  const marker=JSON.parse(fs.readFileSync(path.join(root,'owned.json')));assert.equal(marker.project,project);assert.equal(marker.source,SOURCE_COMMIT);
-  const journal=validateIsolation(JSON.parse(fs.readFileSync(path.join(root,'isolation.json'))));
-  assert.equal(journal.project,project);const identity=journal.identity;assert.ok(identity);
-  verifyNamespaceHandle(identity);assert.equal(fs.readlinkSync('/proc/self/ns/net'),identity.namespace);
-  assert.equal(process.getuid(),identity.uid);assert.equal(process.getgid(),identity.gid);
-  assert.match(fs.readFileSync('/proc/self/status','utf8'),/^NoNewPrivs:\s+1$/m);
-  assert.ok(!fs.existsSync(path.join(root,'worker-cancel')));
-  return identity;
+export function initializeWorker(workdir,notify=()=>{},probe={}){
+  const io=probe.fs??fs,verify=probe.verifyNamespaceHandle??verifyNamespaceHandle;
+  const uid=probe.uid??(()=>process.getuid()),gid=probe.gid??(()=>process.getgid());
+  let stage='worker_runtime_temp';const at=value=>{stage=value;notify(value);};
+  try{
+    at('worker_runtime_temp');const base=io.realpathSync(process.env.RUNNER_TEMP);
+    at('worker_workspace');workspace(workdir,base);context(workdir);
+    at('worker_marker');
+    const marker=JSON.parse(io.readFileSync(path.join(root,'owned.json')));assert.equal(marker.project,project);assert.equal(marker.source,SOURCE_COMMIT);
+    at('worker_journal');
+    const journal=validateIsolation(JSON.parse(io.readFileSync(path.join(root,'isolation.json'))));
+    assert.equal(journal.project,project);const identity=journal.identity;assert.ok(identity);
+    at('worker_namespace_handle');verify(identity);
+    at('worker_namespace_identity');assert.equal(io.readlinkSync('/proc/self/ns/net'),identity.namespace);
+    at('worker_uid');assert.equal(uid(),identity.uid);
+    at('worker_gid');assert.equal(gid(),identity.gid);
+    at('worker_no_new_privileges');assert.match(io.readFileSync('/proc/self/status','utf8'),/^NoNewPrivs:\s+1$/m);
+    at('worker_cancelled');assert.ok(!io.existsSync(path.join(root,'worker-cancel')));
+    return identity;
+  }catch(error){throw workerStageFailure(stage,error);}
 }
-export function runIsolatedWorker(prepared,entry){
-  const journal=verifyIsolation(root,command),identity=journal.identity;
-  assert.deepEqual(identity,prepared.identity);
-  const args=['-n','nsenter','--net='+identity.handle,'--','setpriv','--reuid='+identity.uid,'--regid='+identity.gid,
-    '--groups='+identity.groups.join(','),'--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','--',
-    process.execPath,entry,'--worker','--source',prepared.source,'--workdir',root];
-  const input=JSON.stringify({approval:APPROVAL,credentials:prepared.credentials});
-  const outcome=spawnSync('sudo',args,{input,encoding:'utf8',env:{...childEnv,RUNNER_TEMP:process.env.RUNNER_TEMP},timeout:480000,maxBuffer:1024*1024});
-  if(outcome.error||outcome.signal)throw new Failure(outcome.error?.code==='ETIMEDOUT'?'worker_timeout':'worker_transport_failed',outcome.error?.code==='ETIMEDOUT'?124:1);
-  const report=JSON.parse(fs.readFileSync(path.join(root,'worker-report.json'),'utf8'));
-  assert.equal(report.source,SOURCE_COMMIT);assert.equal(report.productionReady,false);
-  assert.ok(Array.isArray(report.checks));
-  const safeWord=value=>{assert.equal(typeof value,'string');assert.match(value,/^[a-z_]{1,80}$/);return value;};
-  const checks=report.checks.map(r=>{
-    assert.ok(CHECKS.includes(r.id));assert.ok(['passed','failed','infrastructure_failed'].includes(r.result));
-    return {id:r.id,result:r.result,...(r.category?{category:safeWord(r.category)}:{}),
-      ...(r.exit!==undefined?{exit:validExit(r.exit)}:{})};
-  });
-  function validExit(value){assert.ok(Number.isInteger(value)&&value>=1&&value<=255);return value;}
-  const infra=report.infrastructureFailure?{phase:safeWord(report.infrastructureFailure.phase),
-    category:safeWord(report.infrastructureFailure.category),exit:validExit(report.infrastructureFailure.exit)}:null;
-  const safe={...summarize(checks,report.cleanupPassed,infra),observations:{}};
-  for(const key of ['familyDisplayNameRetained','ownerDeletionCascadesSharedFamily','afterNullTriggerDetected',
-    'beforeNullTriggerDetected','beforeNullDeleteReportedSuccess','beforeNullWitnessReached'])if(key in report.observations){
-    assert.equal(typeof report.observations[key],'boolean');safe.observations[key]=report.observations[key];
-  }
-  for(const key of ['localRequests','rejectedRequests'])if(key in report.observations){
-    assert.ok(Number.isSafeInteger(report.observations[key])&&report.observations[key]>=0);safe.observations[key]=report.observations[key];
-  }
-  assert.equal(report.result,safe.result);assert.ok([0,1].includes(outcome.status));
-  assert.equal(outcome.status,safe.result==='passed'?0:1);
-  return {report:safe,status:outcome.status};
+export function runIsolatedWorker(prepared,entry,probe={}){
+  const workdir=probe.workdir??root,verify=probe.verifyIsolation??verifyIsolation;
+  const launch=probe.launch??spawnSync,readReport=probe.readReport??(file=>fs.readFileSync(file,'utf8'));
+  let stage='controller_isolation',preflight=null,launchDetails={};const at=value=>{stage=value;};
+  try{
+    at('controller_isolation');const journal=verify(workdir,command),identity=journal.identity;
+    at('controller_identity');assert.deepEqual(identity,prepared.identity);
+    const args=['-n','nsenter','--net='+identity.handle,'--','setpriv','--reuid='+identity.uid,'--regid='+identity.gid,
+      '--groups='+identity.groups.join(','),'--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','--',
+      process.execPath,entry,'--worker','--source',prepared.source,'--workdir',workdir];
+    const input=JSON.stringify({approval:APPROVAL,credentials:prepared.credentials});
+    at('controller_launch');
+    const outcome=launch('sudo',args,{input,encoding:'utf8',env:{...childEnv,RUNNER_TEMP:process.env.RUNNER_TEMP},timeout:480000,maxBuffer:1024*1024});
+    launchDetails=workerLaunchDetails(outcome);
+    preflight=lastWorkerPreflightStage(outcome.stdout);
+    if(outcome.error||outcome.signal)throw new Failure(outcome.error?.code==='ETIMEDOUT'?'worker_timeout':'worker_transport_failed',outcome.error?.code==='ETIMEDOUT'?124:1);
+    at('controller_report_file');const text=readReport(path.join(workdir,'worker-report.json'));
+    at('controller_report_json');const report=JSON.parse(text);
+    at('controller_report_source');assert.equal(report.source,SOURCE_COMMIT);
+    at('controller_report_production');assert.equal(report.productionReady,false);
+    at('controller_report_checks');assert.ok(Array.isArray(report.checks));
+    const safeWord=value=>{assert.equal(typeof value,'string');assert.match(value,/^[a-z_]{1,80}$/);return value;};
+    const checks=report.checks.map(r=>{
+      assert.ok(CHECKS.includes(r.id));assert.ok(['passed','failed','infrastructure_failed'].includes(r.result));
+      return {id:r.id,result:r.result,...(r.category?{category:safeWord(r.category)}:{}),
+        ...(r.exit!==undefined?{exit:validExit(r.exit)}:{})};
+    });
+    function validExit(value){assert.ok(Number.isInteger(value)&&value>=1&&value<=255);return value;}
+    at('controller_report_infrastructure');
+    const details=workerFailureDetails(report.infrastructureFailure);
+    if(report.infrastructureFailure)for(const key of ['workerStage','workerPreflightStage','workerLaunchStage','workerExit']){
+      if(key in report.infrastructureFailure)assert.equal(details[key],report.infrastructureFailure[key]);
+    }
+    const infra=report.infrastructureFailure?{phase:safeWord(report.infrastructureFailure.phase),
+      category:safeWord(report.infrastructureFailure.category),exit:validExit(report.infrastructureFailure.exit),...details}:null;
+    const safe={...summarize(checks,report.cleanupPassed,infra),observations:{}};
+    at('controller_report_observations');
+    for(const key of ['familyDisplayNameRetained','ownerDeletionCascadesSharedFamily','afterNullTriggerDetected',
+      'beforeNullTriggerDetected','beforeNullDeleteReportedSuccess','beforeNullWitnessReached'])if(key in report.observations){
+      assert.equal(typeof report.observations[key],'boolean');safe.observations[key]=report.observations[key];
+    }
+    for(const key of ['localRequests','rejectedRequests'])if(key in report.observations){
+      assert.ok(Number.isSafeInteger(report.observations[key])&&report.observations[key]>=0);safe.observations[key]=report.observations[key];
+    }
+    at('controller_report_result');assert.equal(report.result,safe.result);
+    at('controller_exit_status');assert.ok([0,1].includes(outcome.status));
+    assert.equal(outcome.status,safe.result==='passed'?0:1);
+    return {report:safe,status:outcome.status};
+  }catch(error){throw Object.assign(workerStageFailure(stage,error,preflight),launchDetails);}
 }
 
 function workerCandidates(workdir,identity){
