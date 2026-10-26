@@ -12,7 +12,7 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,runIsolatedWorker} from './local-runtime.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -369,7 +369,7 @@ test('network policy protects the worker and every owned container in BOTH addre
   for(const peer of i.peers)assert.ok(rules.some(r=>r.scope===peer.id&&r.args.includes('127.0.0.11')&&r.args.includes('REJECT')));
   assert.match(runtime,/entries:identity.hostEntries/);assert.match(runtime,/installOwnedHosts\(root,identity\)/);assert.match(runtime,/runIsolatedWorker|worker-report/);
   assert.match(runtime,/--no-new-privs/);assert.match(runtime,/--bounding-set=-all/);
-  assert.match(runtime,/env:\{\.\.\.childEnv,RUNNER_TEMP/);assert.doesNotMatch(runtime,/env:process.env/);
+  assert.match(runtime,/env:\{\.\.\.childEnv\}/);assert.doesNotMatch(runtime,/preserve-env|sudo.*-E/);assert.doesNotMatch(runtime,/env:process.env/);
 });
 function ownedHostsFixture(base,mutate=()=>{}){
   const workdir=path.join(base,projectName);fs.mkdirSync(workdir);
@@ -563,7 +563,7 @@ function preflightFixture(){
   const state={marker:{project:projectName,source:SOURCE_COMMIT},journal,namespace:i.namespace,uid:i.uid,gid:i.gid,
     status:'NoNewPrivs:\t1\n',cancelled:false,badHandle:false};
   const probe={
-    fs:{realpathSync:()=>'/tmp',readFileSync:file=>file.endsWith('owned.json')?JSON.stringify(state.marker):
+    fs:{realpathSync:()=>'/tmp',statSync:()=>({isDirectory:()=>true}),readFileSync:file=>file.endsWith('owned.json')?JSON.stringify(state.marker):
       file.endsWith('isolation.json')?JSON.stringify(state.journal):state.status,
       readlinkSync:()=>state.namespace,existsSync:()=>state.cancelled},
     uid:()=>state.uid,gid:()=>state.gid,
@@ -574,7 +574,7 @@ function preflightFixture(){
 function controllerFixture(){
   const i=identity(),state={report:{...summarize(complete(),true),observations:{}},outcome:{status:0,stdout:workerStageSignal(null)},
     isolationError:null,readError:null,raw:null,launched:null};
-  const prepared={identity:i,source:'/tmp/source',credentials:{url:API_ORIGIN,anon:'offline-anon',service:'offline-service'}};
+  const prepared={identity:i,runtimeTemp:'/tmp',source:'/tmp/source',credentials:{url:API_ORIGIN,anon:'offline-anon',service:'offline-service'}};
   const probe={workdir:'/tmp/'+projectName,
     verifyIsolation:()=>{if(state.isolationError)throw state.isolationError;return {identity:i};},
     launch:(exe,args,options)=>{state.launched={exe,args,options};return state.outcome;},
@@ -597,7 +597,7 @@ test('initializeWorker preserves every identity assertion and identifies each fa
   const previous=process.env.RUNNER_TEMP;process.env.RUNNER_TEMP='/tmp';
   try{
     const good=preflightFixture(),stages=[];
-    assert.deepEqual(initializeWorker('/tmp/'+projectName,stage=>stages.push(stage),good.probe),good.identity);
+    assert.deepEqual(initializeWorker('/tmp/'+projectName,'/tmp',stage=>stages.push(stage),good.probe),good.identity);
     assert.deepEqual(stages,WORKER_PREFLIGHT_STAGES.slice(0,10));
     for(const [stage,mutate]of [
       ['worker_marker',s=>s.marker.source='SIMULATED_PRIVATE'],
@@ -609,20 +609,20 @@ test('initializeWorker preserves every identity assertion and identifies each fa
       ['worker_cancelled',s=>s.cancelled=true],
     ]){
       const f=preflightFixture();mutate(f.state);
-      assert.throws(()=>initializeWorker('/tmp/'+projectName,()=>{},f.probe),error=>{
+      assert.throws(()=>initializeWorker('/tmp/'+projectName,'/tmp',()=>{},f.probe),error=>{
         assert.ok(error instanceof Failure);assert.equal(error.exitCode,1);assert.equal(error.workerStage,stage);
         assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE/);return true;
       });
     }
   }finally{if(previous===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=previous;}
 });
-test('missing actual RUNNER_TEMP fails at a fixed stage without touching resources',()=>{
-  const previous=process.env.RUNNER_TEMP;delete process.env.RUNNER_TEMP;
+test('missing explicit temporary context fails even if inherited environment could be present',()=>{
+  const previous=process.env.RUNNER_TEMP;process.env.RUNNER_TEMP='/tmp';
   try{
     const signals=[];
-    assert.throws(()=>initializeWorker('/tmp/'+projectName,stage=>signals.push(stage)),error=>error.workerStage==='worker_runtime_temp'&&error.exitCode===1);
+    assert.throws(()=>initializeWorker('/tmp/'+projectName,undefined,stage=>signals.push(stage)),error=>error.workerStage==='worker_runtime_temp'&&error.exitCode===1);
     assert.deepEqual(signals,['worker_runtime_temp']);
-  }finally{if(previous!==undefined)process.env.RUNNER_TEMP=previous;}
+  }finally{if(previous===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=previous;}
 });
 test('worker launch retains namespace, credentials stdin, no-new-privileges and all capability drops',()=>{
   const f=controllerFixture();assert.equal(f.run().report.result,'passed');
@@ -633,6 +633,7 @@ test('worker launch retains namespace, credentials stdin, no-new-privileges and 
   assert.ok(args.includes('--groups='+f.prepared.identity.groups.join(',')));
   assert.equal(options.timeout,480000);assert.equal(options.env.DOCKER_HOST,'unix:///var/run/docker.sock');
   assert.deepEqual(JSON.parse(options.input).credentials,f.prepared.credentials);
+  assert.equal(JSON.parse(options.input).runtimeTemp,'/tmp');assert.equal(options.env.RUNNER_TEMP,undefined);
   assert.doesNotMatch(args.join(' '),/offline-service|offline-anon/);
 });
 test('controller validation tags exact failed assertions without accepting incomplete or forged reports',()=>{
@@ -686,4 +687,42 @@ test('launcher diagnostics expose only fixed stderr origins and bounded exit num
   assert.deepEqual(workerLaunchDetails({status:0,stderr:'sudo: SIMULATED_PRIVATE'}),{workerExit:0});
   assert.deepEqual(workerLaunchDetails({status:999,stderr:'unknown SIMULATED_PRIVATE'}),{});
   assert.deepEqual(workerFailureDetails({workerLaunchStage:'SIMULATED_PRIVATE',workerExit:999}),{});
+});
+
+test('invalid explicit runtime directories fail before ownership or namespace access',()=>{
+  for(const value of [undefined,null,0,{},'', '/', 'relative', '/tmp/../tmp','/tmp/', '/tmp\0bad','x'.repeat(4097)]){
+    const f=preflightFixture();let reads=0;f.probe.fs.readFileSync=()=>{reads++;throw Error('unexpected ownership read');};
+    assert.throws(()=>initializeWorker('/tmp/'+projectName,value,()=>{},f.probe),error=>error.workerStage==='worker_runtime_temp');
+    assert.equal(reads,0);
+  }
+});
+test('runtime directory validation rejects missing paths, files, symlinks and foreign workspace parents',()=>scratch(base=>{
+  const directory=path.join(base,'runtime');fs.mkdirSync(directory);
+  const file=path.join(base,'file');fs.writeFileSync(file,'');
+  const link=path.join(base,'alias');fs.symlinkSync(directory,link);
+  for(const value of [path.join(base,'absent'),file,link,base]){
+    assert.throws(()=>workerRuntimeDirectory(path.join(directory,projectName),value));
+  }
+  assert.equal(workerRuntimeDirectory(path.join(directory,projectName),directory),directory);
+}));
+test('valid private runtime context survives missing or hostile inherited RUNNER_TEMP',()=>{
+  const previous=process.env.RUNNER_TEMP;
+  try{
+    for(const inherited of [undefined,'/foreign/private-context']){
+      if(inherited===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=inherited;
+      const f=preflightFixture(),stages=[];
+      assert.deepEqual(initializeWorker('/tmp/'+projectName,'/tmp',stage=>stages.push(stage),f.probe),f.identity);
+      assert.deepEqual(stages,WORKER_PREFLIGHT_STAGES.slice(0,10));
+      const controller=controllerFixture();assert.equal(controller.run().report.result,'passed');
+      assert.equal(JSON.parse(controller.state.launched.options.input).runtimeTemp,'/tmp');
+      assert.equal(controller.state.launched.options.env.RUNNER_TEMP,undefined);
+    }
+  }finally{if(previous===undefined)delete process.env.RUNNER_TEMP;else process.env.RUNNER_TEMP=previous;}
+});
+test('controller rejects unvalidated private runtime context before privileged launch',()=>{
+  for(const value of [undefined,'relative','/tmp/../tmp','/foreign/absent']){
+    const f=controllerFixture();f.prepared.runtimeTemp=value;
+    assert.throws(f.run,error=>error.workerStage==='controller_identity');
+    assert.equal(f.state.launched,null);
+  }
 });

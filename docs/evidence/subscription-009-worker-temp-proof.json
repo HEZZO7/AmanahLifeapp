@@ -1,0 +1,54 @@
+{
+  "historicalRun": 40361669068,
+  "inputPackageCommit": "1df108401c0a64e6a7689971287c6cb4f22ecffd",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "artifactEvidenceProvidedByUser": {
+    "phase": "isolated_worker",
+    "workerStage": "controller_report_file",
+    "workerPreflightStage": "worker_runtime_temp",
+    "workerExit": 1,
+    "completed": 0,
+    "cleanupPassed": true
+  },
+  "verifiedCodeDefect": "worker depends on RUNNER_TEMP surviving sudo without an explicit propagation contract",
+  "historicalWorkerEnvironmentInspected": false,
+  "disposableReproduction": {
+    "image": "postgres:17",
+    "os": "Debian 13",
+    "sudoVersion": "1.9.16p2",
+    "network": "none",
+    "privileged": false,
+    "sudoEnvResetDropsRunnerTemp": true,
+    "setprivAlonePreservesRunnerTemp": true,
+    "sudoSetprivPreservesPrivateStdin": true,
+    "noNewPrivs": 1,
+    "capInheritable": 0,
+    "capBounding": 0,
+    "capAmbient": 0,
+    "nsenterExecuted": false,
+    "fullGitHubRunnerChainExecuted": false,
+    "remainingPostgres17Containers": 0,
+    "cleanup": "all disposable containers used --rm; independent local Docker ps ancestor query empty",
+    "sudoDebSha256": "4f926f8f0704575158a90135713977f98f7d50d185969d9a8a405cdce5e3e50c",
+    "libapparmorDebSha256": "4158976c77038b93021967f425b4cc505df18c4f5e3f444732399e7ed4af4419"
+  },
+  "offlineResults": {
+    "package": {
+      "passed": 73,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ownedHosts": {
+      "passed": 9,
+      "failed": 0
+    },
+    "workflow": {
+      "passed": 14,
+      "failed": 0
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesIndependentlyHashed": 10
+  },
+  "nativeGroupsExecutedLocally": 0,
+  "productionReady": false
+}

@@ -281,11 +281,23 @@ If the child fails before producing a report, bounded `workerExit` and an option
 fixed `workerLaunchStage` hint distinguish stderr origins `sudo`, `nsenter`,
 `setpriv` and `node`. No stderr text or arguments are retained or emitted.
 
-Missing `RUNNER_TEMP` is locally reproducible as one possible early failure: it
-prevents both initialization and report publication. Its presence in the real
-failed worker was not observed, so this is NOT a diagnosis of the historical run.
-No sudo environment policy, namespace check, UID/GID assertion, capability flag,
-NoNewPrivs condition, report integrity requirement or cleanup behavior is bypassed.
+Run `40361669068` identified `worker_runtime_temp` before report creation.
+The old launcher supplied `RUNNER_TEMP` to sudo's environment, but did not ensure
+sudo preserved it. A disposable, network-disabled reproduction with sudo's default
+`env_reset` drops this variable; setpriv alone retains it. The historical artifact
+does not expose the actual variable or distinguish an absent path from an invalid
+one. The verified defect is reliance on environment propagation across sudo.
+
+The controller now passes its canonical, already-verified temporary directory as
+`runtimeTemp` alongside approval and credentials on private stdin. Both controller
+and worker require a bounded absolute canonical existing directory that is the
+expected workspace's direct parent; symlinks, missing paths, files, traversal and
+foreign parents fail closed. Worker initialization, source separation and report
+publication use this validated context, independent of inherited `RUNNER_TEMP`.
+The controller's own environment and independent cleanup are unchanged. No sudo
+`-E`, environment-preservation exception or credential in argv/environment is added.
+Namespace, UID/GID, ownership marker, capability drops, NoNewPrivs, immutable source,
+report integrity and cleanup requirements all remain mandatory.
 
 ### Sanitized infrastructure command diagnostics
 

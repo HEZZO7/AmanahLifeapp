@@ -8,7 +8,7 @@ import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
   workerStageFailure,workerFailureDetails,workerStageSignal} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
@@ -17,7 +17,7 @@ const q=id=>"'"+uuid(id)+"'";
 const results=[],observations={};let phase='preflight',cleanupPassed=false,workingDirectory;
 const assertSQLState=(error,expected)=>{throwIfDatabaseInfrastructure(error);assert.equal(error?.code,expected);};
 const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
-let workerMode=false,activeWorkerStage=null;
+let workerMode=false,activeWorkerStage=null,workerTempDirectory;
 function notifyWorkerStage(stage){
   const signal=workerStageSignal(stage);activeWorkerStage=stage;
   if(workerMode)process.stdout.write(signal);
@@ -447,16 +447,18 @@ export async function execute(opts){
 }
 async function worker(opts){
   workerMode=true;phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
-  initializeWorker(workingDirectory,notifyWorkerStage);
-  notifyWorkerStage('worker_source_path');const source=fs.realpathSync(opts['--source']);
-  notifyWorkerStage('worker_source_workspace');
-  workspace(workingDirectory,fs.realpathSync(process.env.RUNNER_TEMP),source);
-  notifyWorkerStage('worker_package_integrity');verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);
-  notifyWorkerStage('worker_source_integrity');verifySource(source,manifest);
-  // Private stdin only: no local JWT/key in argv, environment, or console.
+  // Read the bounded private channel before any environment-dependent preflight.
   notifyWorkerStage('worker_private_input');const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
   const input=JSON.parse(raw);
   notifyWorkerStage('worker_approval');assert.equal(input.approval,APPROVAL);
+  initializeWorker(workingDirectory,input.runtimeTemp,notifyWorkerStage);
+  workerTempDirectory=input.runtimeTemp;
+  notifyWorkerStage('worker_source_path');const source=fs.realpathSync(opts['--source']);
+  notifyWorkerStage('worker_source_workspace');
+  workspace(workingDirectory,workerTempDirectory,source);
+  notifyWorkerStage('worker_package_integrity');verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);
+  notifyWorkerStage('worker_source_integrity');verifySource(source,manifest);
+  // Credentials remain on private stdin only, never argv/environment/console.
   notifyWorkerStage('worker_credentials');
   const credentials=localStatus({API_URL:input.credentials.url,
     DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres',ANON_KEY:input.credentials.anon,SERVICE_ROLE_KEY:input.credentials.service});
@@ -469,7 +471,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   const publish=report=>{
     // A late rejection rewrites the already-published report as FAILED.
     if(workingDirectory){
-      const base=fs.realpathSync(process.env.RUNNER_TEMP);workspace(workingDirectory,base);
+      const base=opts?.['--worker']?workerRuntimeDirectory(workingDirectory,workerTempDirectory):fs.realpathSync(process.env.RUNNER_TEMP);workspace(workingDirectory,base);
       const file=opts?.['--worker']?path.join(workingDirectory,'worker-report.json'):
         path.join(base,path.basename(workingDirectory)+'-report.json');
       fs.writeFileSync(file,JSON.stringify(report)+'\n',{mode:0o600});

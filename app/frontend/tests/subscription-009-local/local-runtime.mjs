@@ -161,12 +161,20 @@ function discoverIsolation(){
   return {pid,bridge,namespace,hostNamespace:fs.readlinkSync('/proc/self/ns/net'),uid,gid,
     peers,subnet,hostEntries,groups:process.getgroups(),kongUid:Number(command('docker',['exec','supabase_kong_'+project,'id','-u'])),handle:path.join(root,'kong-netns')};
 }
-export function initializeWorker(workdir,notify=()=>{},probe={}){
+// This context crosses sudo over private stdin, never through inherited env.
+export function workerRuntimeDirectory(workdir,expected,io=fs){
+  assert.equal(typeof expected,'string');assert.ok(expected.length>1&&expected.length<=4096);
+  assert.ok(path.isAbsolute(expected));assert.equal(path.resolve(expected),expected);
+  assert.equal(io.realpathSync(expected),expected);assert.ok(io.statSync(expected).isDirectory());
+  assert.equal(path.resolve(workdir),workdir);workspace(workdir,expected);
+  return expected;
+}
+export function initializeWorker(workdir,runtimeTemp,notify=()=>{},probe={}){
   const io=probe.fs??fs,verify=probe.verifyNamespaceHandle??verifyNamespaceHandle;
   const uid=probe.uid??(()=>process.getuid()),gid=probe.gid??(()=>process.getgid());
   let stage='worker_runtime_temp';const at=value=>{stage=value;notify(value);};
   try{
-    at('worker_runtime_temp');const base=io.realpathSync(process.env.RUNNER_TEMP);
+    at('worker_runtime_temp');const base=workerRuntimeDirectory(workdir,runtimeTemp,io);
     at('worker_workspace');workspace(workdir,base);context(workdir);
     at('worker_marker');
     const marker=JSON.parse(io.readFileSync(path.join(root,'owned.json')));assert.equal(marker.project,project);assert.equal(marker.source,SOURCE_COMMIT);
@@ -192,9 +200,10 @@ export function runIsolatedWorker(prepared,entry,probe={}){
     const args=['-n','nsenter','--net='+identity.handle,'--','setpriv','--reuid='+identity.uid,'--regid='+identity.gid,
       '--groups='+identity.groups.join(','),'--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','--',
       process.execPath,entry,'--worker','--source',prepared.source,'--workdir',workdir];
-    const input=JSON.stringify({approval:APPROVAL,credentials:prepared.credentials});
+    const runtimeTemp=workerRuntimeDirectory(workdir,prepared.runtimeTemp);
+    const input=JSON.stringify({approval:APPROVAL,runtimeTemp,credentials:prepared.credentials});
     at('controller_launch');
-    const outcome=launch('sudo',args,{input,encoding:'utf8',env:{...childEnv,RUNNER_TEMP:process.env.RUNNER_TEMP},timeout:480000,maxBuffer:1024*1024});
+    const outcome=launch('sudo',args,{input,encoding:'utf8',env:{...childEnv},timeout:480000,maxBuffer:1024*1024});
     launchDetails=workerLaunchDetails(outcome);
     preflight=lastWorkerPreflightStage(outcome.stdout);
     if(outcome.error||outcome.signal)throw new Failure(outcome.error?.code==='ETIMEDOUT'?'worker_timeout':'worker_transport_failed',outcome.error?.code==='ETIMEDOUT'?124:1);
@@ -348,7 +357,7 @@ export async function prepare(opts,manifest,notify){
   // Docker embedded DNS is blocked before the SDK loads. Preserve LOCAL service
   // resolution with owned-container aliases only; never add an external host.
   installOwnedHosts(root,identity);
-  return {source,credentials,project,identity};
+  return {source,credentials,project,identity,runtimeTemp:base};
 }
 export async function shutdown(workdir){
   // Preparation may reject an existing/foreign workdir before acquiring it.
