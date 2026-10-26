@@ -83,3 +83,8 @@ hosts أو كتابته. لا يتضمن التقرير اسم مورد أو arg
 `infrastructureFailure.diagnostic` ثم `cleanup.json` وverdict لكل المجموعات.
 إذا استمر الفشل، يُراجع الأمر المحدد والتلميح الآمن قبل أي تصحيح آخر؛ لا تُرفع
 raw logs أو status JSON أو مفاتيح Auth. تبقى جاهزية الإنتاج والفوترة **NO-GO**.
+
+حزمة التشخيص المثبتة للتشغيل التالي:
+`9c38cb5a50d54cce3140361aa341ed65e8996e14`.
+تغير في workflow حقلا package SHA وcheckout ref فقط؛ SHA التطبيق باقية.
+اجتازت فحوص workflow المحلية الـ12 بعد إعادة التثبيت.
