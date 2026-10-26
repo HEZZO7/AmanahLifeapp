@@ -239,6 +239,29 @@ continue-on-error, retry, rerun or acceptance based solely on cleanup success.
 
 ## Limits and acceptance
 
+### Sanitized infrastructure command diagnostics
+
+The historical run `40272569296` exited before all groups with
+`phase=status, category=command_failed, exit=1`. That phase covers the four
+required-container label inspections, the CLI's
+`<workdir>/bin/supabase --workdir <workdir> status -o json`, isolation discovery,
+rule installation/verification, and owned-container hosts-file copies. It does
+not uniquely identify the CLI status command. The original report alone cannot
+establish a root cause, and cleanup success does not establish startup readiness.
+
+Failed controller subprocesses now add only
+`infrastructureFailure.diagnostic.operation` and `.reason`, selected from fixed
+allowlists. For example `supabase_status_json`, `inspect_auth_labels`,
+`bind_namespace`, `namespace_rule_insert`, or `write_owned_hosts` identifies the
+operation without publishing its arguments or resource identifiers. Reasons such
+as `permission_denied`, `object_missing`, or `resource_busy` are bounded hints
+from captured output, not verified root-cause conclusions. Unknown messages stay
+`unknown`. Executable paths, arguments, stdout/stderr, Auth status JSON, credentials
+and error messages are never included in the diagnostic. Original exit codes and
+failure categories remain nonzero; no command is retried or bypassed. The final
+integration JSON retained by the workflow carries these fields before independent
+cleanup overwrites the harness's working report path.
+
 Estimated cold execution: **15–30 minutes**, dependency availability permitting;
 the CLI start has an 18-minute bound and the isolated worker an 8-minute bound. Plan a bounded job with time for independent
 cleanup. Expected additional services cost: **$0**, using a standard public-repo

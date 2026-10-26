@@ -7,17 +7,20 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle} from './isolation.mjs';
 const childEnv={PATH:process.env.PATH,LANG:'C.UTF-8',DO_NOT_TRACK:'1',CI:'true',DOCKER_HOST:'unix:///var/run/docker.sock'};
 let root,project,cli,acquired=false;
-export function command(exe,args,input,timeout=30000){
-  const r=spawnSync(exe,args,{env:childEnv,input,encoding:'utf8',timeout,maxBuffer:32*1024*1024});
+export function command(exe,args,input,timeout=30000,execute=spawnSync){
+  const r=execute(exe,args,{env:childEnv,input,encoding:'utf8',timeout,maxBuffer:32*1024*1024});
   const text=(r.stdout||'')+(r.stderr||'');
-  if(r.error||r.status!==0)throw new Failure(r.error?.code==='ETIMEDOUT'?'timeout':commandCategory(text),
-    r.error?.code==='ETIMEDOUT'?124:(r.status>0?r.status:r.signal?128+(os.constants.signals[r.signal]||0):1));
+  if(r.error||r.status!==0){
+    const error=new Failure(r.error?.code==='ETIMEDOUT'?'timeout':commandCategory(text),
+      r.error?.code==='ETIMEDOUT'?124:(r.status>0?r.status:r.signal?128+(os.constants.signals[r.signal]||0):1));
+    error.diagnostic=commandDiagnostic(exe,args,r);throw error;
+  }
   return (r.stdout||'').trim();
 }
 export function sql(text,run=command){

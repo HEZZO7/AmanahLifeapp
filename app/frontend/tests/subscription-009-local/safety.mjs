@@ -11,6 +11,57 @@ export const APPROVAL='disposable-local-migration-009-only';
 export class Failure extends Error {
   constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
 }
+const COMMAND_OPERATIONS=Object.freeze(['supabase_status_json','supabase_init','supabase_start','supabase_stop',
+  'inspect_db_labels','inspect_auth_labels','inspect_rest_labels','inspect_kong_labels',
+  'inspect_container','inspect_network','container_uid','read_owned_hosts','write_owned_hosts',
+  'read_namespace','bind_namespace','host_rule_probe','host_rule_insert','host_rule_delete',
+  'namespace_rule_probe','namespace_rule_insert','namespace_rule_delete','other']);
+const COMMAND_REASONS=Object.freeze(['timeout','executable_missing','permission_denied','resource_busy',
+  'object_missing','unknown_option','not_running','connection_refused','terminated','unknown']);
+// Never retain an argv item, executable path, stdout/stderr fragment or error
+// message. These are bounded classifications of a failed subprocess, not proof
+// that a matching message identifies the ultimate root cause.
+export function commandDiagnostic(exe,args,result){
+  let operation='other';const tool=path.basename(exe);
+  if(tool==='supabase'){
+    if(args.includes('status'))operation='supabase_status_json';
+    else for(const name of ['init','start','stop'])if(args.includes(name))operation='supabase_'+name;
+  }else if(tool==='docker'){
+    if(args[0]==='inspect'){
+      const service=['db','auth','rest','kong'].find(name=>args.some(x=>x.startsWith('supabase_'+name+'_')));
+      operation=args.includes('--format')&&service?'inspect_'+service+'_labels':'inspect_container';
+    }else if(args[0]==='network'&&args[1]==='inspect')operation='inspect_network';
+    else if(args[0]==='exec'&&args.at(-2)==='id'&&args.at(-1)==='-u')operation='container_uid';
+    else if(args[0]==='cp')operation=args[1]?.endsWith(':/etc/hosts')?'read_owned_hosts':'write_owned_hosts';
+  }else if(tool==='sudo'){
+    if(args[1]==='readlink')operation='read_namespace';
+    else if(args[1]==='mount'&&args.includes('--bind'))operation='bind_namespace';
+    else if(args.includes('iptables')||args.includes('ip6tables')){
+      const scope=args.includes('nsenter')?'namespace':'host';
+      for(const [flag,name]of [['-C','probe'],['-I','insert'],['-D','delete']])if(args.includes(flag))operation=scope+'_rule_'+name;
+    }
+  }
+  const text=String(result.stdout||'').slice(-32768)+'\n'+String(result.stderr||'').slice(-32768);
+  let reason='unknown';
+  if(result.error?.code==='ETIMEDOUT')reason='timeout';
+  else if(result.error?.code==='ENOENT')reason='executable_missing';
+  else if(result.error?.code==='EACCES')reason='permission_denied';
+  else if(result.signal)reason='terminated';
+  else for(const [name,pattern]of [
+    ['resource_busy',/device or resource busy|resource is busy/i],
+    ['permission_denied',/permission denied|operation not permitted|a password is required/i],
+    ['object_missing',/no such (?:container|network|object|file)|does not exist/i],
+    ['unknown_option',/unknown (?:flag|option)|unrecognized (?:flag|option)/i],
+    ['not_running',/is not running|not running/i],
+    ['connection_refused',/connection refused|cannot connect to the docker daemon/i],
+  ])if(pattern.test(text)){reason=name;break;}
+  return {operation,reason};
+}
+export function commandFailureDetails(error){
+  const d=error instanceof Failure?error.diagnostic:null;
+  return d&&COMMAND_OPERATIONS.includes(d.operation)&&COMMAND_REASONS.includes(d.reason)
+    ?{diagnostic:{operation:d.operation,reason:d.reason}}:{};
+}
 export const PG_LIMITS=Object.freeze({statement:15000,lock:12000,idle:20000,client:22000});
 export const PG_OPTIONS='-c statement_timeout='+PG_LIMITS.statement+' -c lock_timeout='+PG_LIMITS.lock+' -c idle_in_transaction_session_timeout='+PG_LIMITS.idle;
 export function sessionPrefix(project){return 'al009-'+sha256(Buffer.from(project)).slice(0,16)+'-';}

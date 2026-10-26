@@ -6,7 +6,7 @@ import {randomBytes} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
-  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus} from './safety.mjs';
+  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -468,7 +468,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   });
   let infrastructureFailure=null;
   try{opts=options(process.argv.slice(2));if(opts['--worker'])await worker(opts);else await execute(opts);}
-  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1};}
+  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1,...commandFailureDetails(error)};}
   if(opts?.['--cleanup']){
     latch.publish({mode:'cleanup',result:cleanupPassed&&!infrastructureFailure?'passed':'failed',
       cleanupPassed:cleanupPassed&&!infrastructureFailure,productionReady:false,infrastructureFailure});

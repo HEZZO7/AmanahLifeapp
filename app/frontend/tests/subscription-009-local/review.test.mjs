@@ -10,8 +10,8 @@ import {syncBuiltinESMExports} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,SDK_VERSION,
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
-  trafficGuard,commandCategory,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix} from './safety.mjs';
-import {cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL} from './local-runtime.mjs';
+  trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -126,6 +126,65 @@ test('all twelve application source hashes match exact approved contents',()=>{
   assert.deepEqual(Object.keys(manifest.files),SOURCE_FILES);assert.equal(SOURCE_FILES.length,12);
   verifySource(source,manifest);
   for(const hashes of Object.values(manifest.files)){assert.match(hashes.gitBlob,/^[a-f0-9]{40}$/);assert.match(hashes.sha256,/^[a-f0-9]{64}$/);}
+});
+test('status subprocess diagnostics identify fixed operations without retaining arguments',()=>{
+  const cases=[
+    ['/private/SIMULATED_SECRET/bin/supabase',['--workdir','/private/SIMULATED_SECRET','status','-o','json'],'supabase_status_json'],
+    ...['db','auth','rest','kong'].map(s=>['docker',['inspect','--format','{{json .Config.Labels}}','supabase_'+s+'_SIMULATED_SECRET'],'inspect_'+s+'_labels']),
+    ['docker',['inspect','SIMULATED_SECRET'],'inspect_container'],
+    ['docker',['network','inspect','SIMULATED_SECRET'],'inspect_network'],
+    ['docker',['exec','SIMULATED_SECRET','id','-u'],'container_uid'],
+    ['docker',['cp','SIMULATED_SECRET:/etc/hosts','/private/secret'],'read_owned_hosts'],
+    ['docker',['cp','/private/secret','SIMULATED_SECRET:/etc/hosts'],'write_owned_hosts'],
+    ['sudo',['-n','readlink','/proc/secret/ns/net'],'read_namespace'],
+    ['sudo',['-n','mount','--bind','/proc/secret/ns/net','/private/secret'],'bind_namespace'],
+    ['unreviewed-secret-executable',['SIMULATED_SECRET'],'other'],
+  ];
+  for(const scope of ['host','namespace'])for(const [flag,operation]of [['-C','probe'],['-I','insert'],['-D','delete']]){
+    cases.push(['sudo',['-n',...(scope==='namespace'?['nsenter','--net=/private/secret','--']:[]),'ip6tables','-t','filter',flag,'OUTPUT'],scope+'_rule_'+operation]);
+  }
+  for(const [exe,args,operation]of cases){
+    const diagnostic=commandDiagnostic(exe,args,{stderr:'SIMULATED_SECRET private JWT token password',status:1});
+    assert.deepEqual(diagnostic,{operation,reason:'unknown'});
+    assert.doesNotMatch(JSON.stringify(diagnostic),/SIMULATED|private|password|JWT|token|\/proc/);
+  }
+});
+test('status failure reasons are bounded allowlisted hints, never raw error evidence',()=>{
+  for(const [text,reason]of [['Device or resource busy','resource_busy'],['Permission denied','permission_denied'],
+    ['No such container','object_missing'],['unknown flag','unknown_option'],['Container is not running','not_running'],
+    ['connect: connection refused','connection_refused'],['arbitrary private text','unknown']]){
+    assert.deepEqual(commandDiagnostic('docker',['cp','/private','secret:/etc/hosts'],{stderr:text+' JWT=SIMULATED_SECRET',status:1}),{operation:'write_owned_hosts',reason});
+  }
+  for(const [code,reason]of [['ETIMEDOUT','timeout'],['ENOENT','executable_missing'],['EACCES','permission_denied'],['SECRET_CODE','unknown']]){
+    assert.equal(commandDiagnostic('docker',[],{error:{code,message:'SIMULATED_SECRET'}}).reason,reason);
+  }
+});
+test('actual command failure plumbing preserves nonzero exit and emits only classified fields',()=>{
+  for(const [result,exit,reason]of [
+    [{status:7,stderr:'device or resource busy SIMULATED_SECRET'},7,'resource_busy'],
+    [{status:null,error:{code:'ETIMEDOUT',message:'SIMULATED_SECRET'}},124,'timeout'],
+    [{status:null,error:{code:'ENOENT',message:'SIMULATED_SECRET'}},1,'executable_missing'],
+    [{status:null,signal:'SIGTERM',stderr:'SIMULATED_SECRET'},143,'terminated'],
+  ]){
+    assert.throws(()=>command('/private/bin/supabase',['--workdir','/private','status','-o','json'],undefined,30000,(_exe,_args,options)=>{
+      assert.equal(options.env.DOCKER_HOST,'unix:///var/run/docker.sock');assert.equal(options.timeout,30000);return result;
+    }),error=>{
+      assert.ok(error instanceof Failure);assert.equal(error.exitCode,exit);
+      assert.deepEqual(commandFailureDetails(error),{diagnostic:{operation:'supabase_status_json',reason}});
+      assert.doesNotMatch(JSON.stringify(error),/SIMULATED_SECRET|\/private/);return true;
+    });
+  }
+  assert.equal(command('docker',['inspect'],undefined,30000,()=>({status:0,stdout:'  ok\n'})),'ok');
+  assert.match(runner,/infrastructureFailure=\{phase,[^\n]*commandFailureDetails\(error\)/);
+});
+test('failure reporting rejects unknown diagnostic values and strips extra keys',()=>{
+  const error=new Failure('command_failed',1);
+  for(const diagnostic of [{operation:'SIMULATED_SECRET',reason:'unknown'},{operation:'supabase_status_json',reason:'SIMULATED_SECRET'}]){
+    error.diagnostic=diagnostic;assert.deepEqual(commandFailureDetails(error),{});
+  }
+  error.diagnostic={operation:'supabase_status_json',reason:'unknown',stderr:'SIMULATED_SECRET'};
+  assert.deepEqual(commandFailureDetails(error),{diagnostic:{operation:'supabase_status_json',reason:'unknown'}});
+  assert.deepEqual(commandFailureDetails({diagnostic:error.diagnostic}),{});
 });
 test('source verification rejects a changed hash, filename or migration order',()=>{
   for(const mutate of [m=>{m.files[SOURCE_FILES[0]].sha256='0'.repeat(64);},m=>{m.files['../escape']=m.files[SOURCE_FILES[0]];},
