@@ -83,3 +83,12 @@ metadata أو dependency lockfile. sudo غير متاح محليًا؛ لم تُ
 لم يُنفذ هذا التحديث أو dispatch هنا. تستخدم أي محاولة لاحقة runner جديدًا
 وتُفحص `workerStage` و`workerPreflightStage` و`workerLaunchStage` و`workerExit`
 في التقرير المنقح قبل اقتراح تصحيح آخر. الإنتاج والفوترة **NO-GO**.
+
+الحزمة التشخيصية المثبتة: `1df108401c0a64e6a7689971287c6cb4f22ecffd`.
+التحديث اليدوي الدقيق على main:
+
+```yaml
+PACKAGE_SHA: 1df108401c0a64e6a7689971287c6cb4f22ecffd
+```
+
+تبقى `SOURCE_SHA` و`ref: ${{ env.PACKAGE_SHA }}` وحارس main دون تغيير.
