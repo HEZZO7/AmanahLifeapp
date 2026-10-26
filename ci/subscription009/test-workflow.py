@@ -22,6 +22,17 @@ IDS = ast.literal_eval(re.search(r'^ids=(.+)$', GATE_PYTHON, re.M)[1])
 SOURCE = JOB['env']['SOURCE_SHA']
 
 
+def package_checkout_pin(job):
+    """A literal immutable SHA in env is the sole package version selector."""
+    pin = job['env']['PACKAGE_SHA']
+    assert re.fullmatch(r'[a-f0-9]{40}', pin)
+    checkouts = [s for s in job['steps'] if s.get('uses', '').startswith('actions/checkout@')
+                 and s.get('with', {}).get('path') == 'package']
+    assert len(checkouts) == 1
+    assert checkouts[0]['with']['ref'] == '${{ env.PACKAGE_SHA }}'
+    return pin
+
+
 class WorkflowReview(unittest.TestCase):
     def test_manual_hosted_recovery_only(self):
         self.assertEqual(list(CONFIG['on']), ['workflow_dispatch'])
@@ -40,13 +51,28 @@ class WorkflowReview(unittest.TestCase):
     def test_pinned_checkouts_and_actions(self):
         checkouts = [s for s in STEPS if s.get('uses', '').startswith('actions/checkout@')]
         self.assertEqual(len(checkouts), 2)
-        self.assertEqual([s['with']['ref'] for s in checkouts],
-                         [SOURCE, JOB['env']['PACKAGE_SHA']])
+        self.assertEqual(checkouts[0]['with']['ref'], SOURCE)
+        self.assertEqual(package_checkout_pin(JOB), JOB['env']['PACKAGE_SHA'])
         for s in checkouts:
             self.assertEqual(s['with']['persist-credentials'], 'false')
         for s in STEPS:
             if 'uses' in s:
                 self.assertRegex(s['uses'], r'@([a-f0-9]{40})$')
+
+    def test_package_checkout_cannot_drift_from_expected_head(self):
+        job = json.loads(json.dumps(JOB))
+        checkout = next(s for s in job['steps'] if s.get('with', {}).get('path') == 'package')
+        checkout['with']['ref'] = '8d5cdd246233a4a7ef4ad7ea2a62815ece08b153'
+        self.assertNotEqual(checkout['with']['ref'], job['env']['PACKAGE_SHA'])
+        with self.assertRaises(AssertionError):
+            package_checkout_pin(job)
+
+    def test_package_selector_must_remain_an_immutable_commit(self):
+        for invalid in ['main', 'recovery/subscription-009-validation-20261026', '${{ github.sha }}', '']:
+            job = json.loads(json.dumps(JOB))
+            job['env']['PACKAGE_SHA'] = invalid
+            with self.assertRaises(AssertionError):
+                package_checkout_pin(job)
 
     def test_shell_and_python_syntax(self):
         for s in STEPS:

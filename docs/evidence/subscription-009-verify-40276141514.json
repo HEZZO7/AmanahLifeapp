@@ -1,0 +1,36 @@
+{
+  "run": 40276141514,
+  "workflowCommit": "b6487f6a4fb3fa7504c1b915c12df652196c38b7",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "expectedPackageCommit": "9c38cb5a50d54cce3140361aa341ed65e8996e14",
+  "historicalCheckoutCommit": "8d5cdd246233a4a7ef4ad7ea2a62815ece08b153",
+  "historicalShellAssertions": [
+    {
+      "assertion": "node_version",
+      "exit": 0
+    },
+    {
+      "assertion": "source_head",
+      "exit": 0
+    },
+    {
+      "assertion": "package_head",
+      "exit": 1
+    }
+  ],
+  "historicalFullBlockExit": 1,
+  "historicalStoppedBeforeManifest": true,
+  "alignedPackageFullBlockExit": 0,
+  "localOnly": true,
+  "nativeGroupsExecuted": 0,
+  "checksPassedAfterAlignment": [
+    "path_resolution",
+    "manifest_commit_bytes",
+    "manifest_source_and_entry_counts",
+    "independent_sha256",
+    "git_blob_ids",
+    "source_commit_bytes",
+    "environment_allowlist",
+    "node_sdk_and_lock_versions"
+  ]
+}
