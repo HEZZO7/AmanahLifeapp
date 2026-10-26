@@ -11,6 +11,26 @@ export const APPROVAL='disposable-local-migration-009-only';
 export class Failure extends Error {
   constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
 }
+const ACCOUNT_AUTH_STEPS=Object.freeze(['create_user','password_signin','created_identity','session_token',
+  'verify_token','verified_identity','seed_personal_data']);
+export const REAL_AUTH_STAGES=Object.freeze([
+  ...['a','b'].flatMap(account=>ACCOUNT_AUTH_STEPS.map(step=>account+'_'+step)),
+  'a_seed_subscription','b_trial_rpc','b_trial_result','distinct_identities','reject_invalid_token',
+  'read_trial_snapshot','trial_row_count','trial_used',
+]);
+// Diagnostics only: execute the original operation once, preserve Failure's
+// classification/exit, and never retain an SDK response or assertion payload.
+export async function realAuthStage(stage,operation){
+  assert.ok(REAL_AUTH_STAGES.includes(stage));
+  try{return await operation();}
+  catch(error){
+    const failure=error instanceof Failure?error:new Error('Local authentication assertion failed');
+    failure.authStage=stage;throw failure;
+  }
+}
+export function realAuthFailureDetails(value){
+  return REAL_AUTH_STAGES.includes(value?.authStage)?{authStage:value.authStage}:{};
+}
 export const WORKER_PREFLIGHT_STAGES=Object.freeze([
   'worker_runtime_temp','worker_workspace','worker_marker','worker_journal','worker_namespace_handle',
   'worker_namespace_identity','worker_uid','worker_gid','worker_no_new_privileges','worker_cancelled',
@@ -227,7 +247,8 @@ export function commandCategory(text){
 }
 export function summarize(results,cleanupPassed,infrastructureFailure=null){
   const ids=results.map(x=>x.id),missing=CHECKS.filter(x=>!ids.includes(x));
-  const invalid=results.some(x=>!CHECKS.includes(x.id)||!['passed','failed','infrastructure_failed'].includes(x.result))||new Set(ids).size!==ids.length;
+  const invalid=results.some(x=>!CHECKS.includes(x.id)||!['passed','failed','infrastructure_failed'].includes(x.result)||
+    ('authStage' in x&&(x.id!=='real_auth_jwt'||x.result==='passed'||!REAL_AUTH_STAGES.includes(x.authStage))))||new Set(ids).size!==ids.length;
   const failed=results.filter(x=>x.result==='failed').map(x=>x.id);
   const infrastructureFailed=results.filter(x=>x.result==='infrastructure_failed').map(x=>x.id);
   return {mode:'integration',source:SOURCE_COMMIT,productionReady:false,

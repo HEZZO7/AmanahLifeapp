@@ -11,7 +11,8 @@ import {fileURLToPath} from 'node:url';
 import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,SDK_VERSION,
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
-  WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails} from './safety.mjs';
+  WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
+  REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails} from './safety.mjs';
 import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
@@ -724,5 +725,75 @@ test('controller rejects unvalidated private runtime context before privileged l
     const f=controllerFixture();f.prepared.runtimeTemp=value;
     assert.throws(f.run,error=>error.workerStage==='controller_identity');
     assert.equal(f.state.launched,null);
+  }
+});
+
+test('JWT diagnostic stages are fixed, unique and reject unknown codes before any operation',async()=>{
+  assert.equal(REAL_AUTH_STAGES.length,22);assert.equal(new Set(REAL_AUTH_STAGES).size,22);
+  for(const stage of REAL_AUTH_STAGES)assert.match(stage,/^[a-z_]{1,80}$/);
+  for(const stage of [undefined,null,'SIMULATED_PRIVATE','a_create_user /private/path',{},42]){
+    let calls=0;await assert.rejects(realAuthStage(stage,()=>{calls++;}));assert.equal(calls,0);
+    assert.deepEqual(realAuthFailureDetails({authStage:stage,token:'SIMULATED_PRIVATE'}),{});
+  }
+});
+test('every JWT assertion diagnostic omits assertion values, SDK errors and private context',async()=>{
+  for(const stage of REAL_AUTH_STAGES){
+    let calls=0;
+    await assert.rejects(realAuthStage(stage,()=>{
+      calls++;assert.equal('SIMULATED_PRIVATE_JWT /private/path user@example.invalid','other');
+    }),error=>{
+      assert.equal(error instanceof Failure,false);assert.equal(error.message,'Local authentication assertion failed');
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:stage});
+      assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE|\/private\/path|user@example/);
+      assert.equal(error.cause,undefined);assert.equal(error.actual,undefined);assert.equal(error.expected,undefined);return true;
+    });
+    assert.equal(calls,1);
+  }
+});
+test('async JWT diagnostic wrappers execute once and preserve success values and infrastructure classification',async()=>{
+  const value={opaque:true};let calls=0;
+  assert.equal(await realAuthStage('a_create_user',async()=>{calls++;return value;}),value);assert.equal(calls,1);
+  for(const [category,exit]of [['database_timeout',124],['rpc_unavailable',1],['database_connection_failed',7]]){
+    const original=new Failure(category,exit);
+    await assert.rejects(realAuthStage('b_trial_rpc',async()=>{throw original;}),error=>{
+      assert.equal(error,original);assert.equal(error.category,category);assert.equal(error.exitCode,exit);
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:'b_trial_rpc'});return true;
+    });
+  }
+  await assert.rejects(realAuthStage('b_verify_token',async()=>{throw {token:'SIMULATED_PRIVATE'};}),error=>{
+    assert.deepEqual(realAuthFailureDetails(error),{authStage:'b_verify_token'});
+    assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE/);return true;
+  });
+});
+test('controller preserves allowlisted JWT stages and recomputes failed native reports',()=>{
+  for(const result of ['failed','infrastructure_failed']){
+    const f=controllerFixture(),rows=[{id:'schema_dependencies',result:'passed'},
+      {id:'real_auth_jwt',result,category:result==='failed'?'assertion_failed':'database_timeout',
+        ...(result==='infrastructure_failed'?{exit:124}:{}),authStage:'b_trial_result'}];
+    f.state.report={...summarize(rows,true),observations:{}};f.state.outcome={status:1,stdout:''};
+    const report=f.run().report;
+    assert.deepEqual(report.checks,rows);assert.equal(report.result,'failed');
+    assert.equal(report.completed,2);assert.equal(report.passed,1);assert.equal(report.missing.length,19);
+  }
+});
+test('controller rejects forged JWT diagnostics, wrong groups and stages attached to passing checks',()=>{
+  for(const [id,result,authStage]of [
+    ['real_auth_jwt','failed','SIMULATED_PRIVATE'],['real_auth_jwt','failed',null],
+    ['schema_dependencies','failed','a_verify_token'],['real_auth_jwt','passed','a_verify_token'],
+  ]){
+    const f=controllerFixture();f.state.report.checks=[{id,result,authStage}];f.state.outcome={status:1,stdout:''};
+    assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
+  }
+});
+test('JWT diagnostics cannot change native pass/fail status or make an incomplete suite pass',()=>{
+  for(const authStage of REAL_AUTH_STAGES){
+    const rows=complete();Object.assign(rows[1],{result:'failed',category:'assertion_failed',authStage});
+    const report=summarize(rows,true);assert.equal(report.invalid,false);assert.equal(report.result,'failed');
+    assert.deepEqual(report.failed,['real_auth_jwt']);assert.equal(report.passed,20);
+    assert.equal(summarize(rows.slice(0,2),true).result,'failed');
+  }
+  for(const [index,stage]of [[0,'a_verify_token'],[1,'SIMULATED_PRIVATE'],[1,'a_verify_token']]){
+    const rows=complete();rows[index].authStage=stage;
+    const report=summarize(rows,true);assert.equal(report.invalid,true);assert.equal(report.result,'failed');
   }
 });

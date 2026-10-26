@@ -70,6 +70,42 @@ The complete native Auth run has NOT been executed. Separate PostgreSQL 17 SQL
 fixtures and offline adapter tests are recorded in
 `docs/subscription-009-recovery-validation-ar.md`; they do not replace this run.
 
+### Narrow real Auth assertion diagnostics
+
+The supplied artifact for run `40379165351` reports `schema_dependencies` passed,
+`real_auth_jwt` failed with `assertion_failed`, and the other 19 groups untested;
+independent cleanup passed. This does not identify the failing assertion or prove
+an application, JWT-signing, Auth-service or harness defect. No historical private
+logs or response payloads are available to this package investigation.
+
+Failed `real_auth_jwt` checks now optionally include one fixed `authStage` code:
+
+| Stage | Original operation/assertion |
+|---|---|
+| `a_create_user`, `b_create_user` | Real admin createUser, require error=null |
+| `a_password_signin`, `b_password_signin` | Real password grant, require error=null |
+| `a_created_identity`, `b_created_identity` | Read and validate created UUID |
+| `a_session_token`, `b_session_token` | Read the issued session access_token |
+| `a_verify_token`, `b_verify_token` | Real GoTrue getUser(token), require error=null |
+| `a_verified_identity`, `b_verified_identity` | Verified identity equals created identity |
+| `a_seed_subscription` | Seed A's non-trial subscription using owned local SQL |
+| `a_seed_personal_data`, `b_seed_personal_data` | Seed the four personal fixture rows |
+| `b_trial_rpc` | Real authenticated start_trial RPC, require error=null |
+| `b_trial_result` | Require RPC payload error=null |
+| `distinct_identities` | Require A and B to differ |
+| `reject_invalid_token` | Real GoTrue must reject the synthetic invalid token |
+| `read_trial_snapshot`, `trial_row_count`, `trial_used` | Read B's trial snapshot; require one row and trial_used=true |
+
+A/B are fixed fixture positions, not user identifiers. Codes come from a closed
+22-value list: no error text, status payload, token, credential, email, user ID,
+URL, path or private log is emitted. Wrappers execute each original operation
+once and retain its original ordinary-failure/infrastructure-failure classification
+and exit status. All native Auth requests, JWT verification and trial assertions
+remain unchanged. Later groups use the original helper without JWT diagnostics.
+The controller accepts codes only on failed/infrastructure-failed real_auth_jwt
+entries and rejects unknown codes, codes on another group or codes on a passing
+entry. Diagnostics cannot satisfy a missing group or produce a passing result.
+
 ## Runtime architecture and safety
 
 Use a fresh standard **GitHub-hosted ubuntu-24.04** runner, not a persistent or

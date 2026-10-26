@@ -1,0 +1,84 @@
+{
+  "run": 40379165351,
+  "inputSourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "inputPackageCommit": "5543bb6aa96aa0b7da991dc9a894821139cc0c97",
+  "historicalEvidenceSource": "user_supplied_verified_artifact",
+  "historicalResults": {
+    "offlineReview": {
+      "passed": 73,
+      "total": 73
+    },
+    "offlineBilling": {
+      "passed": 76,
+      "total": 76
+    },
+    "schema_dependencies": "passed",
+    "real_auth_jwt": {
+      "result": "failed",
+      "category": "assertion_failed"
+    },
+    "notTestedGroups": 19,
+    "independentCleanup": "passed"
+  },
+  "exactHistoricalAssertionIdentified": false,
+  "applicationDefectEstablished": false,
+  "authServiceDefectEstablished": false,
+  "harnessDefectEstablished": false,
+  "verifiedCodeFindings": {
+    "realAuthGroupPrecedesMigration009": true,
+    "groupAlsoIncludesTrialRpcAndDatabaseSnapshotAssertions": true,
+    "positiveTokenVerification": "real_GoTrue_getUser_with_issued_token_and_identity_equality",
+    "negativeTokenVerification": "real_GoTrue_getUser_with_invalid_synthetic_token",
+    "signingMethod": "password_grant_issued_by_real_GoTrue_not_locally_synthesized"
+  },
+  "localReproduction": {
+    "attemptedNativeGroups": 0,
+    "servicesStarted": false,
+    "historicalFailureReproduced": false,
+    "blockers": [
+      "not_fresh_GitHub_hosted_ubuntu_24_04",
+      "pinned_Supabase_CLI_not_installed",
+      "native_Supabase_stack_images_not_present"
+    ]
+  },
+  "diagnostics": {
+    "field": "checks[].authStage",
+    "allowedStages": 22,
+    "onlyGroup": "real_auth_jwt",
+    "onlyResults": [
+      "failed",
+      "infrastructure_failed"
+    ],
+    "payloadsOrSecretsPublished": false,
+    "unknownCodesRejectedByController": true
+  },
+  "localResults": {
+    "package": {
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0
+    },
+    "billingNetworkDenied": {
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ownedHosts": {
+      "passed": 9,
+      "failed": 0
+    },
+    "workflow": {
+      "passed": 14,
+      "failed": 0
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesIndependentlyHashed": 10,
+    "lockedDependenciesVerified": 9,
+    "syntax": "passed",
+    "diffWhitespace": "passed"
+  },
+  "productionReady": false,
+  "billingReady": false,
+  "mainModified": false,
+  "workflowDispatched": false
+}

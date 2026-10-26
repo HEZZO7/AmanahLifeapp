@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal} from './safety.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -41,7 +41,8 @@ async function check(id,fn,fatal=false){
   catch(error){
     const infrastructure=error instanceof Failure;
     results.push({id,result:infrastructure?'infrastructure_failed':'failed',
-      ...(infrastructure?{category:error.category,exit:error.exitCode}:{category:'assertion_failed'})});
+      ...(infrastructure?{category:error.category,exit:error.exitCode}:{category:'assertion_failed'}),
+      ...(id==='real_auth_jwt'?realAuthFailureDetails(error):{})});
     if(fatal)throw new Failure('prerequisite_failed');
   }
   emit(results.at(-1));
@@ -159,22 +160,40 @@ async function exercise(source,credentials){
       const deadline=Date.now()+8000;
       while(true){const r=await client.rpc(prefix+name,args);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
     }
-    async function newAccount(trial=true){
+    async function newAccount(trial=true,authAccount=null){
+      // Labels are fixed A/B fixture positions, never user identifiers. Later
+      // groups keep the original helper without real_auth_jwt diagnostics.
+      const at=(step,operation)=>authAccount===null?operation():realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
-      const created=await admin.auth.admin.createUser({email,password,email_confirm:true});assert.equal(created.error,null);
-      const client=sdk(credentials.anon),signed=await client.auth.signInWithPassword({email,password});assert.equal(signed.error,null);
-      const user={id:uuid(created.data.user.id),client,token:signed.data.session.access_token};
-      const verified=await client.auth.getUser(user.token);assert.equal(verified.error,null);assert.equal(verified.data.user.id,user.id);
-      if(trial){const r=await rpc(client,'start_trial');assert.equal(r.error,null);assert.equal(r.data.error,null);}
-      else sql('insert into '+sub+'(user_id) values('+q(user.id)+');');
-      for(const table of CLEANUP_TABLES.slice(1))sql('insert into public.'+prefix+table+"(user_id,marker) values("+q(user.id)+",'synthetic-private');");
+      const created=await at('create_user',async()=>{
+        const r=await admin.auth.admin.createUser({email,password,email_confirm:true});assert.equal(r.error,null);return r;
+      });
+      const client=sdk(credentials.anon),signed=await at('password_signin',async()=>{
+        const r=await client.auth.signInWithPassword({email,password});assert.equal(r.error,null);return r;
+      });
+      const user={id:await at('created_identity',()=>uuid(created.data.user.id)),client,
+        token:await at('session_token',()=>signed.data.session.access_token)};
+      const verified=await at('verify_token',async()=>{
+        const r=await client.auth.getUser(user.token);assert.equal(r.error,null);return r;
+      });
+      await at('verified_identity',()=>assert.equal(verified.data.user.id,user.id));
+      if(trial){
+        const r=await at('trial_rpc',async()=>{const response=await rpc(client,'start_trial');assert.equal(response.error,null);return response;});
+        await at('trial_result',()=>assert.equal(r.data.error,null));
+      }else await at('seed_subscription',()=>sql('insert into '+sub+'(user_id) values('+q(user.id)+');'));
+      await at('seed_personal_data',()=>{
+        for(const table of CLEANUP_TABLES.slice(1))sql('insert into public.'+prefix+table+"(user_id,marker) values("+q(user.id)+",'synthetic-private');");
+      });
       return user;
     }
     let A,B,handler,baselineA,baselineB,originalTrial;
     await check('real_auth_jwt',async()=>{
-      A=await newAccount(false);B=await newAccount(true);assert.notEqual(A.id,B.id);
-      assert.equal((await anon.auth.getUser('invalid-synthetic-token')).error!==null,true);
-      originalTrial=accountRows(B.id).subscriptions;assert.equal(originalTrial.length,1);assert.equal(originalTrial[0].trial_used,true);
+      A=await newAccount(false,'a');B=await newAccount(true,'b');
+      await realAuthStage('distinct_identities',()=>assert.notEqual(A.id,B.id));
+      await realAuthStage('reject_invalid_token',async()=>assert.equal((await anon.auth.getUser('invalid-synthetic-token')).error!==null,true));
+      originalTrial=await realAuthStage('read_trial_snapshot',()=>accountRows(B.id).subscriptions);
+      await realAuthStage('trial_row_count',()=>assert.equal(originalTrial.length,1));
+      await realAuthStage('trial_used',()=>assert.equal(originalTrial[0].trial_used,true));
     },true);
     await check('migration_idempotency_metadata',async()=>{
       const dataBefore=[accountRows(A.id),accountRows(B.id),billingRows(A.id),billingRows(B.id)];
