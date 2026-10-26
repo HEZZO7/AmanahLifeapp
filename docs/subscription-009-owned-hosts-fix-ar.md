@@ -72,3 +72,12 @@ layout daemon، واختُبرت دلالة append على bind mount داخل Do
 SHA الحزمة الجديدة. أبقِ SHA التطبيق `e6dd3fc…` وcheckout expression وحارس
 `refs/heads/main` دون تغيير. لم يُعدّل main هنا، ولم تُرسل محاولة تشغيل.
 تظل جاهزية الإنتاج والفوترة **NO-GO** حتى اجتياز المجموعات الـ21 والتحققات الأخرى.
+
+الحزمة المصححة المثبتة: `c4c415cbc7e075931fe1f7eb9ace75f492893146`.
+التغيير اليدوي الدقيق على main هو:
+
+```yaml
+PACKAGE_SHA: c4c415cbc7e075931fe1f7eb9ace75f492893146
+```
+
+لا تغيير لـ`SOURCE_SHA` أو `ref: ${{ env.PACKAGE_SHA }}` أو حارس main.
