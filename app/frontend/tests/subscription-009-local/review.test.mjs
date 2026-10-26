@@ -54,6 +54,8 @@ test('readiness and BEFORE-veto failures are mandatory, with no expected-pass co
   const report=summarize(rows,true);assert.equal(report.failed.length,3);assert.equal(report.result,'failed');
   assert.match(runner,/assert\.equal\(r\.data,false,'Readiness must reject/);
   assert.match(runner,/A vetoed deletion must never grant a second trial/);
+  assert.match(runner,/Direct Auth deletion must reject a late unreviewed veto/);
+  assert.match(runner,/Late veto must not run after destructive cleanup/);
 });
 test('AFTER NULL is a control; BEFORE NULL is a distinct adversarial test',()=>{
   for(const timing of ['BEFORE','AFTER']){
@@ -120,7 +122,7 @@ test('diagnostic categories never contain simulated secrets, URLs or unknown out
   assert.doesNotMatch(runtime,/stdio:\s*'inherit'|console\.(log|error)|writeFileSync[^\n]*status/);
 });
 test('all twelve application source hashes match exact approved contents',()=>{
-  assert.equal(SOURCE_COMMIT,'c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc');
+  assert.equal(SOURCE_COMMIT,'e6dd3fc5e014ea0539df8da12a6ee84582b302b9');
   assert.deepEqual(Object.keys(manifest.files),SOURCE_FILES);assert.equal(SOURCE_FILES.length,12);
   verifySource(source,manifest);
   for(const hashes of Object.values(manifest.files)){assert.match(hashes.gitBlob,/^[a-f0-9]{40}$/);assert.match(hashes.sha256,/^[a-f0-9]{64}$/);}

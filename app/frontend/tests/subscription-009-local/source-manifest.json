@@ -1,5 +1,5 @@
 {
-  "sourceCommit": "c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
   "files": {
     "app/frontend/tests/subscription-security-fixture.sql": {
       "gitBlob": "9ae1f36035c238a9741c0f98af9aa43b88641a83",
@@ -34,16 +34,16 @@
       "sha256": "213235342d8c43c0140ded742e301e1f7be8bd66607f9ee28b4536601286ed6c"
     },
     "app/frontend/supabase/functions/app_11941c8fec_delete_account/index.ts": {
-      "gitBlob": "f6feb3716181b32419e8d1d2bafdae06995c7b3c",
-      "sha256": "18f1d99815e918a68109165dad264b4c8654c6e15f84f18505336efe09aa6949"
+      "gitBlob": "03f59d98b2ae433e6ed0364cc286ca8802fbb860",
+      "sha256": "3b8df6ea5cb85ce7fcedb466f026ac923e6299b4f4617afdf66e87e9ee09aa1f"
     },
     "app/frontend/supabase/functions/app_11941c8fec_delete_account/handler.ts": {
       "gitBlob": "d47dfc62653545e5674705e7665b5cd8199acbb0",
       "sha256": "cefa30413cb7472523525a265656884beb6b071d9b2e20c6557838608834a975"
     },
     "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql": {
-      "gitBlob": "35779cbb3ff25ed0f28cb6293105c4d367594642",
-      "sha256": "03d82fefd608793bdec71e4cb25a82fa4ec78c0029de4def76e05455d5e5a14c"
+      "gitBlob": "92ccd2f53336912655455f00be2aabc36c4fdf70",
+      "sha256": "55694b2759bfe6d6c8f0a652a98a381dd90f005954b16ccf3e673a68d0219718"
     },
     "app/frontend/tests/account-deletion-atomic-regression.sql": {
       "gitBlob": "60e205656cebcfc2030a70384c5a2e86b6cdd33b",
@@ -60,15 +60,15 @@
     "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql"
   ],
   "packageFiles": {
-    "README.md": "64038825ce3d51a59951c68f819e8187ca35e18035bd5c8d15a4518ca84097e7",
+    "README.md": "f649b3db38db303558aa9abfc3850486f46062a5fa8fc3f4b382d384205649f6",
     "fixture.sql": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721",
-    "integration.mjs": "85388a65eae0a8fe3fb44a43bd67cc0a3072e79126a4519f21598aab5447ff67",
+    "integration.mjs": "6b36d9934ab7b46b23dea44551baa1a743b4138eca179da4852f5691b0eaa613",
     "local-runtime.mjs": "706d1837da26e21167a306d4f5fa036e29b19e53378e83467bb686838b75ff38",
     "metadata.sql": "c0e94ba3ff7b23af9ac57eb78d64d1d4f5ccb1dc2001bc1fcbdc1817d221eb9a",
     "package-lock.json": "1c256eb7885c127bc679f6b0e381098591ac894d9321e5a4f7a6ef6ec8e43221",
     "package.json": "5ba58dfc7e3faa74cc053aa1ed6f87b5781b39888f617bc5efacebd5c2e3fbb5",
-    "review.test.mjs": "a1d2c03a3a6702cbd002f53238fd6332f1765ab73eb05a8cf9a2aad481527dc6",
-    "safety.mjs": "d36702083bac56c42eee3bfa4ad34870a084f71a4669ce0ce4803eb57605615c",
+    "review.test.mjs": "62610bcd3f02cf577898d05e47e0cdad7b7986a51bc2598c650d56796bfbaa1c",
+    "safety.mjs": "3589cdc2677a56821a5b5fcecd11b0b88ec6e81571445d107c29cf631d93bd54",
     "isolation.mjs": "3394aad4cf6db3fffb16438b2cf674edb2b2e800d2e92b79121cbe8308f448db"
   }
 }

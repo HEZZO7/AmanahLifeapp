@@ -391,6 +391,13 @@ async function exercise(source,credentials){
         observations.beforeNullWitnessReached=witness()===hit+1;
         assert.deepEqual(accountRows(adversarial.id),adversarialBefore,'A vetoed Auth deletion must preserve the entire trial/account');
         assert.notEqual(response.status,200,'Do not report successful deletion while Auth remains');
+        assert.equal(witness(),hit,'Readiness must block the adapter before Auth DELETE');
+        // Bypass the HTTP readiness preflight to model DDL committed between
+        // preflight and DELETE. The DB cleanup guard must fail before erasure.
+        const direct=await admin.auth.admin.deleteUser(adversarial.id,false);
+        assert.ok(direct.error,'Direct Auth deletion must reject a late unreviewed veto');
+        assert.equal(witness(),hit,'Late veto must not run after destructive cleanup');
+        assert.deepEqual(accountRows(adversarial.id),adversarialBefore);
       });
       await check('before_delete_null_cannot_restart_trial',async()=>{
         assert.equal(attempted,true);const r=await rpc(adversarial.client,'start_trial');assert.equal(r.error,null);

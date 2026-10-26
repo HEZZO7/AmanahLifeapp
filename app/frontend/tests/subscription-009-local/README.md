@@ -1,6 +1,7 @@
-# Migration 009 — isolated local integration package (NOT EXECUTED)
+# Migration 009 — isolated local integration package (native Auth run pending)
 
-Application: `c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc`.
+Application: `e6dd3fc5e014ea0539df8da12a6ee84582b302b9`.
+Recovery baseline: `880faf9053b7e21c06ae10542c47ab446a04d493`.
 Preparation only. This directory installs no workflow and grants no execution,
 installation, deployment, production, provider or billing authorization.
 Every report has `productionReady=false`, including a fully passing report.
@@ -59,10 +60,15 @@ migrations must remove them. Test-only fault objects have all API grants revoked
 
 The **AFTER** trigger is a negative control: PostgreSQL ignores its return value,
 so RETURN NULL cannot veto deletion. The reviewed concern requires **BEFORE**.
-On the approved source, the last three BEFORE-related security groups are
-expected to fail if the suspected veto scenario is reproduced. This is an
-expectation, NOT an executed result. Failures remain ordinary failures, exit 1;
-do not change application code, skip them or turn them into expected passes.
+The recovery source rejects unreviewed BEFORE DELETE row/statement triggers
+in readiness and again inside the transactional cleanup. This also rejects a
+late trigger installed between HTTP preflight and direct Auth deletion. The
+adapter requires an explicit user_not_found confirmation before success, so
+an early silent veto cannot produce a false success. All 21 groups remain
+mandatory ordinary failures on any regression; none is skipped or expected-pass.
+The complete native Auth run has NOT been executed. Separate PostgreSQL 17 SQL
+fixtures and offline adapter tests are recorded in
+`docs/subscription-009-recovery-validation-ar.md`; they do not replace this run.
 
 ## Runtime architecture and safety
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 
-export const SOURCE_COMMIT='c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc';
+export const SOURCE_COMMIT='e6dd3fc5e014ea0539df8da12a6ee84582b302b9';
 export const NODE_VERSION='24.19.0', SDK_VERSION='2.110.0', CLI_VERSION='2.121.0';
 export const CLI_ARCHIVE_SHA256='4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f';
 export const API_ORIGIN='http://127.0.0.1:54321';
