@@ -109,3 +109,14 @@ Docker: حدث إنشاء وحيد قبل الحاوية بـ1ms، بلا نشا
 الخطوة التالية هي مراجعة commit الحزمة وتحديث PACKAGE_SHA يدويًا على main، ثم
 قراءة authCreateServer من أي تشغيل لاحق مصرح به إذا تكرر 5xx. لا تعديل main
 أو dispatch أو deployment في هذا العمل.
+
+commit الحزمة: `63bffbc81558e43b3098673947a0a120231e98b6`.
+التغيير اليدوي المطلوب في workflow على main:
+
+```yaml
+PACKAGE_SHA: 63bffbc81558e43b3098673947a0a120231e98b6
+```
+
+يبقى SOURCE_SHA=e6dd3fc5e014ea0539df8da12a6ee84582b302b9 وcheckout الحزمة
+`ref: ${{ env.PACKAGE_SHA }}` وشرط main وكل ضوابط التشغيل كما هي.
+ثُبت المرجع على نسخة workflow في فرع الاسترداد فقط، دون إطلاقها.
