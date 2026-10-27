@@ -1,0 +1,136 @@
+{
+  "run": 40469026749,
+  "inputPackageCommit": "bc471667afe320a0dccf9b4fad7a8d6a0e720449",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "historicalEvidenceSource": "user_supplied_verified_integration_json",
+  "historicalResult": {
+    "schema_dependencies": "passed",
+    "real_auth_jwt": "failed",
+    "authStage": "a_create_user",
+    "authCreateOutcome": "response_error",
+    "authCreateReason": "server_error",
+    "authCreateHttp": "http_5xx",
+    "passed": 1,
+    "required": 21,
+    "notTested": 19,
+    "offlineReviewPassed": 89,
+    "offlineBillingPassed": 76,
+    "independentCleanupPassed": true
+  },
+  "rootCauseEstablished": false,
+  "historicalServerLogsRetrieved": false,
+  "historicalFailureReproduced": false,
+  "sourceReview": {
+    "migrationOrderBeforeAuth": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "008"
+    ],
+    "migration009AppliedBeforeFailure": false,
+    "migration006or007Applied": false,
+    "sourceInstallsAuthInsertOrUpdateTrigger": false,
+    "migration008AuthTriggerEvent": "BEFORE_DELETE",
+    "fixturePreservesNativeAuthSchemaAndRoles": true,
+    "authSchemaBootstrapOccursBeforeApplicationFixture": true
+  },
+  "reviewedGoTruePath": {
+    "versionReference": "v2.197.0",
+    "sourceCommit": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
+    "steps": [
+      "bearer_JWT_and_admin_role_validation",
+      "email_duplicate_database_query",
+      "password_model_creation",
+      "database_transaction_begin",
+      "auth_user_insert",
+      "auth_identity_insert",
+      "audit_log_write_when_enabled",
+      "auth_user_role_update",
+      "email_confirmation_updates",
+      "one_time_token_cleanup",
+      "transaction_commit"
+    ],
+    "historicalServiceImageBytesVerified": false,
+    "historicalAuthDatabaseRoleReadinessVerified": false
+  },
+  "newDiagnostic": {
+    "field": "authCreateServer",
+    "closedCategories": 19,
+    "onlyAfterFailedAdminCreateWithObservedHttp5xx": true,
+    "rawLogsOrSqlMessagesPublished": false,
+    "rawLogsPersistedByCollector": false,
+    "containerEnvironmentInspected": false,
+    "ownershipChecks": [
+      "canonical_workdir",
+      "source_project_marker",
+      "validated_isolation_journal",
+      "exact_Auth_container_name_project_and_full_ID",
+      "nonprivileged",
+      "captured_PID",
+      "pinned_namespace"
+    ],
+    "maxLogLines": 64,
+    "maxBytes": 524288,
+    "logTimeoutMs": 5000,
+    "correlation": "single_matching_structured_POST_admin_users_5xx_completion_in_request_time_window_not_request_ID_correlation",
+    "multipleMatchingRecords": "ambiguous_auth_log",
+    "missingEvidence": "no_matching_auth_log"
+  },
+  "localDockerTemplateProbe": {
+    "templateVerifiedAgainstLocalDocker": true,
+    "containerStarted": false,
+    "networkMode": "none",
+    "cleanupVerified": true,
+    "nativeAuthExecuted": false,
+    "ownedAnonymousVolumesRemoved": 1,
+    "containerAndOwnedVolumeCleanupVerified": true,
+    "imageDeclaresVolumes": true,
+    "volumeOwnershipEvidence": "unique_volume_create_1ms_before_owned_container_create_no_other_nearby_activity",
+    "volumeConfirmedEmptyAndUnreferenced": true
+  },
+  "localValidation": {
+    "package": {
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0
+    },
+    "applicationWithDenyNetworkAndExistingPreferenceLoader": {
+      "passed": 390,
+      "failed": 0,
+      "skipped": 0,
+      "includesBillingTests": 76
+    },
+    "initialApplicationInvocationWithoutRequiredLoader": {
+      "passed": 355,
+      "failed": 3,
+      "reason": "existing_extensionless_TypeScript_module_resolution",
+      "noTestsModified": true
+    },
+    "ownedHosts": {
+      "passed": 9,
+      "failed": 0
+    },
+    "workflow": {
+      "passed": 14,
+      "failed": 0
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesIndependentlyHashed": 10,
+    "lockedDependencyVersionsVerified": 9,
+    "syntax": "passed",
+    "diffWhitespace": "passed"
+  },
+  "nativeGroupsExecutedLocally": 0,
+  "nativeAuthOrDatabaseServiceStartedLocally": false,
+  "nativeReproductionBlockers": [
+    "not_fresh_GitHub_hosted_ubuntu_24_04",
+    "host_sudo_unavailable",
+    "required_owned_native_stack_with_namespace_firewall_controls_not_available_here"
+  ],
+  "mainModified": false,
+  "workflowDispatched": false,
+  "productionReady": false,
+  "billingReady": false
+}

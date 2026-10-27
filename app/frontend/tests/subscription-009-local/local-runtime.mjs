@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -48,6 +48,34 @@ export function verifyPackage(directory,manifest){
 function context(workdir){
   root=workdir;project=path.basename(workdir);
   childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');childEnv.DOCKER_CONFIG=path.join(root,'.docker');
+}
+export function authServerDiagnostics(workdir,start,end,probe={}){
+  const io=probe.fs??fs,run=probe.run??command,capture=probe.capture??spawnSync;
+  const verify=probe.verifyNamespaceHandle??verifyNamespaceHandle,now=probe.now??Date.now;
+  let failure='ownership_unverified';
+  try{
+    assert.ok(Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&end>=start&&end-start<=60000);
+    const current=now();assert.ok(start>=current-61000&&end<=current+1000);
+    workspace(workdir,path.dirname(workdir));assert.equal(io.realpathSync(workdir),workdir);
+    const name=path.basename(workdir),marker=JSON.parse(io.readFileSync(path.join(workdir,'owned.json')));
+    assert.equal(marker.project,name);assert.equal(marker.source,SOURCE_COMMIT);
+    const journal=validateIsolation(JSON.parse(io.readFileSync(path.join(workdir,'isolation.json'))));
+    assert.equal(journal.project,name);assert.ok(journal.identity);
+    // Inspect only fixed ownership/liveness fields, never Config.Env or logs of
+    // another container. Revalidate the captured ID/PID and pinned namespace.
+    const format='{"id":{{json .Id}},"name":{{json .Name}},"project":{{json (index .Config.Labels "com.supabase.cli.project")}},"running":{{json .State.Running}},"pid":{{json .State.Pid}},"privileged":{{json .HostConfig.Privileged}}}';
+    const item=JSON.parse(run('docker',['inspect','--format',format,'supabase_auth_'+name]));
+    assert.equal(item.name,'/supabase_auth_'+name);assert.equal(item.project,name);assert.equal(item.privileged,false);
+    const peer=journal.identity.peers.find(peer=>peer.id===item.id);assert.ok(peer);
+    if(item.running===false)return 'auth_service_not_running';
+    assert.equal(item.running,true);assert.ok(Number.isInteger(item.pid)&&item.pid>1);
+    if(item.pid!==peer.pid)return 'auth_service_restarted';
+    verify({...peer,hostNamespace:journal.identity.hostNamespace});failure='unavailable';
+    const outcome=capture('docker',['logs','--since',new Date(start).toISOString(),'--until',new Date(end+1000).toISOString(),
+      '--tail','64',item.id],{env:{...childEnv},encoding:'utf8',timeout:5000,maxBuffer:512*1024});
+    if(outcome.error||outcome.signal||outcome.status!==0)return 'unavailable';
+    return classifyAuthServerLogs((outcome.stdout||'')+'\n'+(outcome.stderr||''));
+  }catch{return failure;}
 }
 // Docker bind-mounts this daemon-owned file as /etc/hosts. Never replace the
 // mountpoint using docker cp, and do not assume utilities exist in every image.

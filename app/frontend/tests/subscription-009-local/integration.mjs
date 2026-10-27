@@ -8,7 +8,7 @@ import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
   workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
@@ -165,9 +165,14 @@ async function exercise(source,credentials){
       // groups keep the original helper without real_auth_jwt diagnostics.
       const at=(step,operation)=>authAccount===null?operation():realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
-      const createStart=guard.state.calls.length;
-      const created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
-        ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
+      const createStart=guard.state.calls.length,requestStart=Date.now();let created;
+      try{
+        created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
+          ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
+      }catch(error){
+        if(authAccount!==null&&error.authCreateHttp==='http_5xx')error.authCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+        throw error;
+      }
       const client=sdk(credentials.anon),signed=await at('password_signin',async()=>{
         const r=await client.auth.signInWithPassword({email,password});assert.equal(r.error,null);return r;
       });

@@ -13,8 +13,8 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
   REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
-  checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker} from './local-runtime.mjs';
+  checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -912,5 +912,96 @@ test('failed HTTP observation cannot hide an original admin failure or expose pr
         authCreateReason:'admin_authorization',authCreateHttp:'unavailable'});
       assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE/);return true;
     });
+  }
+});
+
+function authLog(error='SIMULATED_PRIVATE',patch={}){
+  return JSON.stringify({component:'api',method:'POST',path:'/admin/users',level:'error',status:500,msg:'request completed',
+    error,request_id:'SIMULATED_PRIVATE_ID',auth_event:{user_email:'SIMULATED_PRIVATE'},...patch})+'\n';
+}
+test('Auth server classifier maps a single structured PostgreSQL error to a fixed category only',()=>{
+  for(const [code,category]of [
+    ['42P01','database_dependency'],['42703','database_dependency'],['42883','database_dependency'],['3F000','database_dependency'],
+    ['42501','database_privilege'],['23503','database_constraint'],['23505','database_constraint'],['P0001','database_raised_exception'],
+    ['ZX009','database_raised_exception'],['08006','database_connection'],['57P01','database_connection'],['53300','database_resource'],
+    ['57014','database_timeout'],['55P03','database_timeout'],['25P03','database_timeout'],['25P02','database_transaction'],
+    ['40001','database_transaction'],['40P01','database_transaction'],['22001','database_data_error'],['XX000','database_other'],
+  ]){
+    const result=classifyAuthServerLogs(authLog('SIMULATED_PRIVATE SQL and credentials (SQLSTATE '+code+')'));
+    assert.equal(result,category);assert.ok(AUTH_CREATE_SERVER.includes(result));
+    assert.doesNotMatch(result,/SIMULATED|SQLSTATE|42P01|23503|42501/);
+  }
+});
+test('Auth server classifier rejects absent, unrelated, ambiguous and unstructured evidence',()=>{
+  assert.equal(classifyAuthServerLogs('SIMULATED_PRIVATE (SQLSTATE 42501)'),'no_matching_auth_log');
+  for(const patch of [{component:'other'},{method:'GET'},{path:'/other'},{level:'info'},{status:400},{msg:'other'}]){
+    assert.equal(classifyAuthServerLogs(authLog('(SQLSTATE 42501)',patch)),'no_matching_auth_log');
+  }
+  assert.equal(classifyAuthServerLogs(authLog('(SQLSTATE 42501)')+authLog('(SQLSTATE 42501)')),'ambiguous_auth_log');
+  assert.equal(classifyAuthServerLogs(authLog('(SQLSTATE 42501) (SQLSTATE 25P02)')),'ambiguous_database_error');
+  assert.equal(classifyAuthServerLogs(authLog('SQLSTATE 42501 without the driver marker')),'gotrue_server_unclassified');
+  assert.equal(classifyAuthServerLogs(authLog()),'gotrue_server_unclassified');
+  assert.equal(classifyAuthServerLogs(authLog('',{panic:'SIMULATED_PRIVATE'})),'gotrue_panic');
+  assert.equal(classifyAuthServerLogs('x'.repeat(512*1024+1)),'unavailable');
+  assert.equal(classifyAuthServerLogs(authLog('x'.repeat(65537))),'no_matching_auth_log');
+});
+function authServerFixture(){
+  const workdir='/tmp/'+projectName,i=identity(),peer=i.peers[2];
+  const state={marker:{project:projectName,source:SOURCE_COMMIT},journal:{version:1,project:projectName,identity:i,rules:isolationRules(projectName,i)},
+    item:{id:peer.id,name:'/supabase_auth_'+projectName,project:projectName,running:true,pid:peer.pid,privileged:false},
+    outcome:{status:0,stdout:'',stderr:authLog('(SQLSTATE 42501)')},verified:false,captures:[],inspections:[],badNamespace:false};
+  const probe={now:()=>100000,fs:{realpathSync:()=>workdir,readFileSync:file=>JSON.stringify(file.endsWith('owned.json')?state.marker:state.journal)},
+    run:(exe,args)=>{assert.equal(exe,'docker');assert.equal(args[0],'inspect');state.inspections.push(args);return JSON.stringify(state.item);},
+    verifyNamespaceHandle:value=>{assert.equal(value.id,peer.id);assert.equal(value.hostNamespace,i.hostNamespace);assert.equal(state.badNamespace,false);state.verified=true;},
+    capture:(exe,args,options)=>{assert.equal(state.verified,true);state.captures.push({exe,args,options});return state.outcome;},
+  };
+  return {state,probe,workdir,run:()=>authServerDiagnostics(workdir,99000,100000,probe)};
+}
+test('Auth diagnostics read only bounded logs from the owned ID after revalidating namespace and PID',()=>{
+  const f=authServerFixture();assert.equal(f.run(),'database_privilege');assert.equal(f.state.captures.length,1);
+  const {exe,args,options}=f.state.captures[0];assert.equal(exe,'docker');assert.equal(args[0],'logs');
+  assert.deepEqual(args.slice(-3),['--tail','64',f.state.item.id]);assert.ok(args.includes('--since'));assert.ok(args.includes('--until'));
+  assert.equal(options.timeout,5000);assert.equal(options.maxBuffer,512*1024);assert.equal(options.env.DOCKER_HOST,'unix:///var/run/docker.sock');
+  assert.doesNotMatch(f.state.inspections[0][2],/Config\.Env|\.State\.Error/);
+});
+test('foreign ownership, unsafe journals and stale namespaces prevent any Auth log read',()=>{
+  for(const mutate of [s=>s.marker.source='foreign',s=>s.marker.project='foreign',s=>s.journal.project='foreign',
+    s=>s.item.id='f'.repeat(64),s=>s.item.name='/foreign',s=>s.item.project='foreign',s=>s.item.privileged=true,
+    s=>s.badNamespace=true,s=>s.item.pid=0]){
+    const f=authServerFixture();mutate(f.state);assert.equal(f.run(),'ownership_unverified');assert.equal(f.state.captures.length,0);
+  }
+  const f=authServerFixture();assert.equal(authServerDiagnostics(f.workdir,1,100000,f.probe),'ownership_unverified');assert.equal(f.state.captures.length,0);
+});
+test('owned Auth liveness changes are reported without entering stale namespaces or reading logs',()=>{
+  for(const [mutate,code]of [[s=>s.item.running=false,'auth_service_not_running'],[s=>s.item.pid++,'auth_service_restarted']]){
+    const f=authServerFixture();mutate(f.state);assert.equal(f.run(),code);assert.equal(f.state.captures.length,0);assert.equal(f.state.verified,false);
+  }
+});
+test('Auth diagnostic timeout or log failure cannot expose private output or replace the native failure',()=>{
+  for(const outcome of [{status:1,stderr:'SIMULATED_PRIVATE'}, {status:0,stdout:'x'.repeat(512*1024+1)},
+    {error:{code:'ETIMEDOUT'},stderr:'SIMULATED_PRIVATE'}, {signal:'SIGTERM',stdout:'SIMULATED_PRIVATE'}]){
+    const f=authServerFixture();f.state.outcome=outcome;assert.equal(f.run(),'unavailable');assert.equal(f.state.captures.length,1);
+  }
+});
+test('controller preserves allowlisted server categories only on failed admin HTTP 5xx checks',()=>{
+  for(const authCreateServer of AUTH_CREATE_SERVER){
+    const f=controllerFixture(),row={id:'real_auth_jwt',result:'failed',category:'assertion_failed',authStage:'a_create_user',
+      authCreateOutcome:'response_error',authCreateReason:'server_error',authCreateHttp:'http_5xx',authCreateServer};
+    f.state.report={...summarize([{id:'schema_dependencies',result:'passed'},row],true),observations:{}};f.state.outcome={status:1,stdout:''};
+    const report=f.run().report;assert.deepEqual(report.checks[1],row);assert.equal(report.result,'failed');assert.equal(report.passed,1);
+  }
+});
+test('forged or incoherent server diagnostics cannot pass controller or summary validation',()=>{
+  const base={id:'real_auth_jwt',result:'failed',authStage:'a_create_user',authCreateOutcome:'response_error',
+    authCreateReason:'server_error',authCreateHttp:'http_5xx',authCreateServer:'database_privilege'};
+  for(const patch of [{authCreateServer:'SIMULATED_PRIVATE'},{authCreateServer:null},{authCreateServer:undefined},
+    {authCreateHttp:'http_4xx'},{authStage:'a_verify_token'},{id:'schema_dependencies'},{result:'passed'}]){
+    const row={...base,...patch};assert.equal(validRealAuthDiagnostics(row),false);
+    assert.equal(summarize([row],true).invalid,true);
+    const f=controllerFixture();f.state.report={...summarize([row],true),observations:{}};f.state.outcome={status:1,stdout:''};
+    // undefined cannot survive JSON; use a literal raw JSON with an unknown
+    // value so this case still tests the remote report's untrusted boundary.
+    if(patch.authCreateServer===undefined&&Object.hasOwn(patch,'authCreateServer'))f.state.raw=JSON.stringify({...f.state.report,checks:[{...row,authCreateServer:null}]});
+    assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
   }
 });

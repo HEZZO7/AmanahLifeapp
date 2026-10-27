@@ -139,6 +139,40 @@ refusal. no_http_status is an SDK hint and alone does NOT prove a transport erro
 An unavailable diagnostic never replaces or suppresses the original failure.
 Old authStage-only reports remain accepted with all original failure gates.
 
+For run `40469026749`, response_error/server_error/http_5xx proves an HTTP server
+failure on this route, not whether GoTrue, a database dependency or the gateway
+caused it. Schema DDL passing under postgres does not prove the Auth service's
+database operations work. The fixture and reviewed 001/002/003/004/005/008 do not
+install an Auth INSERT/UPDATE trigger; 008 adds a BEFORE DELETE guard only. Actual
+native bootstrap triggers and service initialization in that run remain unknown.
+
+Only after a failed A/B create request with observed http_5xx, a read-only probe
+may add `authCreateServer`. It rechecks the canonical workdir, owned source/project
+marker, isolation journal, exact Auth container name/project/full ID/nonprivileged
+status, captured PID and pinned namespace. It inspects no container environment.
+A stopped/restarted owned Auth container gets a fixed liveness code without
+reading logs or entering a stale namespace. Unverified ownership prevents reads.
+
+The probe captures at most 64 Auth log lines in the request's bounded time window,
+with a five-second cutoff and 512 KiB limit. Both stdout/stderr stay private in
+memory and are discarded; no raw log is written to disk, console or artifacts.
+Only one structured error-level api POST /admin/users completion with HTTP 5xx
+may be classified. Zero/multiple matching events report no_matching_auth_log or
+ambiguous_auth_log. This is time/operation matching, not independent request-ID
+correlation; logging delay, changed formats and ambiguity never justify a cause.
+
+Only a fixed PostgreSQL driver `(SQLSTATE <5 characters>)` marker from that
+event's error field yields database_dependency/privilege/constraint/raised_exception/
+connection/resource/timeout/transaction/data_error/other. Multiple distinct states
+give ambiguous_database_error. A structured panic gets gotrue_panic; other matched
+errors stay gotrue_server_unclassified. These 19 allowlisted codes are categories,
+not proof of a particular table, trigger, migration or root cause. No error text,
+SQLSTATE, identity, request ID, address, timestamp, SQL, connection string or log
+field is emitted. Diagnostic failure never replaces the original failed assertion,
+retries Auth, changes a group result or bypasses cleanup or source verification.
+The controller rejects unknown/misplaced server codes, including codes without
+an observed http_5xx or on a successful check. All existing gates remain mandatory.
+
 ## Runtime architecture and safety
 
 Use a fresh standard **GitHub-hosted ubuntu-24.04** runner, not a persistent or

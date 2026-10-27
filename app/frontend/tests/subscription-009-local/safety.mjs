@@ -24,6 +24,41 @@ export const AUTH_CREATE_REASONS=Object.freeze(['email_invalid','identity_exists
   'no_http_status','unauthorized','forbidden','bad_request','conflict','unprocessable','server_error','unclassified']);
 export const AUTH_CREATE_HTTP=Object.freeze(['no_request','no_response','http_2xx','http_4xx','http_5xx',
   'http_other','unexpected_requests','unavailable']);
+export const AUTH_CREATE_SERVER=Object.freeze(['unavailable','ownership_unverified','no_matching_auth_log','ambiguous_auth_log',
+  'auth_service_not_running','auth_service_restarted','gotrue_panic','gotrue_server_unclassified',
+  'database_dependency','database_privilege','database_constraint','database_raised_exception','database_connection',
+  'database_resource','database_timeout','database_transaction','database_data_error','database_other','ambiguous_database_error']);
+// Input is a bounded private buffer from ONE owned Auth container and ONE
+// request time window. Return only fixed codes; never a log field or SQLSTATE.
+export function classifyAuthServerLogs(text){
+  if(typeof text!=='string'||Buffer.byteLength(text)>512*1024)return 'unavailable';
+  const matches=[];
+  for(const line of text.split('\n')){
+    if(Buffer.byteLength(line)>65536)continue;
+    let row;try{row=JSON.parse(line);}catch{continue;}
+    if(row?.component==='api'&&row.method==='POST'&&row.path==='/admin/users'&&row.level==='error'&&
+      row.msg==='request completed'&&Number.isInteger(row.status)&&row.status>=500&&row.status<=599)matches.push(row);
+  }
+  if(matches.length===0)return 'no_matching_auth_log';
+  if(matches.length!==1)return 'ambiguous_auth_log';
+  const row=matches[0];
+  if(typeof row.panic==='string'&&row.panic.length>0)return 'gotrue_panic';
+  if(typeof row.error!=='string'||row.error.length>32768)return 'gotrue_server_unclassified';
+  const codes=[...new Set([...row.error.matchAll(/\(SQLSTATE ([0-9A-Z]{5})\)/g)].map(match=>match[1]))];
+  if(codes.length===0)return 'gotrue_server_unclassified';
+  if(codes.length!==1)return 'ambiguous_database_error';
+  const code=codes[0];
+  if(['42P01','42703','42883','3F000','42704','42804'].includes(code))return 'database_dependency';
+  if(code==='42501')return 'database_privilege';
+  if(code.startsWith('23'))return 'database_constraint';
+  if(['P0001','ZX008','ZX009'].includes(code))return 'database_raised_exception';
+  if(code.startsWith('08')||['57P01','57P02','57P03'].includes(code))return 'database_connection';
+  if(code.startsWith('53'))return 'database_resource';
+  if(['57014','55P03','25P03'].includes(code))return 'database_timeout';
+  if(code.startsWith('40')||code==='25P02')return 'database_transaction';
+  if(code.startsWith('22'))return 'database_data_error';
+  return 'database_other';
+}
 export function authCreateHttpResult(calls){
   if(!Array.isArray(calls))return 'unavailable';
   if(calls.length===0)return 'no_request';
@@ -86,7 +121,7 @@ export async function realAuthStage(stage,operation){
   catch(error){
     const failure=error instanceof Failure?error:new Error('Local authentication assertion failed');
     Object.assign(failure,realAuthFailureDetails({authStage:stage,authCreateOutcome:error?.authCreateOutcome,
-      authCreateReason:error?.authCreateReason,authCreateHttp:error?.authCreateHttp}));throw failure;
+      authCreateReason:error?.authCreateReason,authCreateHttp:error?.authCreateHttp,authCreateServer:error?.authCreateServer}));throw failure;
   }
 }
 export function realAuthFailureDetails(value){
@@ -99,12 +134,13 @@ export function realAuthFailureDetails(value){
       details.authCreateOutcome=outcome;
       if(reasonRequired)details.authCreateReason=value.authCreateReason;
       if(create)details.authCreateHttp=value.authCreateHttp;
+      if(create&&value.authCreateHttp==='http_5xx'&&AUTH_CREATE_SERVER.includes(value.authCreateServer))details.authCreateServer=value.authCreateServer;
     }
   }
   return details;
 }
 export function validRealAuthDiagnostics(row){
-  const keys=['authStage','authCreateOutcome','authCreateReason','authCreateHttp'].filter(key=>key in row);
+  const keys=['authStage','authCreateOutcome','authCreateReason','authCreateHttp','authCreateServer'].filter(key=>key in row);
   if(!keys.length)return true;
   if(row.id!=='real_auth_jwt'||!['failed','infrastructure_failed'].includes(row.result))return false;
   const details=realAuthFailureDetails(row);
