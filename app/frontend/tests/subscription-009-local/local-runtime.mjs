@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -216,9 +216,7 @@ export function runIsolatedWorker(prepared,entry,probe={}){
     const checks=report.checks.map(r=>{
       assert.ok(CHECKS.includes(r.id));assert.ok(['passed','failed','infrastructure_failed'].includes(r.result));
       const authDetails=realAuthFailureDetails(r);
-      if('authStage' in r){
-        assert.equal(r.id,'real_auth_jwt');assert.notEqual(r.result,'passed');assert.equal(authDetails.authStage,r.authStage);
-      }
+      assert.ok(validRealAuthDiagnostics(r));
       return {id:r.id,result:r.result,...(r.category?{category:safeWord(r.category)}:{}),
         ...(r.exit!==undefined?{exit:validExit(r.exit)}:{}),...authDetails};
     });

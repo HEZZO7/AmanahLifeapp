@@ -106,6 +106,39 @@ The controller accepts codes only on failed/infrastructure-failed real_auth_jwt
 entries and rejects unknown codes, codes on another group or codes on a passing
 entry. Diagnostics cannot satisfy a missing group or produce a passing result.
 
+Run `40437402291` narrows the failure to `a_create_user`, which originally wrapped
+both awaiting `admin.createUser` and asserting `response.error===null`. UUID
+validation was a later `a_created_identity` stage, so this artifact does not prove
+an identity-assertion failure. The pinned SDK converts recognized Auth errors,
+including HTTP and transport errors, into resolved `{data,error}` responses; a
+stage alone cannot distinguish them from a thrown SDK exception or bad shape.
+
+Admin-create diagnostics now add fixed `authCreateOutcome` and, for error outcomes,
+fixed `authCreateReason` hints. `request_rejected` means the original SDK operation
+threw/rejected (not proof of HTTP rejection); `response_error` means the SDK
+resolved with a non-null error; `malformed_response` means the result lacks the
+required error/data/user shape; `identity_assertion` means the original UUID
+assertion failed at a_created_identity/b_created_identity. The error=null assertion
+and UUID validation remain mandatory, with additional fail-closed shape checks.
+The request is executed once, without new retries or Auth substitutions.
+
+Reasons map only selected SDK error codes/names and HTTP status classes to a
+closed 18-value list, e.g. admin_authorization, token_rejected, input_validation,
+no_http_status, response_decode, server_error or unclassified. No raw code,
+status, message, response, identity, credential, address or URL is retained in
+diagnostics. Hints classify observed control flow and do not establish root cause.
+The controller and summary reject unknown fields' values, inconsistent stage/
+outcome pairs, missing required reasons and diagnostics on successful/other groups.
+An additional fixed `authCreateHttp` bucket is derived from the existing guarded
+fetch observation for this exact POST: no_request, no_response, http_2xx, http_4xx,
+http_5xx, http_other, unexpected_requests or unavailable. It records only whether
+an HTTP response arrived and its class, without reading its body or exposing the
+route/status. For example response_error plus http_2xx points to SDK/result
+handling after HTTP success; response_error plus http_4xx records an API/gateway
+refusal. no_http_status is an SDK hint and alone does NOT prove a transport error.
+An unavailable diagnostic never replaces or suppresses the original failure.
+Old authStage-only reports remain accepted with all original failure gates.
+
 ## Runtime architecture and safety
 
 Use a fresh standard **GitHub-hosted ubuntu-24.04** runner, not a persistent or

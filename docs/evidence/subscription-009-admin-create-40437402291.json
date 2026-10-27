@@ -1,0 +1,112 @@
+{
+  "run": 40437402291,
+  "inputPackageCommit": "172a0774dfd4cde1a8d794fa4a91a6ebdae6ac23",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "historicalEvidenceSource": "user_supplied_verified_artifact",
+  "historicalResults": {
+    "schema_dependencies": "passed",
+    "real_auth_jwt": {
+      "result": "failed",
+      "authStage": "a_create_user"
+    },
+    "completed": 2,
+    "passed": 1,
+    "required": 21,
+    "notTested": 19,
+    "offlineReviewPassed": 79,
+    "offlineBillingPassed": 76,
+    "independentCleanupPassed": true
+  },
+  "historicalRootCauseEstablished": false,
+  "historicalApiVsValidationFailureDistinguished": false,
+  "verifiedCodeFindings": {
+    "oldStageContainsAwaitAndErrorNullAssertion": true,
+    "uuidAssertionRunsAtLaterStage": true,
+    "sdkResolvesRecognizedAuthErrors": true,
+    "sdkUsesServiceCredentialForAdminAuthorization": true,
+    "migration009NotAppliedAtThisPoint": true
+  },
+  "localConfigurationProbe": {
+    "cliVersion": "2.121.0",
+    "cliArchiveSha256": "4b481189efbdc57cf2d37bdee5f1a0d29574314398564b32a6dfb76c0fcf275f",
+    "independentArchiveHashesMatch": true,
+    "command": "init",
+    "disposableDirectoryOutsideRepository": true,
+    "settings": {
+      "authEnabled": true,
+      "emailSignupEnabled": true,
+      "emailConfirmationsEnabled": false,
+      "minimumPasswordLength": 6,
+      "passwordRequirementsEmpty": true,
+      "smtpEnabled": false,
+      "authHookEnabledCount": 0
+    },
+    "authServicesStarted": false,
+    "databaseStarted": false
+  },
+  "upstreamSourceReview": {
+    "authVersionReference": "v2.197.0",
+    "referenceOrigin": "literal_image_reference_in_verified_CLI_binary",
+    "authSourceCommit": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
+    "defaultAdminRolesIncludeServiceRole": true,
+    "adminMiddlewareVerifiesBearerJwtBeforeRoleCheck": true,
+    "historicalContainerEnvironmentObserved": false,
+    "historicalImageBytesVerified": false
+  },
+  "fixtureReview": {
+    "credentialsRandomlyGenerated": true,
+    "passwordLength": 36,
+    "emailConfirmationRequested": true,
+    "actualFixtureValuesPublished": false
+  },
+  "nativeReproduction": {
+    "historicalFailureReproduced": false,
+    "groupsExecutedLocally": 0,
+    "servicesStarted": false,
+    "blockers": [
+      "not_fresh_GitHub_hosted_ubuntu_24_04",
+      "host_sudo_unavailable",
+      "required_owned_native_stack_and_namespace_firewall_controls_not_available_here"
+    ]
+  },
+  "diagnostics": {
+    "authCreateOutcome": [
+      "request_rejected",
+      "response_error",
+      "malformed_response",
+      "identity_assertion"
+    ],
+    "allowlistedReasonCount": 18,
+    "allowlistedHttpObservationCount": 8,
+    "requestAttemptsUnchanged": true,
+    "rawPayloadsRetained": false,
+    "unknownOrIncoherentDiagnosticsRejected": true
+  },
+  "localResults": {
+    "package": {
+      "passed": 89,
+      "failed": 0,
+      "skipped": 0
+    },
+    "billingNetworkDenied": {
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ownedHosts": {
+      "passed": 9,
+      "failed": 0
+    },
+    "workflow": {
+      "passed": 14,
+      "failed": 0
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesIndependentlyHashed": 10,
+    "lockedDependencyVersionsVerified": 9
+  },
+  "mainModified": false,
+  "workflowDispatched": false,
+  "productionReady": false,
+  "billingReady": false
+}

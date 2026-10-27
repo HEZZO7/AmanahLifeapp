@@ -18,6 +18,66 @@ export const REAL_AUTH_STAGES=Object.freeze([
   'a_seed_subscription','b_trial_rpc','b_trial_result','distinct_identities','reject_invalid_token',
   'read_trial_snapshot','trial_row_count','trial_used',
 ]);
+export const AUTH_CREATE_OUTCOMES=Object.freeze(['request_rejected','response_error','malformed_response','identity_assertion']);
+export const AUTH_CREATE_REASONS=Object.freeze(['email_invalid','identity_exists','input_validation','password_policy',
+  'admin_authorization','token_rejected','request_timeout','rate_limit','service_error','response_decode',
+  'no_http_status','unauthorized','forbidden','bad_request','conflict','unprocessable','server_error','unclassified']);
+export const AUTH_CREATE_HTTP=Object.freeze(['no_request','no_response','http_2xx','http_4xx','http_5xx',
+  'http_other','unexpected_requests','unavailable']);
+export function authCreateHttpResult(calls){
+  if(!Array.isArray(calls))return 'unavailable';
+  if(calls.length===0)return 'no_request';
+  if(calls.length!==1||calls[0]?.method!=='POST'||calls[0]?.path!=='/auth/v1/admin/users')return 'unexpected_requests';
+  const status=calls[0].status;
+  if(status===null)return 'no_response';
+  if(!Number.isInteger(status)||status<100||status>599)return 'unavailable';
+  if(status>=200&&status<=299)return 'http_2xx';
+  if(status>=400&&status<=499)return 'http_4xx';
+  if(status>=500)return 'http_5xx';
+  return 'http_other';
+}
+// Hints only. Never retain a message, response body, raw code/status or URL.
+export function authCreateReason(error){
+  const codes={email_address_invalid:'email_invalid',email_exists:'identity_exists',user_already_exists:'identity_exists',
+    validation_failed:'input_validation',weak_password:'password_policy',not_admin:'admin_authorization',bad_jwt:'token_rejected',
+    request_timeout:'request_timeout',over_request_rate_limit:'rate_limit',unexpected_failure:'service_error'};
+  if(typeof error?.code==='string'&&Object.hasOwn(codes,error.code))return codes[error.code];
+  if(error?.name==='AuthUnknownError')return 'response_decode';
+  const status=error?.status;
+  if(Number.isInteger(status)){
+    const statuses={0:'no_http_status',400:'bad_request',401:'unauthorized',403:'forbidden',409:'conflict',422:'unprocessable',429:'rate_limit'};
+    if(Object.hasOwn(statuses,status))return statuses[status];
+    if(status>=500&&status<=599)return 'server_error';
+  }
+  return 'unclassified';
+}
+function authCreateFailure(outcome,error,responseError=error){
+  assert.ok(AUTH_CREATE_OUTCOMES.includes(outcome));
+  const failure=error instanceof Failure?error:new Error('Local authentication operation failed');
+  failure.authCreateOutcome=outcome;
+  if(['request_rejected','response_error'].includes(outcome))failure.authCreateReason=authCreateReason(responseError);
+  return failure;
+}
+export async function checkedAuthCreate(operation,observe=()=> 'unavailable'){
+  const failed=(outcome,error,responseError=error)=>{
+    const failure=authCreateFailure(outcome,error,responseError);let http='unavailable';
+    try{const value=observe();if(AUTH_CREATE_HTTP.includes(value))http=value;}catch{}
+    failure.authCreateHttp=http;return failure;
+  };
+  let response;
+  try{response=await operation();}catch(error){throw failed('request_rejected',error);}
+  const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+  try{
+    assert.ok(object(response));assert.ok(Object.hasOwn(response,'error'));assert.notEqual(response.error,undefined);
+  }catch(error){throw failed('malformed_response',error);}
+  try{assert.equal(response.error,null);}catch(error){throw failed('response_error',error,response.error);}
+  try{assert.ok(object(response.data));assert.ok(object(response.data.user));}
+  catch(error){throw failed('malformed_response',error);}
+  return response;
+}
+export function createdAuthIdentity(response){
+  try{return uuid(response.data.user.id);}catch(error){throw authCreateFailure('identity_assertion',error);}
+}
 // Diagnostics only: execute the original operation once, preserve Failure's
 // classification/exit, and never retain an SDK response or assertion payload.
 export async function realAuthStage(stage,operation){
@@ -25,11 +85,30 @@ export async function realAuthStage(stage,operation){
   try{return await operation();}
   catch(error){
     const failure=error instanceof Failure?error:new Error('Local authentication assertion failed');
-    failure.authStage=stage;throw failure;
+    Object.assign(failure,realAuthFailureDetails({authStage:stage,authCreateOutcome:error?.authCreateOutcome,
+      authCreateReason:error?.authCreateReason,authCreateHttp:error?.authCreateHttp}));throw failure;
   }
 }
 export function realAuthFailureDetails(value){
-  return REAL_AUTH_STAGES.includes(value?.authStage)?{authStage:value.authStage}:{};
+  if(!REAL_AUTH_STAGES.includes(value?.authStage))return {};
+  const details={authStage:value.authStage},outcome=value.authCreateOutcome;
+  const create=['a_create_user','b_create_user'].includes(value.authStage),identity=['a_created_identity','b_created_identity'].includes(value.authStage);
+  if((create&&['request_rejected','response_error','malformed_response'].includes(outcome))||(identity&&outcome==='identity_assertion')){
+    const reasonRequired=['request_rejected','response_error'].includes(outcome);
+    if((!reasonRequired||AUTH_CREATE_REASONS.includes(value.authCreateReason))&&(!create||AUTH_CREATE_HTTP.includes(value.authCreateHttp))){
+      details.authCreateOutcome=outcome;
+      if(reasonRequired)details.authCreateReason=value.authCreateReason;
+      if(create)details.authCreateHttp=value.authCreateHttp;
+    }
+  }
+  return details;
+}
+export function validRealAuthDiagnostics(row){
+  const keys=['authStage','authCreateOutcome','authCreateReason','authCreateHttp'].filter(key=>key in row);
+  if(!keys.length)return true;
+  if(row.id!=='real_auth_jwt'||!['failed','infrastructure_failed'].includes(row.result))return false;
+  const details=realAuthFailureDetails(row);
+  return keys.every(key=>Object.hasOwn(details,key)&&details[key]===row[key]);
 }
 export const WORKER_PREFLIGHT_STAGES=Object.freeze([
   'worker_runtime_temp','worker_workspace','worker_marker','worker_journal','worker_namespace_handle',
@@ -248,7 +327,7 @@ export function commandCategory(text){
 export function summarize(results,cleanupPassed,infrastructureFailure=null){
   const ids=results.map(x=>x.id),missing=CHECKS.filter(x=>!ids.includes(x));
   const invalid=results.some(x=>!CHECKS.includes(x.id)||!['passed','failed','infrastructure_failed'].includes(x.result)||
-    ('authStage' in x&&(x.id!=='real_auth_jwt'||x.result==='passed'||!REAL_AUTH_STAGES.includes(x.authStage))))||new Set(ids).size!==ids.length;
+    !validRealAuthDiagnostics(x))||new Set(ids).size!==ids.length;
   const failed=results.filter(x=>x.result==='failed').map(x=>x.id);
   const infrastructureFailed=results.filter(x=>x.result==='infrastructure_failed').map(x=>x.id);
   return {mode:'integration',source:SOURCE_COMMIT,productionReady:false,

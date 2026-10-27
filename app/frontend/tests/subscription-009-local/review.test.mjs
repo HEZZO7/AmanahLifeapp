@@ -12,7 +12,8 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   CLI_VERSION,CLI_ARCHIVE_SHA256,API_ORIGIN,workspace,localStatus,allowedURL,
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
-  REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails} from './safety.mjs';
+  REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
+  checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult} from './safety.mjs';
 import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
@@ -795,5 +796,121 @@ test('JWT diagnostics cannot change native pass/fail status or make an incomplet
   for(const [index,stage]of [[0,'a_verify_token'],[1,'SIMULATED_PRIVATE'],[1,'a_verify_token']]){
     const rows=complete();rows[index].authStage=stage;
     const report=summarize(rows,true);assert.equal(report.invalid,true);assert.equal(report.result,'failed');
+  }
+});
+
+test('admin response validator preserves a valid response and original UUID validation',async()=>{
+  const response={error:null,data:{user:{id}}};let calls=0;
+  assert.equal(await checkedAuthCreate(async()=>{calls++;return response;}),response);assert.equal(calls,1);
+  assert.equal(createdAuthIdentity(response),id);
+});
+test('admin request rejection is distinct from a resolved response error and never retries',async()=>{
+  let calls=0;
+  await assert.rejects(realAuthStage('a_create_user',()=>checkedAuthCreate(async()=>{
+    calls++;throw new Error('SIMULATED_PRIVATE credential user@example.invalid /private/path');
+  })),error=>{
+    assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_create_user',authCreateOutcome:'request_rejected',authCreateReason:'unclassified',authCreateHttp:'unavailable'});
+    assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE|user@example|\/private\/path/);return true;
+  });
+  assert.equal(calls,1);
+  await assert.rejects(realAuthStage('b_create_user',()=>checkedAuthCreate(async()=>({data:{user:null},
+    error:{code:'not_admin',status:403,message:'SIMULATED_PRIVATE'}}))),error=>{
+    assert.deepEqual(realAuthFailureDetails(error),{authStage:'b_create_user',authCreateOutcome:'response_error',authCreateReason:'admin_authorization',authCreateHttp:'unavailable'});
+    assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE/);return true;
+  });
+});
+test('admin malformed success responses fail closed before identity is consumed',async()=>{
+  for(const response of [undefined,null,[],{}, {error:undefined},{error:null},{error:null,data:null},
+    {error:null,data:[]},{error:null,data:{user:null}},{error:null,data:{user:[]}}]){
+    await assert.rejects(realAuthStage('a_create_user',()=>checkedAuthCreate(async()=>response)),error=>{
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_create_user',authCreateOutcome:'malformed_response',authCreateHttp:'unavailable'});return true;
+    });
+  }
+});
+test('admin identity assertion remains separate from request and response validation',async()=>{
+  for(const invalid of [undefined,null,'SIMULATED_PRIVATE','not-a-uuid',42]){
+    const response={error:null,data:{user:{id:invalid}}};assert.equal(await checkedAuthCreate(async()=>response),response);
+    await assert.rejects(realAuthStage('a_created_identity',()=>createdAuthIdentity(response)),error=>{
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_created_identity',authCreateOutcome:'identity_assertion'});
+      assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE/);return true;
+    });
+  }
+});
+test('admin error hints expose only fixed allowlisted classifications',()=>{
+  for(const [input,expected]of [
+    [{code:'email_address_invalid'},'email_invalid'],[{code:'email_exists'},'identity_exists'],[{code:'user_already_exists'},'identity_exists'],
+    [{code:'validation_failed'},'input_validation'],[{code:'weak_password'},'password_policy'],[{code:'not_admin'},'admin_authorization'],
+    [{code:'bad_jwt'},'token_rejected'],[{code:'request_timeout'},'request_timeout'],[{code:'over_request_rate_limit'},'rate_limit'],
+    [{code:'unexpected_failure'},'service_error'],[{name:'AuthUnknownError'},'response_decode'],
+    [{status:0},'no_http_status'],[{status:400},'bad_request'],[{status:401},'unauthorized'],[{status:403},'forbidden'],
+    [{status:409},'conflict'],[{status:422},'unprocessable'],[{status:429},'rate_limit'],[{status:500},'server_error'],[{status:599},'server_error'],
+    [{code:'SIMULATED_PRIVATE',status:999,message:'SIMULATED_PRIVATE'},'unclassified'],[{code:'__proto__'},'unclassified'],
+    [{status:'401'},'unclassified'],[{status:NaN},'unclassified'],[null,'unclassified'],
+  ]){
+    assert.equal(authCreateReason(input),expected);assert.ok(AUTH_CREATE_REASONS.includes(expected));
+  }
+});
+test('admin operation diagnostics preserve infrastructure category and exit without leaking errors',async()=>{
+  const original=new Failure('database_timeout',124);let calls=0;
+  await assert.rejects(realAuthStage('a_create_user',()=>checkedAuthCreate(async()=>{calls++;throw original;})),error=>{
+    assert.equal(error,original);assert.equal(error.category,'database_timeout');assert.equal(error.exitCode,124);
+    assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_create_user',authCreateOutcome:'request_rejected',authCreateReason:'unclassified',authCreateHttp:'unavailable'});return true;
+  });
+  assert.equal(calls,1);
+});
+test('controller preserves all four admin outcomes without changing failed native results',()=>{
+  for(const outcome of AUTH_CREATE_OUTCOMES){
+    const authStage=outcome==='identity_assertion'?'a_created_identity':'a_create_user';
+    const details={authStage,authCreateOutcome:outcome,...(outcome!=='identity_assertion'?{authCreateHttp:'unavailable'}:{}),
+      ...(['request_rejected','response_error'].includes(outcome)?{authCreateReason:'unclassified'}:{})};
+    const f=controllerFixture(),rows=[{id:'schema_dependencies',result:'passed'},
+      {id:'real_auth_jwt',result:'failed',category:'assertion_failed',...details}];
+    assert.equal(validRealAuthDiagnostics(rows[1]),true);
+    f.state.report={...summarize(rows,true),observations:{}};f.state.outcome={status:1,stdout:''};
+    const report=f.run().report;assert.deepEqual(report.checks,rows);assert.equal(report.result,'failed');
+    assert.equal(report.completed,2);assert.equal(report.passed,1);assert.equal(report.missing.length,19);
+  }
+});
+test('forged admin diagnostic fields and incoherent stage/outcome pairs are rejected',()=>{
+  const base={id:'real_auth_jwt',result:'failed',authStage:'a_create_user',authCreateOutcome:'response_error',authCreateReason:'forbidden',authCreateHttp:'http_4xx'};
+  for(const patch of [
+    {id:'schema_dependencies'},{result:'passed'},{authStage:'b_verify_token'},{authStage:null},
+    {authCreateOutcome:'SIMULATED_PRIVATE'},{authCreateOutcome:'identity_assertion'},
+    {authCreateReason:'SIMULATED_PRIVATE'},{authCreateReason:null},{authCreateReason:undefined},
+    {authStage:'a_created_identity',authCreateOutcome:'malformed_response',authCreateHttp:'unavailable'},
+    {authCreateOutcome:undefined},{authCreateOutcome:null},{authCreateHttp:'SIMULATED_PRIVATE'},{authCreateHttp:null},{authCreateHttp:undefined},
+  ]){
+    const row={...base,...patch};assert.equal(validRealAuthDiagnostics(row),false);
+    const rows=complete();rows[1]=row;assert.equal(summarize(rows,true).invalid,true);
+    const f=controllerFixture();f.state.report={...summarize([rows[0],row],true),observations:{}};
+    f.state.outcome={status:1,stdout:''};
+    assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
+  }
+});
+
+test('admin HTTP observations distinguish absent responses, HTTP refusal and SDK errors after HTTP success',async()=>{
+  const call=status=>({method:'POST',path:'/auth/v1/admin/users',status});
+  for(const [calls,expected]of [[[],'no_request'],[[call(null)],'no_response'],[[call(200)],'http_2xx'],
+    [[call(201)],'http_2xx'],[[call(401)],'http_4xx'],[[call(403)],'http_4xx'],[[call(500)],'http_5xx'],
+    [[call(302)],'http_other'],[[call(200),call(200)],'unexpected_requests'],
+    [[{method:'GET',path:'SIMULATED_PRIVATE',status:200}],'unexpected_requests'],
+    [[call('SIMULATED_PRIVATE')],'unavailable'],[null,'unavailable']]){
+    assert.equal(authCreateHttpResult(calls),expected);assert.ok(AUTH_CREATE_HTTP.includes(expected));
+  }
+  for(const status of [201,403]){
+    await assert.rejects(realAuthStage('a_create_user',()=>checkedAuthCreate(async()=>({error:{status:0},data:{user:null}}),
+      ()=>authCreateHttpResult([call(status)]))),error=>{
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_create_user',authCreateOutcome:'response_error',
+        authCreateReason:'no_http_status',authCreateHttp:status===201?'http_2xx':'http_4xx'});return true;
+    });
+  }
+});
+test('failed HTTP observation cannot hide an original admin failure or expose private details',async()=>{
+  for(const observe of [()=>{throw Error('SIMULATED_PRIVATE');},()=> 'SIMULATED_PRIVATE']){
+    await assert.rejects(realAuthStage('a_create_user',()=>checkedAuthCreate(async()=>({error:{code:'not_admin'},data:{user:null}}),observe)),error=>{
+      assert.deepEqual(realAuthFailureDetails(error),{authStage:'a_create_user',authCreateOutcome:'response_error',
+        authCreateReason:'admin_authorization',authCreateHttp:'unavailable'});
+      assert.doesNotMatch(JSON.stringify(error)+error.stack,/SIMULATED_PRIVATE/);return true;
+    });
   }
 });

@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails} from './safety.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -165,13 +165,13 @@ async function exercise(source,credentials){
       // groups keep the original helper without real_auth_jwt diagnostics.
       const at=(step,operation)=>authAccount===null?operation():realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
-      const created=await at('create_user',async()=>{
-        const r=await admin.auth.admin.createUser({email,password,email_confirm:true});assert.equal(r.error,null);return r;
-      });
+      const createStart=guard.state.calls.length;
+      const created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
+        ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
       const client=sdk(credentials.anon),signed=await at('password_signin',async()=>{
         const r=await client.auth.signInWithPassword({email,password});assert.equal(r.error,null);return r;
       });
-      const user={id:await at('created_identity',()=>uuid(created.data.user.id)),client,
+      const user={id:await at('created_identity',()=>createdAuthIdentity(created)),client,
         token:await at('session_token',()=>signed.data.session.access_token)};
       const verified=await at('verify_token',async()=>{
         const r=await client.auth.getUser(user.token);assert.equal(r.error,null);return r;
