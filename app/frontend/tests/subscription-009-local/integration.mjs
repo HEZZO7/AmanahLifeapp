@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult} from './safety.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -170,7 +170,10 @@ async function exercise(source,credentials){
         created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
           ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
       }catch(error){
-        if(authAccount!==null&&error.authCreateHttp==='http_5xx')error.authCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+        if(authAccount!==null&&error.authCreateHttp==='http_5xx'){
+          error.authCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
+          error.authCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+        }
         throw error;
       }
       const client=sdk(credentials.anon),signed=await at('password_signin',async()=>{

@@ -71,10 +71,19 @@ export function authServerDiagnostics(workdir,start,end,probe={}){
     assert.equal(item.running,true);assert.ok(Number.isInteger(item.pid)&&item.pid>1);
     if(item.pid!==peer.pid)return 'auth_service_restarted';
     verify({...peer,hostNamespace:journal.identity.hostNamespace});failure='unavailable';
-    const outcome=capture('docker',['logs','--since',new Date(start).toISOString(),'--until',new Date(end+1000).toISOString(),
+    const outcome=capture('docker',['logs','--follow','--since',new Date(start).toISOString(),'--until',new Date(end+1000).toISOString(),
       '--tail','64',item.id],{env:{...childEnv},encoding:'utf8',timeout:5000,maxBuffer:512*1024});
-    if(outcome.error||outcome.signal||outcome.status!==0)return 'unavailable';
-    return classifyAuthServerLogs((outcome.stdout||'')+'\n'+(outcome.stderr||''));
+    const text=(outcome.stdout||'')+'\n'+(outcome.stderr||'');
+    if(outcome.error||outcome.signal||outcome.status!==0){
+      // Some Docker log drivers keep --follow open beyond --until. A bounded
+      // timeout may still contain complete evidence after the window closed.
+      // Never accept truncation, another signal, partial JSON or an open window.
+      if(outcome.error?.code!=='ETIMEDOUT'||outcome.signal!=='SIGTERM'||outcome.status!==null||now()<end+1000||Buffer.byteLength(text)>512*1024)return 'unavailable';
+      if([outcome.stdout,outcome.stderr].some(value=>value&&!value.endsWith('\n')))return 'unavailable';
+      const lines=text.split('\n').filter(line=>line.trim());
+      if(!lines.length||!lines.every(line=>{try{JSON.parse(line);return true;}catch{return false;}}))return 'unavailable';
+    }
+    return classifyAuthServerLogs(text);
   }catch{return failure;}
 }
 // Docker bind-mounts this daemon-owned file as /etc/hosts. Never replace the
@@ -154,6 +163,25 @@ export function installOwnedHosts(workdir,identity,run=command,verify=verifyName
     assert.ok(fs.lstatSync(snapshot).isFile()&&!fs.lstatSync(snapshot).isSymbolicLink());
     assert.equal(sha256(fs.readFileSync(snapshot)),digest);fs.unlinkSync(snapshot);
   }
+}
+export function reloadOwnedGateway(workdir,identity,run=command,verify=verifyNamespaceHandle){
+  const name=path.basename(workdir);isolationRules(name,identity);
+  assert.equal(fs.realpathSync(workdir),workdir);assert.equal(path.dirname(identity.handle),workdir);
+  const marker=JSON.parse(fs.readFileSync(path.join(workdir,'owned.json')));
+  assert.equal(marker.project,name);assert.equal(marker.source,SOURCE_COMMIT);
+  const journal=validateIsolation(JSON.parse(fs.readFileSync(path.join(workdir,'isolation.json'))));
+  assert.equal(journal.project,name);assert.deepEqual(journal.identity,identity);
+  const peer=identity.peers.find(peer=>peer.handle===identity.handle);assert.ok(peer);
+  const inspect=()=>{
+    const format='{"id":{{json .Id}},"name":{{json .Name}},"project":{{json (index .Config.Labels "com.supabase.cli.project")}},"running":{{json .State.Running}},"pid":{{json .State.Pid}},"privileged":{{json .HostConfig.Privileged}}}';
+    const item=JSON.parse(run('docker',['inspect','--format',format,peer.id]));
+    assert.equal(item.id,peer.id);assert.equal(item.name,'/supabase_kong_'+name);assert.equal(item.project,name);
+    assert.equal(item.running,true);assert.equal(item.pid,peer.pid);assert.equal(item.privileged,false);
+    verify({...peer,hostNamespace:identity.hostNamespace});
+    const uid=run('docker',['exec',peer.id,'id','-u']);assert.match(uid,/^(?:0|[1-9][0-9]*)$/);assert.equal(Number(uid),identity.kongUid);
+  };
+  inspect();run('docker',['exec',peer.id,'kong','reload']);inspect();
+  run('docker',['exec',peer.id,'kong','health']);
 }
 function discoverIsolation(){
   const kong=JSON.parse(command('docker',['inspect','supabase_kong_'+project]))[0];
@@ -387,6 +415,9 @@ export async function prepare(opts,manifest,notify){
   // Docker embedded DNS is blocked before the SDK loads. Preserve LOCAL service
   // resolution with owned-container aliases only; never add an external host.
   installOwnedHosts(root,identity);
+  // Kong snapshots its hosts file at startup. Reload the SAME owned master
+  // after aliases are verified; do not restart containers or reopen DNS.
+  reloadOwnedGateway(root,identity);verifyIsolation(root,command);
   return {source,credentials,project,identity,runtimeTemp:base};
 }
 export async function shutdown(workdir){

@@ -13,8 +13,9 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   trafficGuard,commandCategory,commandDiagnostic,commandFailureDetails,summarize,sha256,gitBlob,assertCleanEnvironment,Failure,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,PG_LIMITS,PG_OPTIONS,sessionPrefix,
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
   REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
-  checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics} from './local-runtime.mjs';
+  checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs,
+  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -961,6 +962,7 @@ test('Auth diagnostics read only bounded logs from the owned ID after revalidati
   const f=authServerFixture();assert.equal(f.run(),'database_privilege');assert.equal(f.state.captures.length,1);
   const {exe,args,options}=f.state.captures[0];assert.equal(exe,'docker');assert.equal(args[0],'logs');
   assert.deepEqual(args.slice(-3),['--tail','64',f.state.item.id]);assert.ok(args.includes('--since'));assert.ok(args.includes('--until'));
+  assert.ok(args.includes('--follow'));
   assert.equal(options.timeout,5000);assert.equal(options.maxBuffer,512*1024);assert.equal(options.env.DOCKER_HOST,'unix:///var/run/docker.sock');
   assert.doesNotMatch(f.state.inspections[0][2],/Config\.Env|\.State\.Error/);
 });
@@ -1003,5 +1005,103 @@ test('forged or incoherent server diagnostics cannot pass controller or summary 
     // value so this case still tests the remote report's untrusted boundary.
     if(patch.authCreateServer===undefined&&Object.hasOwn(patch,'authCreateServer'))f.state.raw=JSON.stringify({...f.state.report,checks:[{...row,authCreateServer:null}]});
     assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
+  }
+});
+
+function gatewayReloadFixture(base){
+  const root=path.join(base,projectName);createWorkspace(root);const i=identity();i.handle=path.join(root,'kong-netns');
+  for(const peer of i.peers)peer.handle=path.join(root,path.basename(peer.handle));
+  fs.writeFileSync(path.join(root,'isolation.json'),JSON.stringify({version:1,project:projectName,identity:i,rules:isolationRules(projectName,i)}));
+  const peer=i.peers[0],state={view:{id:peer.id,name:'/supabase_kong_'+projectName,project:projectName,running:true,pid:peer.pid,privileged:false},
+    calls:[],reloads:0,checks:0,uid:String(i.kongUid),afterReload:null,reloadError:null};
+  const run=(exe,args)=>{
+    assert.equal(exe,'docker');state.calls.push(args);
+    if(args[0]==='inspect')return JSON.stringify(state.view);
+    assert.equal(args[0],'exec');assert.equal(args[1],peer.id);
+    if(args.at(-2)==='id')return state.uid;
+    if(args.at(-1)==='reload'){
+      state.reloads++;if(state.reloadError)throw state.reloadError;state.afterReload?.();return '';
+    }
+    assert.equal(args.at(-1),'health');return '';
+  };
+  const verify=value=>{assert.equal(value.id,peer.id);assert.equal(value.handle,i.handle);assert.equal(value.hostNamespace,i.hostNamespace);state.checks++;};
+  return {root,i,state,run:()=>reloadOwnedGateway(root,i,run,verify)};
+}
+test('Kong hosts refresh reloads the same owned master once and rechecks UID, PID and namespace',()=>scratch(base=>{
+  const f=gatewayReloadFixture(base);f.run();assert.equal(f.state.reloads,1);assert.equal(f.state.checks,2);
+  assert.deepEqual(f.state.calls.filter(args=>args[0]==='exec').map(args=>args.slice(2)),[
+    ['id','-u'],['kong','reload'],['id','-u'],['kong','health'],
+  ]);
+  assert.ok(f.state.calls.every(args=>!args.includes('restart')&&!args.includes('start')&&!args.includes('sh')));
+  assert.match(runtime,/installOwnedHosts\(root,identity\);[\s\S]*?reloadOwnedGateway\(root,identity\);verifyIsolation\(root,command\)/);
+}));
+test('Kong reload refuses foreign ownership, stale PID and malformed UID before any reload',()=>{
+  for(const mutate of [s=>s.view.project='foreign',s=>s.view.id='f'.repeat(64),s=>s.view.name='/foreign',
+    s=>s.view.running=false,s=>s.view.pid++,s=>s.view.privileged=true,s=>s.uid='',s=>s.uid='1001'])scratch(base=>{
+    const f=gatewayReloadFixture(base);mutate(f.state);assert.throws(f.run);assert.equal(f.state.reloads,0);
+  });
+});
+test('Kong reload failures and changed post-reload identities stay nonzero without retries',()=>{
+  scratch(base=>{const f=gatewayReloadFixture(base),error=new Failure('command_failed',7);f.state.reloadError=error;
+    assert.throws(f.run,value=>value===error);assert.equal(f.state.reloads,1);assert.equal(f.state.checks,1);
+  });
+  for(const mutate of [s=>s.view.pid++,s=>s.uid='1001'])scratch(base=>{
+    const f=gatewayReloadFixture(base);f.state.afterReload=()=>mutate(f.state);
+    assert.throws(f.run);assert.equal(f.state.reloads,1);assert.equal(f.state.calls.some(args=>args.at(-1)==='health'),false);
+  });
+  for(const [action,operation]of [['reload','reload_owned_gateway'],['health','health_owned_gateway']]){
+    assert.equal(commandDiagnostic('docker',['exec','SIMULATED_PRIVATE','kong',action],{status:1,stderr:'SIMULATED_PRIVATE'}).operation,operation);
+  }
+});
+test('gateway origin diagnostics read only three allowlisted headers and never the response body',()=>{
+  const cases=[
+    [{'x-kong-response-latency':'0'},'gateway_generated'],
+    [{'x-kong-upstream-latency':'1'},'proxy_attempted'],
+    [{'x-kong-upstream-latency':'1','x-sb-error-code':'unexpected_failure'},'gotrue_error_signal'],
+    [{'x-sb-error-code':'unexpected_failure'},'gotrue_error_signal'],
+    [{'x-kong-response-latency':'0','x-kong-upstream-latency':'1'},'conflicting_headers'],
+    [{'x-kong-response-latency':'0','x-sb-error-code':'unexpected_failure'},'conflicting_headers'],
+    [{'server':'kong/SIMULATED_PRIVATE','via':'SIMULATED_PRIVATE'},'unavailable'],
+    [{'x-kong-response-latency':'SIMULATED_PRIVATE'},'unavailable'],[{},'unavailable'],
+  ];
+  for(const [headers,expected]of cases){
+    const reads=[];const response={headers:{get:name=>{reads.push(name);return headers[name]??null;}},
+      get body(){throw Error('Body must never be read');},json(){throw Error('Body must never be read');}};
+    assert.equal(authResponseOrigin(response),expected);assert.ok(AUTH_CREATE_ORIGINS.includes(expected));
+    assert.ok(reads.every(name=>['x-kong-response-latency','x-kong-upstream-latency','x-sb-error-code'].includes(name)));
+  }
+});
+test('guard records closed origin codes only for the exact failed admin request',async()=>{
+  const response=new Response('SIMULATED_PRIVATE',{status:500,headers:{'x-kong-response-latency':'2'}});
+  const guard=trafficGuard(async()=>response);assert.equal(await guard.fetch(API_ORIGIN+'/auth/v1/admin/users',{method:'POST'}),response);
+  assert.equal(authCreateOriginResult(guard.state.calls),'gateway_generated');
+  assert.doesNotMatch(JSON.stringify(guard.state.calls),/SIMULATED_PRIVATE|x-kong|latency/);
+  const other=trafficGuard(async()=>response);await other.fetch(API_ORIGIN+'/auth/v1/health');
+  assert.equal('authOrigin' in other.state.calls[0],false);assert.equal(authCreateOriginResult(other.state.calls),'unavailable');
+});
+test('a closed log window may retain complete evidence on bounded follow timeout, never partial or truncated output',()=>{
+  const f=authServerFixture();let clock=0;f.probe.now=()=>clock++===0?100000:105000;
+  f.state.outcome={error:{code:'ETIMEDOUT'},signal:'SIGTERM',status:null,stdout:authLog('(SQLSTATE 42501)')};
+  assert.equal(f.run(),'database_privilege');
+  for(const patch of [{stdout:authLog('(SQLSTATE 42501)').trim()},{stdout:'{"partial":'},
+    {error:{code:'ENOBUFS'}},{signal:'SIGKILL'},{stdout:'SIMULATED_PRIVATE\n'}]){
+    const f=authServerFixture();let clock=0;f.probe.now=()=>clock++===0?100000:105000;
+    f.state.outcome={error:{code:'ETIMEDOUT'},signal:'SIGTERM',status:null,stdout:authLog('(SQLSTATE 42501)'),...patch};
+    assert.equal(f.run(),'unavailable');
+  }
+  const open=authServerFixture();open.state.outcome={error:{code:'ETIMEDOUT'},signal:'SIGTERM',status:null,stdout:authLog('(SQLSTATE 42501)')};
+  assert.equal(open.run(),'unavailable');
+});
+test('origin evidence survives failed reports but cannot make a check pass or appear without HTTP 5xx',()=>{
+  for(const authCreateOrigin of AUTH_CREATE_ORIGINS){
+    const f=controllerFixture(),row={id:'real_auth_jwt',result:'failed',category:'assertion_failed',authStage:'a_create_user',
+      authCreateOutcome:'response_error',authCreateReason:'server_error',authCreateHttp:'http_5xx',authCreateOrigin};
+    f.state.report={...summarize([{id:'schema_dependencies',result:'passed'},row],true),observations:{}};f.state.outcome={status:1,stdout:''};
+    assert.deepEqual(f.run().report.checks[1],row);
+    for(const patch of [{authCreateOrigin:'SIMULATED_PRIVATE'},{authCreateHttp:'http_4xx'},{result:'passed'}]){
+      const bad={...row,...patch};assert.equal(validRealAuthDiagnostics(bad),false);assert.equal(summarize([bad],true).invalid,true);
+      const f=controllerFixture();f.state.report={...summarize([bad],true),observations:{}};f.state.outcome={status:1,stdout:''};
+      assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
+    }
   }
 });

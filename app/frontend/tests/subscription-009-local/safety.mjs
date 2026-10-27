@@ -24,6 +24,23 @@ export const AUTH_CREATE_REASONS=Object.freeze(['email_invalid','identity_exists
   'no_http_status','unauthorized','forbidden','bad_request','conflict','unprocessable','server_error','unclassified']);
 export const AUTH_CREATE_HTTP=Object.freeze(['no_request','no_response','http_2xx','http_4xx','http_5xx',
   'http_other','unexpected_requests','unavailable']);
+export const AUTH_CREATE_ORIGINS=Object.freeze(['gateway_generated','proxy_attempted','gotrue_error_signal','conflicting_headers','unavailable']);
+export function authResponseOrigin(response){
+  try{
+    const numeric=name=>/^[0-9]{1,12}$/.test(response.headers.get(name)??'');
+    const gateway=numeric('x-kong-response-latency'),upstream=numeric('x-kong-upstream-latency');
+    const auth=response.headers.get('x-sb-error-code')==='unexpected_failure';
+    if(gateway&&(upstream||auth))return 'conflicting_headers';
+    if(gateway)return 'gateway_generated';
+    if(auth)return 'gotrue_error_signal';
+    if(upstream)return 'proxy_attempted';
+  }catch{}
+  return 'unavailable';
+}
+export function authCreateOriginResult(calls){
+  if(authCreateHttpResult(calls)!=='http_5xx')return 'unavailable';
+  return AUTH_CREATE_ORIGINS.includes(calls[0].authOrigin)?calls[0].authOrigin:'unavailable';
+}
 export const AUTH_CREATE_SERVER=Object.freeze(['unavailable','ownership_unverified','no_matching_auth_log','ambiguous_auth_log',
   'auth_service_not_running','auth_service_restarted','gotrue_panic','gotrue_server_unclassified',
   'database_dependency','database_privilege','database_constraint','database_raised_exception','database_connection',
@@ -121,7 +138,8 @@ export async function realAuthStage(stage,operation){
   catch(error){
     const failure=error instanceof Failure?error:new Error('Local authentication assertion failed');
     Object.assign(failure,realAuthFailureDetails({authStage:stage,authCreateOutcome:error?.authCreateOutcome,
-      authCreateReason:error?.authCreateReason,authCreateHttp:error?.authCreateHttp,authCreateServer:error?.authCreateServer}));throw failure;
+      authCreateReason:error?.authCreateReason,authCreateHttp:error?.authCreateHttp,authCreateServer:error?.authCreateServer,
+      authCreateOrigin:error?.authCreateOrigin}));throw failure;
   }
 }
 export function realAuthFailureDetails(value){
@@ -135,12 +153,13 @@ export function realAuthFailureDetails(value){
       if(reasonRequired)details.authCreateReason=value.authCreateReason;
       if(create)details.authCreateHttp=value.authCreateHttp;
       if(create&&value.authCreateHttp==='http_5xx'&&AUTH_CREATE_SERVER.includes(value.authCreateServer))details.authCreateServer=value.authCreateServer;
+      if(create&&value.authCreateHttp==='http_5xx'&&AUTH_CREATE_ORIGINS.includes(value.authCreateOrigin))details.authCreateOrigin=value.authCreateOrigin;
     }
   }
   return details;
 }
 export function validRealAuthDiagnostics(row){
-  const keys=['authStage','authCreateOutcome','authCreateReason','authCreateHttp','authCreateServer'].filter(key=>key in row);
+  const keys=['authStage','authCreateOutcome','authCreateReason','authCreateHttp','authCreateServer','authCreateOrigin'].filter(key=>key in row);
   if(!keys.length)return true;
   if(row.id!=='real_auth_jwt'||!['failed','infrastructure_failed'].includes(row.result))return false;
   const details=realAuthFailureDetails(row);
@@ -203,7 +222,7 @@ export function workerLaunchDetails(outcome){
 const COMMAND_OPERATIONS=Object.freeze(['supabase_status_json','supabase_init','supabase_start','supabase_stop',
   'inspect_db_labels','inspect_auth_labels','inspect_rest_labels','inspect_kong_labels',
   'inspect_container','inspect_network','container_uid','read_owned_hosts','write_owned_hosts','append_owned_hosts',
-  'read_namespace','bind_namespace','host_rule_probe','host_rule_insert','host_rule_delete',
+  'read_namespace','bind_namespace','reload_owned_gateway','health_owned_gateway','host_rule_probe','host_rule_insert','host_rule_delete',
   'namespace_rule_probe','namespace_rule_insert','namespace_rule_delete','other']);
 const COMMAND_REASONS=Object.freeze(['timeout','executable_missing','permission_denied','resource_busy',
   'object_missing','unknown_option','not_running','connection_refused','terminated','unknown']);
@@ -221,6 +240,8 @@ export function commandDiagnostic(exe,args,result){
       operation=args.includes('--format')&&service?'inspect_'+service+'_labels':'inspect_container';
     }else if(args[0]==='network'&&args[1]==='inspect')operation='inspect_network';
     else if(args[0]==='exec'&&args.at(-2)==='id'&&args.at(-1)==='-u')operation='container_uid';
+    else if(args[0]==='exec'&&args.at(-2)==='kong'&&args.at(-1)==='reload')operation='reload_owned_gateway';
+    else if(args[0]==='exec'&&args.at(-2)==='kong'&&args.at(-1)==='health')operation='health_owned_gateway';
     else if(args[0]==='cp')operation=args[1]?.endsWith(':/etc/hosts')?'read_owned_hosts':'write_owned_hosts';
   }else if(tool==='sudo'){
     if(args[1]==='python3'&&args.includes('-c'))operation='append_owned_hosts';
@@ -349,7 +370,9 @@ export function trafficGuard(originalFetch){
     // Record BEFORE fetch: a caught SDK guard/fetch exception cannot hide attempts.
     const call={method:init.method||input?.method||'GET',path:u.pathname,status:null};state.calls.push(call);
     const response=await originalFetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});
-    call.status=response.status;return response;
+    call.status=response.status;
+    if(call.method==='POST'&&call.path==='/auth/v1/admin/users'&&response.status>=500&&response.status<=599)call.authOrigin=authResponseOrigin(response);
+    return response;
   }};
 }
 export function commandCategory(text){

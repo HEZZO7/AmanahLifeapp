@@ -173,6 +173,51 @@ retries Auth, changes a group result or bypasses cleanup or source verification.
 The controller rejects unknown/misplaced server codes, including codes without
 an observed http_5xx or on a successful check. All existing gates remain mandatory.
 
+### Gateway/collector audit and Kong hosts refresh
+
+Run `40485609190` reports no_matching_auth_log, not evidence that Auth never received
+the request. Container selection checks the owned name/project/full ID, PID and
+pinned namespace, but the snapshot could precede GoTrue's completion log. A future
+Docker --until bound does not itself wait for a future record. Strict JSON format,
+64-line tail, buffering and image-format differences also limit negative evidence.
+
+The collector now follows only the SAME bounded window, still limited to 5 seconds
+and 512 KiB. If Docker keeps the stream open beyond --until, an expected SIGTERM
+timeout may supply evidence only after the window closed and only if all captured
+streams end at complete JSON lines. Buffer overflow, other exits/signals, partial
+JSON and open windows remain unavailable. Missing/ambiguous logs still prove no
+origin. No Auth retry or wider log scan is added.
+
+Kong 2.8.1 documents that /etc/hosts is snapshotted in memory and changes require
+reload. The old sequence started Kong, blocked DNS, then appended aliases without
+refreshing this snapshot. A network-none micro-test of Kong 2.8.1 reproduced HTTP
+500 before AND after an alias append, then HTTP 200 after kong reload with the same
+container PID. This establishes a harness initialization defect, not the historical
+run's root cause. The test uses Kong's own loopback Admin API as a DNS-only upstream;
+it runs no Auth/database service and does not replace any native group.
+
+After all owned aliases/readbacks are verified, preparation now reloads the SAME
+owned Kong master exactly once, checks kong health, and re-verifies all isolation
+rules before the worker. Marker, source, journal identity, full container ID/name/
+project/nonprivileged state, UID, PID and pinned namespace must agree before AND
+after reload. Any drift or reload/health failure aborts; no restart, rediscovery,
+DNS allowance, config change, sleep or retry is used in the harness.
+
+Failed admin HTTP 5xx checks may also include authCreateOrigin, based only on three
+allowlisted response headers: gateway_generated, proxy_attempted, gotrue_error_signal,
+conflicting_headers or unavailable. Numeric Kong response-latency indicates a
+Kong-produced response. Upstream-latency alone means proxy was attempted, NOT that
+GoTrue replied: Kong sets its proxy-intent flag before balancing may fail. A known
+GoTrue error header is a signal, not cryptographic provenance. Server/Via, raw
+header values, bodies, addresses and request IDs are never retained by this probe.
+Unknown/missing/contradictory evidence cannot establish a root cause. The controller
+allows these codes only on failed create checks with observed http_5xx.
+
+The standalone reproducible component test is
+`python3 ci/subscription009/reproduce-gateway-hosts.py`; it requires the two images
+already available on local Docker. It is NOT the native 21-group suite, does not
+alter CLI defaults, and verifies cleanup of its labelled disposable resources.
+
 ## Runtime architecture and safety
 
 Use a fresh standard **GitHub-hosted ubuntu-24.04** runner, not a persistent or
@@ -230,6 +275,8 @@ private temporary snapshot is deleted. Unsupported daemon layout, unavailable
 sudo/storage access or a readback mismatch aborts setup before any worker.
 No DNS/firewall rule is changed by this correction. Docker removes the backing
 file with its owned container during normal ownership-scoped cleanup.
+The verified aliases are then loaded into Kong's in-memory hosts snapshot through
+the ownership-checked reload described above; kernel isolation remains installed.
 
 The SDK and real adapter run in a child process inside the owned Kong namespace,
 with the original nonroot runner UID, no-new-privileges, and all process

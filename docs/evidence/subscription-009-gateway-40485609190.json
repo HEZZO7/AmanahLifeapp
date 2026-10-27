@@ -1,0 +1,147 @@
+{
+  "run": 40485609190,
+  "historicalEvidenceSource": "user_supplied_verified_sanitized_artifact",
+  "inspectedPackageCommit": "63bffbc81558e43b3098673947a0a120231e98b6",
+  "sourceCommit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "historicalRunPackageCommitIndependentlyRetrieved": false,
+  "historicalEvidence": {
+    "real_auth_jwt": "failed",
+    "authStage": "a_create_user",
+    "authCreateOutcome": "response_error",
+    "authCreateReason": "server_error",
+    "authCreateHttp": "http_5xx",
+    "authCreateServer": "no_matching_auth_log",
+    "schema_dependencies": "passed",
+    "offlineReviewPassed": 97,
+    "offlineBillingPassed": 76,
+    "independentCleanupPassed": true
+  },
+  "historicalRootCauseEstablished": false,
+  "historicalRawLogsRetrieved": false,
+  "noMatchingLogProvesAuthNotReached": false,
+  "collectorAudit": {
+    "correctOwnedAuthSelectionEnforced": true,
+    "nameProjectFullIdPidAndNamespaceChecked": true,
+    "snapshotDoesNotWaitForFutureUntilBound": true,
+    "snapshotRaceReproduced": true,
+    "strictFormatMayMissUnknownVersions": true,
+    "tailOrLoggingDelayCanLimitEvidence": true,
+    "independentRequestIdCorrelation": false
+  },
+  "confirmedHarnessDefect": {
+    "description": "Kong_hosts_snapshot_not_refreshed_after_owned_alias_append",
+    "upstreamVersionReference": "2.8.1",
+    "documentedConfigProperty": "dns_hostsfile",
+    "historicalCauseProven": false,
+    "disposableReproduction": {
+      "nativeAuthExecuted": false,
+      "databaseStarted": false,
+      "networkMode": "none",
+      "capabilitiesDropped": true,
+      "noNewPrivileges": true,
+      "beforeAppend": {
+        "status": 500,
+        "kongResponseLatency": true,
+        "kongUpstreamLatency": false
+      },
+      "afterAppendWithoutReload": {
+        "status": 500,
+        "kongResponseLatency": true,
+        "kongUpstreamLatency": false
+      },
+      "afterReload": {
+        "status": 200,
+        "kongResponseLatency": false,
+        "kongUpstreamLatency": true
+      },
+      "containerPidUnchanged": true,
+      "hostsSnapshotDefectReproduced": true,
+      "ownedContainerAndAnonymousVolumesRemoved": true
+    }
+  },
+  "boundedLogWindowReproduction": {
+    "snapshotMissedFutureLog": true,
+    "boundedFollowCapturedLog": true,
+    "networkMode": "none",
+    "nativeAuthExecuted": false,
+    "databaseStarted": false,
+    "ownedContainerAndAnonymousVolumesRemoved": true
+  },
+  "upstreamReference": {
+    "tag": "2.8.1",
+    "imageUsedForMicroTest": "kong:2.8.1",
+    "imageDigest": "sha256:1b53405d8680a09d6f44494b7990bf7da2ea43f84a258c59717d4539abf09f6d",
+    "referenceFileSha256": {
+      "kong.conf.default": "4f0b66d88333f7a6d525ebf1affe741e7166dc15c7d78770ba2646cec16c47bd",
+      "kong_runloop_handler.lua": "ac8ec35d70395ae4527bad5fe612cca5b2404248f9194f3ca72bfbe896a0a6d2",
+      "kong_init.lua": "d88976f7d023c997fdf030259369f06cc5cccd16024eb02181920cdab227925b",
+      "kong_tools_dns.lua": "73cd5c01db3159f975c659a626b0c3f515b37e29f23d9dd2a1af0cb4e10f89fb",
+      "kong_constants.lua": "b067acc84e58b15fede6287928eaa11f8219a80331cb26868b7714483e1e5e50"
+    },
+    "historicalNativeImageBytesVerified": false,
+    "proxyIntentAloneDoesNotProveUpstreamResponse": true
+  },
+  "changes": {
+    "reloadOwnedGatewayExactlyOnceAfterVerifiedHosts": true,
+    "beforeAfterUidPidNamespaceAndOwnershipChecks": true,
+    "postReloadHealthAndFullIsolationVerification": true,
+    "containerRestartUsed": false,
+    "dnsReopened": false,
+    "logFollowWindowUpperBoundUnchanged": true,
+    "logReadLimitBytes": 524288,
+    "logReadLimitLines": 64,
+    "logCutoffMs": 5000,
+    "timeoutEvidenceAcceptedOnlyAfterClosedWindowAndCompleteJsonFrames": true,
+    "originHeaderAllowlist": [
+      "x-kong-response-latency",
+      "x-kong-upstream-latency",
+      "x-sb-error-code"
+    ],
+    "originCodes": [
+      "gateway_generated",
+      "proxy_attempted",
+      "gotrue_error_signal",
+      "conflicting_headers",
+      "unavailable"
+    ],
+    "responseBodiesReadForOrigin": false,
+    "rawHeaderValuesPublished": false,
+    "rawServerLogsPublishedOrPersistedByCollector": false
+  },
+  "localResults": {
+    "package": {
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0
+    },
+    "applicationWithDenyNetworkAndExistingLoader": {
+      "passed": 390,
+      "failed": 0,
+      "skipped": 0,
+      "includesBillingTests": 76
+    },
+    "ownedHosts": {
+      "passed": 9,
+      "failed": 0
+    },
+    "workflow": {
+      "passed": 14,
+      "failed": 0
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesIndependentlyHashed": 10,
+    "lockedDependenciesVerified": 9
+  },
+  "nativeGroupsExecutedLocally": 0,
+  "nativeAuthExecutedLocally": false,
+  "databaseServiceStartedForMicroTests": false,
+  "fullNativeSuiteBlockers": [
+    "not_fresh_GitHub_hosted_ubuntu_24_04",
+    "host_sudo_unavailable",
+    "no_authorization_to_dispatch_workflow"
+  ],
+  "mainModified": false,
+  "workflowDispatched": false,
+  "productionReady": false,
+  "billingReady": false
+}
