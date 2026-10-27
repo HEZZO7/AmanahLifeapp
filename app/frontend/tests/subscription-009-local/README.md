@@ -485,3 +485,55 @@ Never-billed successful deletion does not implement an email-level lifetime
 trial ledger. Historical data already lost before this fix cannot be recovered.
 Before accepting the fix, all security groups must genuinely pass; the original
 008 integration evidence remains unchanged. Production subscriptions stay NO-GO.
+
+
+### Rollback, shared fixture and billing-stage diagnostics
+
+For supplied run `40492736650`, the user-verified sanitized summary reports six
+native passes, ten assertions, one `billing_history_retention` infrastructure
+failure and four missing groups. Artifact `12729675366` could not be downloaded
+in this investigation (GitHub artifact route returned HTTP 404). The detailed
+failed assertion and the historical package/source provenance were therefore
+not independently read; the locally available pinned workflow still selects
+source `e6dd3fc5e014ea0539df8da12a6ee84582b302b9` and the preceding package
+`772f0a77f6ae1f59b360e190783939b880223cb2`.
+
+Failed checks can now include one fixed `nativeStage`, validated for that group
+in `NATIVE_CHECK_STAGES`. Rollback has ten stages distinguishing fault installation,
+snapshot acquisition, adapter status, witness increment, account/control/Auth-link
+rollback, JWT validity/identity and fault clearing. `cleanupPhase` is restricted
+to the five original cleanup table labels or `auth`. The two dependent trial
+checks distinguish the original `faultProof` prerequisite from their own snapshot
+and RPC assertions. A failed prerequisite still fails; no assertion is bypassed.
+
+Billing stages distinguish committed fixture seeding, each active/expired/refunded
+state, evidence expiry, the expired-fixture assertion, policy RPC, evidence counts,
+Edge/direct Auth denials, unchanged account/ledger snapshots, and the separate
+paid-projection control. Optional `billingState` contains only those three fixed
+states. Later groups share ten fixed fixture stages, including admin creation,
+password grant, token verification, trial RPC and personal-row seeding. Races
+retain the five awaited `withSessions` calls and original finalizers; diagnostics
+separate session work from expected SQLSTATE validation. The unguarded adversarial
+setup between groups 17 and 18 also identifies fixture snapshot/trigger setup
+failures without inventing results for the final four unexecuted groups.
+
+`database_connection_failed` remains fail-closed and keeps its prior classification.
+Optional `databaseEvidence` distinguishes `missing_error_code`, `missing_sqlstate`,
+`connection_sqlstate`, `server_shutdown`, `connection_limit`, or
+`postgrest_connection`. Missing SDK/SQLSTATE evidence is **not** proof that the
+server is down. No SQLSTATE, SDK message, response body, query, identity, path,
+URL, actual/expected assertion data, token or credential is published. The worker
+controller and summary reject unknown stages, wrong groups, passing-result
+metadata and incoherent infrastructure evidence. Original failures and exit
+classes are retained; operations are performed once, without retries added here.
+
+`ci/subscription009/reproduce-rollback-fixture.py` is a separate SQL component
+probe, never a substitute for any native group. It verifies source/package bytes,
+starts a fresh PostgreSQL 17 with network none/no ports/tmpfs data/dropped
+capabilities/no-new-privileges, creates an explicitly synthetic minimal Auth
+schema, applies the unchanged fixture and pinned migrations, and verifies all six
+fault witnesses and complete account snapshots. It also verifies fault clearing,
+a fresh subsequent connection and absence of leftover database sessions, then
+removes only its labelled owned container and anonymous volumes. It runs no
+GoTrue, JWT, provider or native Auth test. A full reproduction still requires the
+documented GitHub-hosted runner and isolation; none of those requirements changes.

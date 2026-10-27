@@ -178,6 +178,69 @@ const WORKER_STAGES=Object.freeze([...WORKER_PREFLIGHT_STAGES,
   'controller_report_observations','controller_report_result','controller_exit_status',
 ]);
 const WORKER_LAUNCH_STAGES=Object.freeze(['launch_sudo','launch_namespace','launch_privileges','launch_node']);
+// Closed diagnostic vocabulary only; never retain assertion values or raw SDK/SQL errors.
+const FIXTURE_STAGES=Object.freeze(['fixture_create_user','fixture_password_signin','fixture_created_identity',
+  'fixture_session_token','fixture_verify_token','fixture_verified_identity','fixture_trial_rpc',
+  'fixture_trial_result','fixture_seed_subscription','fixture_seed_personal_data']);
+export const NATIVE_CHECK_STAGES=Object.freeze({
+  rollback_each_cleanup_phase:['install_fault','read_before','delete_status','witness_increment','account_rollback',
+    'control_unchanged','auth_links_rollback','token_valid','token_identity','clear_fault'],
+  failed_delete_preserves_trial:['fault_proof','trial_snapshot'],
+  failed_delete_cannot_restart_trial:['fault_proof','trial_rpc','trial_result','trial_snapshot'],
+  checkout_wins_race:['race_sessions','expected_sql_failure'],
+  deletion_wins_race:['race_sessions','expected_sql_failure'],
+  trial_races_deletion:['race_sessions'],
+  simultaneous_auth_deletions:['race_sessions'],
+  unreviewed_trigger_readiness:['fixture_snapshot','install_null_trigger'],
+  billing_history_retention:['seed_billing','set_billing_state','expire_evidence','expired_fixture','read_evidence',
+    'billing_policy','evidence_seeded','adapter_denial','direct_auth_denial','billing_unchanged','account_unchanged',
+    'save_billing','seed_projection','read_projection','projection_adapter_denial','projection_auth_denial','projection_unchanged'],
+});
+const FIXTURE_GROUPS=Object.freeze(['successful_auth_deletion','checkout_wins_race','deletion_wins_race',
+  'trial_races_deletion','simultaneous_auth_deletions','billing_history_retention','family_member_privacy',
+  'family_owner_deletion','after_delete_null_control','unreviewed_trigger_readiness']);
+export const DATABASE_EVIDENCE=Object.freeze(['missing_error_code','missing_sqlstate','connection_sqlstate',
+  'server_shutdown','connection_limit','postgrest_connection']);
+function allowedNativeStage(id,stage){
+  return NATIVE_CHECK_STAGES[id]?.includes(stage)||(FIXTURE_GROUPS.includes(id)&&FIXTURE_STAGES.includes(stage));
+}
+export function nativeFailureDetails(value,id){
+  const out={};
+  if(!allowedNativeStage(id,value?.nativeStage))return out;
+  out.nativeStage=value.nativeStage;
+  if(id==='rollback_each_cleanup_phase'&&[...CLEANUP_TABLES,'auth'].includes(value.cleanupPhase))out.cleanupPhase=value.cleanupPhase;
+  if(id==='billing_history_retention'&&['active','expired','refunded'].includes(value.billingState))out.billingState=value.billingState;
+  if(DATABASE_EVIDENCE.includes(value.databaseEvidence))out.databaseEvidence=value.databaseEvidence;
+  return out;
+}
+export function validNativeDiagnostics(row){
+  const keys=['nativeStage','cleanupPhase','billingState','databaseEvidence'];
+  if(!keys.some(key=>key in row))return true;
+  if(!['failed','infrastructure_failed'].includes(row.result))return false;
+  if(!allowedNativeStage(row.id,row.nativeStage))return false;
+  if('databaseEvidence' in row&&(row.result!=='infrastructure_failed'||row.category!=='database_connection_failed'))return false;
+  const details=nativeFailureDetails(row,row.id);
+  return keys.every(key=>!(key in row)||(Object.hasOwn(details,key)&&details[key]===row[key]));
+}
+export function nativeStage(id,stage,operation,context={}){
+  assert.ok(allowedNativeStage(id,stage));
+  const details=nativeFailureDetails({nativeStage:stage,...context},id);
+  const fail=error=>{
+    const failure=error instanceof Failure?error:new Error('Local native assertion failed');
+    const inner=nativeFailureDetails(error,id);
+    Object.assign(failure,inner.nativeStage?inner:details);
+    if(DATABASE_EVIDENCE.includes(error?.databaseEvidence))failure.databaseEvidence=error.databaseEvidence;
+    throw failure;
+  };
+  try{const value=operation();return value&&typeof value.then==='function'?Promise.resolve(value).catch(fail):value;}
+  catch(error){return fail(error);}
+}
+function databaseConnectionFailure(code,missing){
+  const error=new Failure('database_connection_failed');
+  error.databaseEvidence=!code?missing:/^08/.test(code)?'connection_sqlstate':
+    ['57P01','57P02','57P03'].includes(code)?'server_shutdown':code==='53300'?'connection_limit':'postgrest_connection';
+  return error;
+}
 export function workerStageFailure(stage,error,preflight=null){
   assert.ok(WORKER_STAGES.includes(stage));
   const failure=error instanceof Failure?error:new Failure('assertion_failed',1);
@@ -280,7 +343,7 @@ export function expectSQLFailure(outcome,expected){
   assert.equal(outcome.ok,false);const error=outcome.error;
   const code=error?.sqlState;
   if(error instanceof Failure&&error.category!=='sql_session_failed')throw error;
-  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300'].includes(code))throw new Failure('database_connection_failed');
+  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300'].includes(code))throw databaseConnectionFailure(code,'missing_sqlstate');
   if(['57014','55P03','25P03'].includes(code))throw new Failure('database_timeout',124);
   assert.equal(code,expected); // Wrong security/constraint SQLSTATE remains a failed assertion.
 }
@@ -288,7 +351,7 @@ export function throwIfDatabaseInfrastructure(error){
   if(!error)return;
   const code=error.code;
   if(['57014','55P03','25P03'].includes(code))throw new Failure('database_timeout',124);
-  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300','PGRST000','PGRST001','PGRST002'].includes(code))throw new Failure('database_connection_failed');
+  if(!code||/^08/.test(code)||['57P01','57P02','57P03','53300','PGRST000','PGRST001','PGRST002'].includes(code))throw databaseConnectionFailure(code,'missing_error_code');
 }
 export function failureLatch(target,publish){
   let report=null,failed=false;
@@ -385,8 +448,8 @@ export function commandCategory(text){
 }
 export function summarize(results,cleanupPassed,infrastructureFailure=null){
   const ids=results.map(x=>x.id),missing=CHECKS.filter(x=>!ids.includes(x));
-  const invalid=results.some(x=>!CHECKS.includes(x.id)||!['passed','failed','infrastructure_failed'].includes(x.result)||
-    !validRealAuthDiagnostics(x))||new Set(ids).size!==ids.length;
+  const invalid=(infrastructureFailure!==null&&!validNativeDiagnostics({...infrastructureFailure,id:infrastructureFailure.phase,result:'infrastructure_failed'}))||results.some(x=>!CHECKS.includes(x.id)||!['passed','failed','infrastructure_failed'].includes(x.result)||
+    (!validRealAuthDiagnostics(x)||!validNativeDiagnostics(x)))||new Set(ids).size!==ids.length;
   const failed=results.filter(x=>x.result==='failed').map(x=>x.id);
   const infrastructureFailed=results.filter(x=>x.result==='infrastructure_failed').map(x=>x.id);
   return {mode:'integration',source:SOURCE_COMMIT,productionReady:false,

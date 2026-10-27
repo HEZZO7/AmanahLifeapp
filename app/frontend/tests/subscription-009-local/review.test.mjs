@@ -14,7 +14,7 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
   REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
   checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs,
-  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult} from './safety.mjs';
+  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult,nativeStage,nativeFailureDetails,validNativeDiagnostics,NATIVE_CHECK_STAGES,DATABASE_EVIDENCE} from './safety.mjs';
 import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
@@ -514,7 +514,8 @@ test('every race closes independent sessions in finally while preserving the ori
   assert.deepEqual(closed,['one','two']);
   const success=[];assert.equal(await withSessions(['a','b'],async()=>42,name=>({close:async()=>{success.push(name);return true;}})),42);
   assert.deepEqual(success,['a','b']);
-  assert.equal([...runner.matchAll(/await withSessions\(/g)].length,5);assert.doesNotMatch(runner,/new Session/);
+  assert.equal([...runner.matchAll(/\bwithSessions\(/g)].length,5);
+  assert.equal([...runner.matchAll(/await nativeStage\('[^']+','race_sessions',\(\)=>withSessions\(/g)].length,5);assert.doesNotMatch(runner,/new Session/);
   assert.match(runtime,/finally\{if\(!await closeRaceSessions\(items\)/);
 });
 test('partial race construction and session close failures remain nonzero',async()=>{
@@ -1104,4 +1105,84 @@ test('origin evidence survives failed reports but cannot make a check pass or ap
       assert.throws(f.run,error=>error.workerStage==='controller_report_checks');
     }
   }
+});
+
+
+test('native stage diagnostics preserve sync/async results and execute each assertion exactly once',async()=>{
+  let calls=0;const run=()=>{calls++;return 42;};
+  assert.equal(nativeStage('rollback_each_cleanup_phase','read_before',run),42);
+  assert.equal(await nativeStage('billing_history_retention','read_evidence',async()=>run()),42);
+  assert.equal(calls,2);
+  assert.throws(()=>nativeStage('rollback_each_cleanup_phase','SIMULATED_PRIVATE',run));
+  assert.equal(calls,2);
+});
+test('rollback failures expose only fixed phase/stage codes, never actual or expected values',async()=>{
+  for(const cleanupPhase of [...CLEANUP_TABLES,'auth'])for(const stage of NATIVE_CHECK_STAGES.rollback_each_cleanup_phase){
+    let calls=0;
+    const fail=()=>{calls++;assert.deepEqual({private:'SIMULATED_PRIVATE_ACTUAL'},{private:'SIMULATED_PRIVATE_EXPECTED'});};
+    try{await nativeStage('rollback_each_cleanup_phase',stage,fail,{cleanupPhase});assert.fail();}
+    catch(error){
+      assert.equal(calls,1);assert.equal(error instanceof Failure,false);
+      assert.deepEqual(nativeFailureDetails(error,'rollback_each_cleanup_phase'),{nativeStage:stage,cleanupPhase});
+      assert.doesNotMatch(error.message+JSON.stringify(error),/SIMULATED_PRIVATE|actual|expected/);
+    }
+  }
+});
+test('nested race diagnostics keep the precise inner SQL stage and infrastructure failure class',async()=>{
+  const error=new Failure('sql_session_failed',3);error.sqlState='08006';
+  await assert.rejects(nativeStage('checkout_wins_race','race_sessions',async()=>{
+    nativeStage('checkout_wins_race','expected_sql_failure',()=>expectSQLFailure({ok:false,error},'42501'));
+  }),failure=>{
+    assert.equal(failure instanceof Failure,true);assert.equal(failure.category,'database_connection_failed');
+    assert.deepEqual(nativeFailureDetails(failure,'checkout_wins_race'),{nativeStage:'expected_sql_failure',databaseEvidence:'connection_sqlstate'});return true;
+  });
+});
+test('billing diagnostics distinguish missing SDK evidence from known database connection signals',()=>{
+  const cases=[[{},'missing_error_code'],[{code:'08006'},'connection_sqlstate'],[{code:'57P01'},'server_shutdown'],
+    [{code:'53300'},'connection_limit'],[{code:'PGRST000'},'postgrest_connection']];
+  for(const [error,evidence] of cases)assert.throws(()=>nativeStage('billing_history_retention','billing_policy',()=>throwIfDatabaseInfrastructure({...error,message:'SIMULATED_PRIVATE'}),{billingState:'refunded'}),failure=>{
+    assert.equal(failure.category,'database_connection_failed');
+    assert.deepEqual(nativeFailureDetails(failure,'billing_history_retention'),{nativeStage:'billing_policy',billingState:'refunded',databaseEvidence:evidence});
+    assert.doesNotMatch(JSON.stringify(failure),/SIMULATED_PRIVATE/);return true;
+  });
+  assert.throws(()=>nativeStage('deletion_wins_race','expected_sql_failure',()=>expectSQLFailure({ok:false,error:{}},'23503')),e=>e.databaseEvidence==='missing_sqlstate');
+  assert.equal(DATABASE_EVIDENCE.length,6);
+});
+test('native diagnostics cannot turn an assertion, timeout or transport failure into success',async()=>{
+  for(const error of [new Failure('session_transport_failed',7),new Failure('session_timeout',124)]){
+    await assert.rejects(nativeStage('billing_history_retention','fixture_trial_rpc',async()=>{throw error;}),e=>e===error);
+    assert.equal(error.nativeStage,'fixture_trial_rpc');assert.ok([7,124].includes(error.exitCode));
+  }
+  for(const id of ['failed_delete_preserves_trial','failed_delete_cannot_restart_trial']){
+    assert.throws(()=>nativeStage(id,'fault_proof',()=>assert.equal(false,true)),e=>e.nativeStage==='fault_proof');
+  }
+  assert.match(runner,/finally\{nativeStage\('rollback_each_cleanup_phase','clear_fault',\(\)=>clearFault\(B.id\)\);\}/);
+});
+test('native stage reports survive controller validation without private fields',()=>{
+  const rows=complete();rows[6]={id:'rollback_each_cleanup_phase',result:'failed',category:'assertion_failed',nativeStage:'witness_increment',cleanupPhase:'subscriptions'};
+  rows[13]={id:'billing_history_retention',result:'infrastructure_failed',category:'database_connection_failed',exit:1,nativeStage:'fixture_seed_subscription',databaseEvidence:'missing_error_code'};
+  const f=controllerFixture();f.state.report={...summarize(rows,true),observations:{}};f.state.outcome={status:1,stdout:''};
+  assert.deepEqual(f.run().report.checks,rows);
+});
+test('native diagnostic contexts reject unknown, misplaced, undefined and passing metadata',()=>{
+  const base={id:'rollback_each_cleanup_phase',result:'failed',nativeStage:'witness_increment',cleanupPhase:'subscriptions'};
+  assert.equal(validNativeDiagnostics({...base,cleanupPhase:undefined}),false);
+  assert.equal(validNativeDiagnostics({...base,nativeStage:undefined}),false);
+  const patches=[{id:'schema_dependencies'},{result:'passed'},{nativeStage:'SIMULATED_PRIVATE'},{cleanupPhase:'SIMULATED_PRIVATE'},
+    {cleanupPhase:null},{billingState:'active'},{databaseEvidence:'SIMULATED_PRIVATE'},{databaseEvidence:'connection_sqlstate'},{nativeStage:null}];
+  for(const patch of patches){
+    const row={...base,...patch};assert.equal(validNativeDiagnostics(row),false);
+    assert.equal(summarize([row],true).invalid,true);
+    const f=controllerFixture();f.state.report={...summarize([row],true),observations:{}};f.state.outcome={status:1,stdout:''};
+    assert.throws(f.run,e=>e.workerStage==='controller_report_checks');
+  }
+});
+test('fixture failures before a native group body retain fixed diagnostics through infrastructure reports',()=>{
+  const infra={phase:'unreviewed_trigger_readiness',category:'assertion_failed',exit:1,nativeStage:'fixture_create_user'};
+  const f=controllerFixture();f.state.report={...summarize([],true,infra),observations:{}};f.state.outcome={status:1,stdout:''};
+  assert.deepEqual(f.run().report.infrastructureFailure,infra);
+  assert.match(runner,/if\(details.nativeStage\)Object.assign\(failure,details,\{nativePhase:report.infrastructureFailure.phase\}\)/);
+  infra.nativeStage='SIMULATED_PRIVATE';
+  const bad=controllerFixture();bad.state.report={...summarize([],true,infra),observations:{}};bad.state.outcome={status:1,stdout:''};
+  assert.throws(bad.run,e=>e.workerStage==='controller_report_infrastructure');
 });

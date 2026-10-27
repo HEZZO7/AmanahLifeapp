@@ -1,0 +1,106 @@
+{
+  "run": "40492736650",
+  "artifact": "12729675366",
+  "artifactAccess": {
+    "http": 404,
+    "downloaded": false,
+    "interpretation": "not_accessible_from_current_environment"
+  },
+  "userVerifiedSummary": {
+    "passed": 6,
+    "assertionFailed": 10,
+    "databaseConnectionFailed": 1,
+    "notTested": 4,
+    "packageOfflinePassed": 104,
+    "billingOfflinePassed": 76,
+    "independentCleanupPassed": true
+  },
+  "inspectedLocalPins": {
+    "source": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+    "previousPackage": "772f0a77f6ae1f59b360e190783939b880223cb2",
+    "workflow": "749224ddcbea23a536b7f166872b71a675409e64",
+    "historicalArtifactPinsIndependentlyRead": false
+  },
+  "historicalRootCause": "unresolved",
+  "productionSourceDefectProven": false,
+  "validation": {
+    "packageOffline": {
+      "passed": 112,
+      "failed": 0,
+      "skipped": 0
+    },
+    "applicationOffline": {
+      "passed": 390,
+      "failed": 0,
+      "skipped": 0,
+      "includesBilling": 76
+    },
+    "ownedHosts": {
+      "passed": 9
+    },
+    "workflow": {
+      "passed": 14
+    },
+    "sourceFilesVerified": 12,
+    "packageFilesVerified": 10,
+    "lockedDependencyVersionsVerified": 9,
+    "originalAssertions": {
+      "originalNativeAssertionsPreserved": true,
+      "count": 168
+    },
+    "sqlComponent": {
+      "nativeAuthExecuted": false,
+      "network": "none",
+      "sourceVerified": true,
+      "faults": [
+        {
+          "phase": "subscriptions",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        },
+        {
+          "phase": "search_history",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        },
+        {
+          "phase": "email_digest",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        },
+        {
+          "phase": "notification_preferences",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        },
+        {
+          "phase": "push_subscriptions",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        },
+        {
+          "phase": "auth",
+          "expectedFault": true,
+          "witnessIncrementedOnce": true,
+          "completeAccountPreserved": true
+        }
+      ],
+      "faultConfigurationCleared": true,
+      "freshConnectionPassed": true,
+      "noOtherDatabaseSessions": true,
+      "ownedResourcesRemoved": true
+    },
+    "nativeSuiteExecutedHere": false
+  },
+  "isolationCodeChanged": false,
+  "applicationCodeChanged": false,
+  "migration009Changed": false,
+  "workflowDispatched": false,
+  "mainChanged": false,
+  "productionReady": false
+}

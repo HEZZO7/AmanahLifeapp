@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs,nativeFailureDetails,validNativeDiagnostics} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -272,18 +272,19 @@ export function runIsolatedWorker(prepared,entry,probe={}){
     const checks=report.checks.map(r=>{
       assert.ok(CHECKS.includes(r.id));assert.ok(['passed','failed','infrastructure_failed'].includes(r.result));
       const authDetails=realAuthFailureDetails(r);
-      assert.ok(validRealAuthDiagnostics(r));
+      assert.ok(validRealAuthDiagnostics(r));assert.ok(validNativeDiagnostics(r));
       return {id:r.id,result:r.result,...(r.category?{category:safeWord(r.category)}:{}),
-        ...(r.exit!==undefined?{exit:validExit(r.exit)}:{}),...authDetails};
+        ...(r.exit!==undefined?{exit:validExit(r.exit)}:{}),...authDetails,...nativeFailureDetails(r,r.id)};
     });
     function validExit(value){assert.ok(Number.isInteger(value)&&value>=1&&value<=255);return value;}
     at('controller_report_infrastructure');
     const details=workerFailureDetails(report.infrastructureFailure);
+    if(report.infrastructureFailure)assert.ok(validNativeDiagnostics({...report.infrastructureFailure,id:report.infrastructureFailure.phase,result:'infrastructure_failed'}));
     if(report.infrastructureFailure)for(const key of ['workerStage','workerPreflightStage','workerLaunchStage','workerExit']){
       if(key in report.infrastructureFailure)assert.equal(details[key],report.infrastructureFailure[key]);
     }
     const infra=report.infrastructureFailure?{phase:safeWord(report.infrastructureFailure.phase),
-      category:safeWord(report.infrastructureFailure.category),exit:validExit(report.infrastructureFailure.exit),...details}:null;
+      category:safeWord(report.infrastructureFailure.category),exit:validExit(report.infrastructureFailure.exit),...details,...nativeFailureDetails(report.infrastructureFailure,report.infrastructureFailure.phase)}:null;
     const safe={...summarize(checks,report.cleanupPassed,infra),observations:{}};
     at('controller_report_observations');
     for(const key of ['familyDisplayNameRetained','ownerDeletionCascadesSharedFamily','afterNullTriggerDetected',

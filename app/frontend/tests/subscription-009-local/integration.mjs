@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult} from './safety.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails} from './safety.mjs';
 import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
@@ -42,7 +42,7 @@ async function check(id,fn,fatal=false){
     const infrastructure=error instanceof Failure;
     results.push({id,result:infrastructure?'infrastructure_failed':'failed',
       ...(infrastructure?{category:error.category,exit:error.exitCode}:{category:'assertion_failed'}),
-      ...(id==='real_auth_jwt'?realAuthFailureDetails(error):{})});
+      ...(id==='real_auth_jwt'?realAuthFailureDetails(error):{}),...nativeFailureDetails(error,id)});
     if(fatal)throw new Failure('prerequisite_failed');
   }
   emit(results.at(-1));
@@ -162,8 +162,8 @@ async function exercise(source,credentials){
     }
     async function newAccount(trial=true,authAccount=null){
       // Labels are fixed A/B fixture positions, never user identifiers. Later
-      // groups keep the original helper without real_auth_jwt diagnostics.
-      const at=(step,operation)=>authAccount===null?operation():realAuthStage(authAccount+'_'+step,operation);
+      // groups retain its operations with closed fixture-stage diagnostics.
+      const at=(step,operation)=>authAccount===null?nativeStage(phase,'fixture_'+step,operation):realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
       const createStart=guard.state.calls.length,requestStart=Date.now();let created;
       try{
@@ -268,69 +268,76 @@ async function exercise(source,credentials){
     await check('rollback_each_cleanup_phase',async()=>{
       try{
         for(const stage of [...CLEANUP_TABLES,'auth']){
-          fault(B.id,stage);const hit=witness(),before=accountRows(B.id),links=authLinkCounts(B.id);
-          assert.equal((await remove(B,{user_id:A.id})).status,503);
-          assert.equal(witness(),hit+1,'Fault must execute after verified real cleanup, not an earlier failure');
-          assert.deepEqual(accountRows(B.id),before);assert.deepEqual(accountRows(A.id),baselineA);
-          assert.deepEqual(authLinkCounts(B.id),links);
-          const verified=await B.client.auth.getUser(B.token);assert.equal(verified.error,null);assert.equal(verified.data.user.id,B.id);
+          const at=(step,operation)=>nativeStage('rollback_each_cleanup_phase',step,operation,{cleanupPhase:stage});
+          at('install_fault',()=>fault(B.id,stage));
+          const {hit,before,links}=at('read_before',()=>({hit:witness(),before:accountRows(B.id),links:authLinkCounts(B.id)}));
+          await at('delete_status',async()=>assert.equal((await remove(B,{user_id:A.id})).status,503));
+          at('witness_increment',()=>assert.equal(witness(),hit+1,'Fault must execute after verified real cleanup, not an earlier failure'));
+          at('account_rollback',()=>assert.deepEqual(accountRows(B.id),before));
+          at('control_unchanged',()=>assert.deepEqual(accountRows(A.id),baselineA));
+          at('auth_links_rollback',()=>assert.deepEqual(authLinkCounts(B.id),links));
+          const verified=await at('token_valid',async()=>{const verified=await B.client.auth.getUser(B.token);assert.equal(verified.error,null);return verified;});
+          at('token_identity',()=>assert.equal(verified.data.user.id,B.id));
         }
         faultProof=true;
-      }finally{clearFault(B.id);}
+      }finally{nativeStage('rollback_each_cleanup_phase','clear_fault',()=>clearFault(B.id));}
     });
-    await check('failed_delete_preserves_trial',()=>{assert.equal(faultProof,true);assert.deepEqual(accountRows(B.id),baselineB);});
+    await check('failed_delete_preserves_trial',()=>{nativeStage('failed_delete_preserves_trial','fault_proof',()=>assert.equal(faultProof,true));nativeStage('failed_delete_preserves_trial','trial_snapshot',()=>assert.deepEqual(accountRows(B.id),baselineB));});
     await check('failed_delete_cannot_restart_trial',async()=>{
-      assert.equal(faultProof,true);const r=await rpc(B.client,'start_trial');assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used');
-      assert.deepEqual(accountRows(B.id),baselineB);
+      const at=(step,operation)=>nativeStage('failed_delete_cannot_restart_trial',step,operation);
+      at('fault_proof',()=>assert.equal(faultProof,true));
+      const r=await at('trial_rpc',async()=>{const r=await rpc(B.client,'start_trial');assert.equal(r.error,null);return r;});
+      at('trial_result',()=>assert.equal(r.data.error,'trial_already_used'));
+      at('trial_snapshot',()=>assert.deepEqual(accountRows(B.id),baselineB));
     });
     await check('checkout_wins_race',async()=>{
       const user=await newAccount(false);
-      await withSessions(['a009-checkout-first','a009-delete-second'],async([checkout,deletion])=>{
+      await nativeStage('checkout_wins_race','race_sessions',()=>withSessions(['a009-checkout-first','a009-delete-second'],async([checkout,deletion])=>{
       const [cpid,dpid]=await Promise.all([checkout.pid(),deletion.pid()]);assert.notEqual(cpid,dpid);
       await checkout.query('begin;'+reserveSQL(user.id,'a'));await deletion.query('begin;');
       const pending=deletion.query('delete from auth.users where id='+q(user.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(dpid,cpid);await checkout.finish('commit;');
-      const outcome=await pending;expectSQLFailure(outcome,'42501');
+      const outcome=await pending;nativeStage('checkout_wins_race','expected_sql_failure',()=>expectSQLFailure(outcome,'42501'));
       assert.ok(accountRows(user.id).auth);assert.equal(billingRows(user.id).intents.length,1);
-      });
+      }));
       // Also exercise an already-locked subscription projection update. The
       // nested 008 subscription DELETE guard must see the committed paid state.
       const projected=await newAccount();
-      await withSessions(['a009-paid-update','a009-paid-delete'],async([writer,blockedDelete])=>{
+      await nativeStage('checkout_wins_race','race_sessions',()=>withSessions(['a009-paid-update','a009-paid-delete'],async([writer,blockedDelete])=>{
       const [wpid,bpid]=await Promise.all([writer.pid(),blockedDelete.pid()]);assert.notEqual(wpid,bpid);
       await writer.query("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";");
       await blockedDelete.query('begin;');
       const blocked=blockedDelete.query('delete from auth.users where id='+q(projected.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(bpid,wpid);await writer.finish('commit;');
-      const denied=await blocked;expectSQLFailure(denied,'42501');
+      const denied=await blocked;nativeStage('checkout_wins_race','expected_sql_failure',()=>expectSQLFailure(denied,'42501'));
       const surviving=accountRows(projected.id);assert.ok(surviving.auth);assert.equal(surviving.subscriptions[0].tier,'balanced');assert.equal(surviving.subscriptions[0].trial_used,true);
-      });
+      }));
     });
     await check('deletion_wins_race',async()=>{
       const user=await newAccount();
-      await withSessions(['a009-delete-first','a009-checkout-second'],async([deletion,checkout])=>{
+      await nativeStage('deletion_wins_race','race_sessions',()=>withSessions(['a009-delete-first','a009-checkout-second'],async([deletion,checkout])=>{
       const [dpid,cpid]=await Promise.all([deletion.pid(),checkout.pid()]);assert.notEqual(dpid,cpid);
       await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');await checkout.query('begin;');
       const pending=checkout.query(reserveSQL(user.id,'b')).then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(cpid,dpid);await deletion.finish('commit;');
-      const outcome=await pending;expectSQLFailure(outcome,'23503');assertDeleted(user.id);
-      });
+      const outcome=await pending;nativeStage('deletion_wins_race','expected_sql_failure',()=>expectSQLFailure(outcome,'23503'));assertDeleted(user.id);
+      }));
     });
     await check('trial_races_deletion',async()=>{
       for(const rollback of [true,false]){
         const user=await newAccount(rollback),before=accountRows(user.id);
-        await withSessions([rollback?'a009-trial-rollback':'a009-trial-commit'],async([deletion])=>{
+        await nativeStage('trial_races_deletion','race_sessions',()=>withSessions([rollback?'a009-trial-rollback':'a009-trial-commit'],async([deletion])=>{
         const pid=await deletion.pid();await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');
         const pending=rpc(user.client,'start_trial');await waitForBlockedCount(pid);
         await deletion.finish(rollback?'rollback;':'commit;');const r=await pending;
         if(rollback){assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used');assert.deepEqual(accountRows(user.id),before);}
         else{assertSQLState(r.error,'23503');assertDeleted(user.id);}
-        });
+        }));
       }
     });
     await check('simultaneous_auth_deletions',async()=>{
       const user=await newAccount();
-      await withSessions(['a009-double-delete'],async([locker])=>{const pid=await locker.pid();
+      await nativeStage('simultaneous_auth_deletions','race_sessions',()=>withSessions(['a009-double-delete'],async([locker])=>{const pid=await locker.pid();
       await locker.query('begin;select id from auth.users where id='+q(user.id)+' for update;');
       const start=guard.state.calls.length;
       const pending=Promise.all([remove(user),remove(user)]).then(responses=>({responses}),()=>({failure:true}));
@@ -342,32 +349,37 @@ async function exercise(source,credentials){
       await waitForBlockedCount(pid,2);await locker.finish('commit;');
       const outcome=await pending;assert.equal(outcome.failure,undefined);const responses=outcome.responses;assert.ok(responses.some(r=>r.status===200));
       for(const r of responses)assert.ok([200,503].includes(r.status));assertDeleted(user.id);
-      });
+      }));
     });
     let billingBefore;
     await check('billing_history_retention',async()=>{
-      sql("begin;"+reserveSQL(A.id,'c')+
+      const at=(step,operation,billingState)=>nativeStage('billing_history_retention',step,operation,billingState?{billingState}:{});
+      at('seed_billing',()=>sql("begin;"+reserveSQL(A.id,'c')+
         "insert into public."+prefix+"payment_bindings(mode,subscription_id,user_id,customer_id,order_id,product_id,variant_id,tier,billing,last_state) values('test','8008',"+q(A.id)+",'8009','8010','8002','8003','balanced','monthly','{\"provider_status\":\"active\"}');"+
-        "insert into public."+prefix+"payment_periods(mode,subscription_id,proof_id,user_id,kind,access_start,access_end,confirmed_at,tier,billing,product_id,variant_id) values('test','8008','8011',"+q(A.id)+",'renewal',now()-interval '1 day',now()+interval '14 days',now()-interval '1 day','balanced','monthly','8002','8003');commit;");
+        "insert into public."+prefix+"payment_periods(mode,subscription_id,proof_id,user_id,kind,access_start,access_end,confirmed_at,tier,billing,product_id,variant_id) values('test','8008','8011',"+q(A.id)+",'renewal',now()-interval '1 day',now()+interval '14 days',now()-interval '1 day','balanced','monthly','8002','8003');commit;"));
       for(const state of ['active','expired','refunded']){
-        sql("update public."+prefix+"payment_bindings set last_state=jsonb_build_object('provider_status','"+state+"') where user_id="+q(A.id)+";");
-        if(state!=='active')sql("update public."+prefix+"payment_intents set expires_at=now()-interval '1 second' where user_id="+q(A.id)+";update public."+prefix+"payment_periods set access_end=now()-interval '1 second',revoked_at=now()-interval '1 second' where user_id="+q(A.id)+";");
+        at('set_billing_state',()=>sql("update public."+prefix+"payment_bindings set last_state=jsonb_build_object('provider_status','"+state+"') where user_id="+q(A.id)+";"),state);
+        if(state!=='active')at('expire_evidence',()=>sql("update public."+prefix+"payment_intents set expires_at=now()-interval '1 second' where user_id="+q(A.id)+";update public."+prefix+"payment_periods set access_end=now()-interval '1 second',revoked_at=now()-interval '1 second' where user_id="+q(A.id)+";"),state);
         if(state!=='active'){
-          assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true);
+          at('expired_fixture',()=>assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true),state);
         }
-        const evidence=billingRows(A.id);assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id})).data,false);
-        for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);
-        assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409);
+        const evidence=at('read_evidence',()=>billingRows(A.id),state);
+        await at('billing_policy',async()=>assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id})).data,false),state);
+        at('evidence_seeded',()=>{for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);},state);
+        await at('adapter_denial',async()=>assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409),state);
         // Call GoTrue directly too: bypassing the Edge precheck must not bypass 008.
-        assert.ok((await admin.auth.admin.deleteUser(A.id,false)).error);
-        assert.deepEqual(billingRows(A.id),evidence);assert.deepEqual(accountRows(A.id),baselineA);
+        await at('direct_auth_denial',async()=>assert.ok((await admin.auth.admin.deleteUser(A.id,false)).error),state);
+        at('billing_unchanged',()=>assert.deepEqual(billingRows(A.id),evidence),state);
+        at('account_unchanged',()=>assert.deepEqual(accountRows(A.id),baselineA),state);
       }
-      billingBefore=billingRows(A.id);
+      billingBefore=at('save_billing',()=>billingRows(A.id));
       // Legacy/current paid projections must also block even without a ledger.
       const projected=await newAccount(false);
-      sql("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',status='active',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";commit;");
-      const saved=accountRows(projected.id);assert.equal((await remove(projected)).status,409);
-      assert.ok((await admin.auth.admin.deleteUser(projected.id,false)).error);assert.deepEqual(accountRows(projected.id),saved);
+      at('seed_projection',()=>sql("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',status='active',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";commit;"));
+      const saved=at('read_projection',()=>accountRows(projected.id));
+      await at('projection_adapter_denial',async()=>assert.equal((await remove(projected)).status,409));
+      await at('projection_auth_denial',async()=>assert.ok((await admin.auth.admin.deleteUser(projected.id,false)).error));
+      at('projection_unchanged',()=>assert.deepEqual(accountRows(projected.id),saved));
     });
     async function family(owner,member){
       const created=await owner.client.from(prefix+'families').insert({owner_user_id:owner.id,name:'Synthetic family'}).select('id,join_code').single();
@@ -416,8 +428,9 @@ async function exercise(source,credentials){
     // Test the actual review finding as well: BEFORE, unlike AFTER, may veto a
     // DELETE without throwing. These are ordinary mandatory FAILING assertions
     // on the approved vulnerable source, never xfail/skip/green conversions.
-    const adversarial=await newAccount(),adversarialBefore=accountRows(adversarial.id);let attempted=false;
-    sql(nullTriggerSQL(adversarial.id,'BEFORE'));
+    phase='unreviewed_trigger_readiness';
+    const adversarial=await newAccount(),adversarialBefore=nativeStage('unreviewed_trigger_readiness','fixture_snapshot',()=>accountRows(adversarial.id));let attempted=false;
+    nativeStage('unreviewed_trigger_readiness','install_null_trigger',()=>sql(nullTriggerSQL(adversarial.id,'BEFORE')));
     try{
       await check('unreviewed_trigger_readiness',async()=>{
         const r=await rpc(admin,'account_deletion_ready');assert.equal(r.error,null);
@@ -464,7 +477,10 @@ export async function execute(opts){
     results.push(...report.checks);Object.assign(observations,report.observations);
     if(report.infrastructureFailure){
       const failure=new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
-      Object.assign(failure,workerFailureDetails(report.infrastructureFailure));throw failure;
+      Object.assign(failure,workerFailureDetails(report.infrastructureFailure));
+      const details=nativeFailureDetails(report.infrastructureFailure,report.infrastructureFailure.phase);
+      if(details.nativeStage)Object.assign(failure,details,{nativePhase:report.infrastructureFailure.phase});
+      throw failure;
     }
     if(!report.cleanupPassed)throw new Failure('session_cleanup_failed');
   }finally{
@@ -519,8 +535,9 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   try{opts=options(process.argv.slice(2));if(opts['--worker'])await worker(opts);else await execute(opts);}
   catch(error){
     const failure=activeWorkerStage?workerStageFailure(activeWorkerStage,error):error;
-    infrastructureFailure={phase,category:failure instanceof Failure?failure.category:'assertion_failed',exit:failure instanceof Failure?failure.exitCode:1,
-      ...commandFailureDetails(failure),...workerFailureDetails(failure)};
+    const failedPhase=CHECKS.includes(failure?.nativePhase)?failure.nativePhase:phase;
+    infrastructureFailure={phase:failedPhase,category:failure instanceof Failure?failure.category:'assertion_failed',exit:failure instanceof Failure?failure.exitCode:1,
+      ...commandFailureDetails(failure),...workerFailureDetails(failure),...nativeFailureDetails(failure,failedPhase)};
   }
   if(opts?.['--cleanup']){
     latch.publish({mode:'cleanup',result:cleanupPassed&&!infrastructureFailure?'passed':'failed',
