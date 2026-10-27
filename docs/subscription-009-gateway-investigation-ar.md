@@ -106,3 +106,14 @@ health الخاص بـKong لا يثبت صحة Auth/DB؛ تظل جميع assert
 وsource-manifest.json في الحزمة، مع script إعادة الإنتاج وهذه المذكرة وJSON الدليل.
 الخطوة التالية تحديث PACKAGE_SHA يدويًا على main بعد المراجعة، مع بقاء source pin
 وجميع ضوابط التشغيل كما هي. لم يُعدّل main أو production ولم يحدث dispatch.
+
+commit الحزمة: `772f0a77f6ae1f59b360e190783939b880223cb2`.
+التحديث اليدوي المطلوب على main:
+
+```yaml
+PACKAGE_SHA: 772f0a77f6ae1f59b360e190783939b880223cb2
+```
+
+يبقى SOURCE_SHA=e6dd3fc5e014ea0539df8da12a6ee84582b302b9 وcheckout الحزمة
+`ref: ${{ env.PACKAGE_SHA }}` وشرط فرع main وكل القيود كما هي.
+ثُبت المرجع في workflow فرع الاسترداد فقط، ولم تُرسل محاولة تشغيل.
