@@ -98,3 +98,14 @@ local-runtime.mjs وsafety.mjs وreview.test.mjs وREADME.md وsource-manifest.j
 الخطوة التالية هي مراجعة commit الحزمة وتحديث PACKAGE_SHA يدويًا على main؛
 وإذا تكرر الفشل في تشغيل مصرح به لاحقًا، قراءة authCreateOutcome/authCreateHttp/
 authCreateReason من عنصر real_auth_jwt في checks[] قبل أي تغيير للتطبيق.
+
+commit الحزمة: `bc471667afe320a0dccf9b4fad7a8d6a0e720449`.
+التغيير اليدوي المطلوب على main:
+
+```yaml
+PACKAGE_SHA: bc471667afe320a0dccf9b4fad7a8d6a0e720449
+```
+
+يبقى SOURCE_SHA=e6dd3fc5e014ea0539df8da12a6ee84582b302b9 وcheckout الحزمة
+`ref: ${{ env.PACKAGE_SHA }}` وشرط فرع main وجميع القيود كما هي.
+ثُبت المرجع الجديد في نسخة workflow على فرع الاسترداد وحده دون إطلاقها.
