@@ -1,0 +1,281 @@
+{
+  "source": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "files": [
+    {
+      "path": "app/frontend/src/components/PromoBanner.tsx",
+      "sha256": "e5e4f31765b30839011a40aef4fa680c6ca51d03cbe12fdc3369a9b18f8ccc01"
+    },
+    {
+      "path": "app/frontend/src/contexts/SubscriptionContext.tsx",
+      "sha256": "26362ff415ed8dc8ee00a315b05384f04623b7b4baf91b1dc39b58414f1f8484"
+    },
+    {
+      "path": "app/frontend/src/lib/lemonSqueezyCheckout.ts",
+      "sha256": "c3f2d203bf0795791d43155371f650edb96dae51afa3603daa92966f51201078"
+    },
+    {
+      "path": "app/frontend/src/pages/Subscription.tsx",
+      "sha256": "2754a7ab61e2081262952a0f24dffd8c296559e7138e350992abdcc84a812a2d"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/aiAccess.ts",
+      "sha256": "8575a41043fe60bb0e28c95d59854edd94df0e96c8cfec895aec8f82a2229f8e"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/aiRuntime.ts",
+      "sha256": "45c53e45bb14106aa013bb445c5ed31102de7fd934d6921bb9ad5cbc769e4427"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/familyEntitlement.ts",
+      "sha256": "e5e5d5e064afd1571b8e801b326064ee04aa5772fc5ec283b0bfe37b27a9c1d3"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/lemonPayments.ts",
+      "sha256": "e78105c0f77b7edffb31f63155b0778114a60d86f165300c9c9e0f84e31a309f"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/lemonRuntime.ts",
+      "sha256": "3b79e82fc26ca7268f3ea57de1a5cba9035cb51c5f8fe8eaccd8a78a8d15f319"
+    },
+    {
+      "path": "app/frontend/supabase/functions/_shared/verifyWebhookSignature.ts",
+      "sha256": "f60e684cb4d813c5ef349e4ba7ff2c4dfddb428b433cc7e8f96fdde5b6afae97"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_ai_life_coach/handler.ts",
+      "sha256": "96c732460b8902494db2c7a0704aa6f309cce08e4c70a625061ab1b62126f3bf"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_ai_life_coach/index.ts",
+      "sha256": "97cdf1556607e7fa1545adcd461090449937ad297f4bc581541a988546d29b1b"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_ai_search/handler.ts",
+      "sha256": "233c842a72e8502ed7e79d7bd8debd7f17f9ac90cbaf0082da82a7604f2b93ea"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_ai_search/index.ts",
+      "sha256": "97cdf1556607e7fa1545adcd461090449937ad297f4bc581541a988546d29b1b"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_delete_account/handler.ts",
+      "sha256": "cefa30413cb7472523525a265656884beb6b071d9b2e20c6557838608834a975"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_delete_account/index.ts",
+      "sha256": "3b8df6ea5cb85ce7fcedb466f026ac923e6299b4f4617afdf66e87e9ee09aa1f"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_family_invite/index.ts",
+      "sha256": "b4d0b1db67214cae446fea9741a8b0cd2e1547a09e4b0d0e478b1327597f5f2a"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_lemonsqueezy_checkout/index.ts",
+      "sha256": "0d08d639d4dc416a139a8dc45acbc47369a9c2771d3075adf0b189bdc0ff5dea"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_lemonsqueezy_checkout_test/index.ts",
+      "sha256": "2d185eefb02420a7baebe1798407c7275ebc2cf89de8a71718e61c23803e2d60"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_lemonsqueezy_webhook/index.ts",
+      "sha256": "951d719319229659a3e18a327e98f332f28b6763011dc30b5b774d43c9b184f7"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_lemonsqueezy_webhook_test/index.ts",
+      "sha256": "a00d4e9b8f4e415630134479bdbb19e04d2f82a6098474cd4d39385122a1b155"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_receipt_scan/handler.ts",
+      "sha256": "addbe95822cd20c515f6f914a83212237dea81c7e69e518ff5d1ab71c4c3da72"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_receipt_scan/index.ts",
+      "sha256": "97cdf1556607e7fa1545adcd461090449937ad297f4bc581541a988546d29b1b"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_savings_tips/handler.ts",
+      "sha256": "d8abaee91595f3da958cde25db11f129ec038787846d068ef1ee96d5cfd0457d"
+    },
+    {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_savings_tips/index.ts",
+      "sha256": "97cdf1556607e7fa1545adcd461090449937ad297f4bc581541a988546d29b1b"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610140001_subscription_authority.sql",
+      "sha256": "d919c9e9c08c7b5767118d2ca8184e88e9816e7b20a3134965fd4082d1a6515f"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql",
+      "sha256": "ec3922b95c55020fb8a40ec6386b881639307118e5d9479dd8e499d301d4992e"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610150003_family_authority.sql",
+      "sha256": "0c3fa6240093d2038637749bd570a439b58541f12d071cd4b3df9c406a808af7"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql",
+      "sha256": "7b99dd849bfa66723c1350d73b9bf34236d625171c58e3785f27f4161d19bd97"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql",
+      "sha256": "bc98e6ce77c10f86255420df4a09657a35cd2b0e133d867a3a0c4d0e19241d06"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610160006_ai_entitlement.sql",
+      "sha256": "c968cb79bd5e56c23cc985486977fe601175a62aaede77c6acaaf0902f9e4056"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql",
+      "sha256": "d82c9ec53d32ccdc1a5edff927671aaccd34925626934992f762f066d46cb3db"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql",
+      "sha256": "213235342d8c43c0140ded742e301e1f7be8bd66607f9ee28b4536601286ed6c"
+    },
+    {
+      "path": "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql",
+      "sha256": "55694b2759bfe6d6c8f0a652a98a381dd90f005954b16ccf3e673a68d0219718"
+    },
+    {
+      "path": "app/frontend/tests/account-deletion-atomic-regression.sql",
+      "sha256": "3cec11283ecd898e76e47d8e30bc04f27eba75ab18ac661ea2c8cef6f84e890c"
+    },
+    {
+      "path": "app/frontend/tests/account-deletion-atomic.test.mjs",
+      "sha256": "f80d597715622858d04c76af38f9d44ca0d16e71357c61082966df06802c8b3f"
+    },
+    {
+      "path": "app/frontend/tests/account-deletion-cancellation.test.mjs",
+      "sha256": "9c7e7b46a144c60a93cc01350c4ffb271c16a4a96aa3da2d33369bd7a5b2a5eb"
+    },
+    {
+      "path": "app/frontend/tests/account-deletion-safety.test.mjs",
+      "sha256": "0ee98ab06ff481c3b71be7538651c147daf480bdcedba04193203354ebea92ed"
+    },
+    {
+      "path": "app/frontend/tests/account-deletion-veto-regression.sql",
+      "sha256": "286f6e3ee49e45c829c0a29d8416fd7a79b4e169023db919600e002bc76b2d6c"
+    },
+    {
+      "path": "app/frontend/tests/ai-access.test.mjs",
+      "sha256": "691bcbb7955d911bb3f3fefde06441aa149d8d82163200d659ddeebe578de73c"
+    },
+    {
+      "path": "app/frontend/tests/ai-entitlement-security.sql",
+      "sha256": "976ce7ee36eda9bfa920d8219734fb79a9922d99ed7bbc01994821bfb10becd1"
+    },
+    {
+      "path": "app/frontend/tests/concurrent-family-join.sh",
+      "sha256": "1bf48a94834aa2cc63d784798e085c01ae8c56e1fa44face40fd9277da7eadbd"
+    },
+    {
+      "path": "app/frontend/tests/concurrent-payment-events.sh",
+      "sha256": "f976882e5de86a1f589727f541142a2d9d7a82ffd2e8e6da4c1eee1a712ff091"
+    },
+    {
+      "path": "app/frontend/tests/concurrent-trial.sh",
+      "sha256": "68886cf69fb43e1d3e8ec5570c412f763f68e5c43762bb8a73f394e1fe8c2328"
+    },
+    {
+      "path": "app/frontend/tests/deny-network.mjs",
+      "sha256": "f98571ddcba60f9eb5eb2dead312ac4dec56060f2acf41b9953871d4a7c942a7"
+    },
+    {
+      "path": "app/frontend/tests/family-authority-security.sql",
+      "sha256": "a5da0312b54083e3c93c8ed0cd3cfd84eefa8eed92591b6a00767be5a17314b3"
+    },
+    {
+      "path": "app/frontend/tests/family-authority-seed.sql",
+      "sha256": "ce0ae6c934d364286f5d8aa77ed12dafca7da952f6327509a40d38e0ea735f81"
+    },
+    {
+      "path": "app/frontend/tests/family-entitlement.test.mjs",
+      "sha256": "10786d3b70c0011e70aeb543a3a19424a0f3adcf7a73d6c9b93d0c549222e007"
+    },
+    {
+      "path": "app/frontend/tests/family-helper-fixture.sql",
+      "sha256": "7e3de7f178ae5bcfaac25a40c82cce0eea792090c032802bc530e74f65cbc12f"
+    },
+    {
+      "path": "app/frontend/tests/family-helper-security.sql",
+      "sha256": "30400689c03379d72cffb324b5f779a79c1cffa1e038b1ab3d2cbe666fba0cdc"
+    },
+    {
+      "path": "app/frontend/tests/lemon-payments-security.sql",
+      "sha256": "86a2beab2f271e8402da4a7d6867b67c7527c4ce8e467ca1ed6e1932b95b1c24"
+    },
+    {
+      "path": "app/frontend/tests/lemon-payments-seed.sql",
+      "sha256": "b9bdddec041df84287d66b6fb0e489c1b5df3ab1db5195d63669de2352027494"
+    },
+    {
+      "path": "app/frontend/tests/lemon-payments.test.mjs",
+      "sha256": "8fbf1295bcc35c4fb59a9d2c6ce808198c626e177cfd5b957f9ec7e07b6ca34f"
+    },
+    {
+      "path": "app/frontend/tests/lifecycle-seed.sql",
+      "sha256": "ffbe0b7c0c291da1e09841798bc05222ea2f9e0385293a84d51fb2688a8e07af"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/README.md",
+      "sha256": "64038825ce3d51a59951c68f819e8187ca35e18035bd5c8d15a4518ca84097e7"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/fixture.sql",
+      "sha256": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/integration.mjs",
+      "sha256": "85388a65eae0a8fe3fb44a43bd67cc0a3072e79126a4519f21598aab5447ff67"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/isolation.mjs",
+      "sha256": "3394aad4cf6db3fffb16438b2cf674edb2b2e800d2e92b79121cbe8308f448db"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/local-runtime.mjs",
+      "sha256": "706d1837da26e21167a306d4f5fa036e29b19e53378e83467bb686838b75ff38"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/metadata.sql",
+      "sha256": "c0e94ba3ff7b23af9ac57eb78d64d1d4f5ccb1dc2001bc1fcbdc1817d221eb9a"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/package-lock.json",
+      "sha256": "1c256eb7885c127bc679f6b0e381098591ac894d9321e5a4f7a6ef6ec8e43221"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/package.json",
+      "sha256": "5ba58dfc7e3faa74cc053aa1ed6f87b5781b39888f617bc5efacebd5c2e3fbb5"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/review.test.mjs",
+      "sha256": "a1d2c03a3a6702cbd002f53238fd6332f1765ab73eb05a8cf9a2aad481527dc6"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/safety.mjs",
+      "sha256": "d36702083bac56c42eee3bfa4ad34870a084f71a4669ce0ce4803eb57605615c"
+    },
+    {
+      "path": "app/frontend/tests/subscription-009-local/source-manifest.json",
+      "sha256": "51e42badc6f77752b062b1dd94eb381d86fdd51976c29a4c14fea6ec92019a8c"
+    },
+    {
+      "path": "app/frontend/tests/subscription-lifecycle-security.sql",
+      "sha256": "66413b534c8c9145dc8f4f4ab8708de47ddd0339a3f0d48e15137a1e0cb5a753"
+    },
+    {
+      "path": "app/frontend/tests/subscription-security-fixture.sql",
+      "sha256": "8fa96bf2a5f35f1d47dc0e2212a1b5b6d5bea2483edab40d981b5999529bc0d3"
+    },
+    {
+      "path": "app/frontend/tests/subscription-security.sql",
+      "sha256": "16000d2952277a8e75fde43a884fe3830596d801feb3e70ecc9141bcc6a0c003"
+    },
+    {
+      "path": "app/frontend/tests/webhook-signature.test.mjs",
+      "sha256": "5396e90e81b3b483acd041869b220dadf2d9e7151012a4f0020973ea877af08b"
+    }
+  ]
+}

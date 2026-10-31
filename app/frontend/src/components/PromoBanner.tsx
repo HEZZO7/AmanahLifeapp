@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
-import { LEMONSQUEEZY_CHECKOUT_ENDPOINT, buildCheckoutUrl } from '@/lib/lemonSqueezyCheckout';
+import { createAppCheckout } from '@/lib/lemonSqueezyCheckout';
 
 const FIRST_USE_KEY = 'amanahlife_first_use';
 const DISMISSED_KEY = 'amanahlife_promo_dismissed';
@@ -10,7 +10,7 @@ const DAYS_BEFORE_SHOW = 7;
 const DAYS_BEFORE_RESHOW = 3;
 
 export default function PromoBanner() {
-  const { tier, trialUsed } = useSubscription();
+  const { tier } = useSubscription();
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,15 +75,6 @@ export default function PromoBanner() {
     }
   }, []);
 
-  // Routes through the same real Lemon Squeezy checkout Subscription.tsx's
-  // "Upgrade" button uses (src/lib/lemonSqueezyCheckout.ts), instead of the
-  // old app_11941c8fec_stripe_coupon_checkout function - that Stripe path
-  // had nothing to do with this app's actual subscriptions (Lemon Squeezy),
-  // so a completed Stripe checkout would never have granted real access.
-  // Mirrors handleUpgrade's trialUsed branch in Subscription.tsx: a
-  // trial-used account needs the API-based checkout so skip_trial can
-  // suppress Lemon Squeezy's own native trial offer; everyone else goes
-  // straight to the hosted buy-link, now with the discount code attached.
   const handleSubscribe = useCallback(async () => {
     setLoading(true);
     try {
@@ -94,40 +85,14 @@ export default function PromoBanner() {
         return;
       }
 
-      if (trialUsed) {
-        const response = await fetch(LEMONSQUEEZY_CHECKOUT_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            tier: 'balanced',
-            billing: 'monthly',
-            discountCode: COUPON_CODE,
-            successUrl: `${window.location.origin}/subscription?success=true`,
-          }),
-        });
-        const data = await response.json();
-        if (data.url) {
-          window.location.href = data.url;
-        }
-        return;
-      }
-
-      const url = buildCheckoutUrl(
-        'balanced',
-        'monthly',
-        { id: session.user.id, email: session.user.email },
-        COUPON_CODE
-      );
-      window.location.href = url;
+      const result = await createAppCheckout(session.access_token, 'balanced_monthly', COUPON_CODE);
+      if (result.url) window.location.href = result.url;
     } catch {
       // Silently fail
     } finally {
       setLoading(false);
     }
-  }, [trialUsed]);
+  }, []);
 
   if (!visible) return null;
 

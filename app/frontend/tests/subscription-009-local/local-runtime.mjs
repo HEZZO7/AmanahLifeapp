@@ -1,0 +1,357 @@
+// Local process plumbing only. Importing never starts processes or services.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync,spawn} from 'node:child_process';
+import {randomBytes} from 'node:crypto';
+import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
+  workspace,gitBlob,sha256,localStatus,commandCategory,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize} from './safety.mjs';
+
+export {Failure} from './safety.mjs';
+import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle} from './isolation.mjs';
+const childEnv={PATH:process.env.PATH,LANG:'C.UTF-8',DO_NOT_TRACK:'1',CI:'true',DOCKER_HOST:'unix:///var/run/docker.sock'};
+let root,project,cli,acquired=false;
+export function command(exe,args,input,timeout=30000){
+  const r=spawnSync(exe,args,{env:childEnv,input,encoding:'utf8',timeout,maxBuffer:32*1024*1024});
+  const text=(r.stdout||'')+(r.stderr||'');
+  if(r.error||r.status!==0)throw new Failure(r.error?.code==='ETIMEDOUT'?'timeout':commandCategory(text),
+    r.error?.code==='ETIMEDOUT'?124:(r.status>0?r.status:r.signal?128+(os.constants.signals[r.signal]||0):1));
+  return (r.stdout||'').trim();
+}
+export function sql(text,run=command){
+  assert.ok(project&&root);
+  return run('docker',['exec','-i','-e','PGAPPNAME='+sessionPrefix(project)+'control','-e','PGOPTIONS='+PG_OPTIONS+' -c amanahlife.local_test=approved -c amanahlife.security_fixture=isolated',
+    'supabase_db_'+project,'psql','-X','-U','postgres','-d','postgres','-qAt','-v','ON_ERROR_STOP=1'],text);
+}
+export function jsonSQL(text,run=command){return JSON.parse(sql(text,run));}
+export function verifySource(source,manifest){
+  assert.equal(manifest.sourceCommit,SOURCE_COMMIT);
+  assert.deepEqual(Object.keys(manifest.files),SOURCE_FILES);assert.deepEqual(manifest.migrationOrder,MIGRATIONS);
+  for(const[file,hash]of Object.entries(manifest.files)){
+    const target=path.join(source,file);assert.equal(fs.realpathSync(target),target);assert.ok(!fs.lstatSync(target).isSymbolicLink());
+    const bytes=fs.readFileSync(target);assert.equal(gitBlob(bytes),hash.gitBlob);assert.equal(sha256(bytes),hash.sha256);
+  }
+}
+export function verifyPackage(directory,manifest){
+  assert.deepEqual(Object.keys(manifest.packageFiles).sort(),['README.md','fixture.sql','integration.mjs','local-runtime.mjs',
+    'metadata.sql','isolation.mjs','package-lock.json','package.json','review.test.mjs','safety.mjs'].sort());
+  for(const [file,hash]of Object.entries(manifest.packageFiles)){
+    const target=path.join(directory,file);assert.equal(fs.realpathSync(target),target);
+    assert.ok(!fs.lstatSync(target).isSymbolicLink());assert.equal(sha256(fs.readFileSync(target)),hash);
+  }
+}
+function context(workdir){
+  root=workdir;project=path.basename(workdir);
+  childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');childEnv.DOCKER_CONFIG=path.join(root,'.docker');
+}
+function discoverIsolation(){
+  const kong=JSON.parse(command('docker',['inspect','supabase_kong_'+project]))[0];
+  assert.equal(kong.Config.Labels['com.supabase.cli.project'],project);assert.equal(kong.State.Running,true);
+  const connected=Object.values(kong.NetworkSettings.Networks);assert.equal(connected.length,1);
+  const network=JSON.parse(command('docker',['network','inspect',connected[0].NetworkID]))[0];
+  assert.equal(network.Driver,'bridge');assert.match(network.Id,/^[a-f0-9]{64}$/);
+  assert.equal(network.Labels['com.supabase.cli.project'],project);
+  const bridge='br-'+network.Id.slice(0,12);
+  assert.ok(!(network.Options||{})['com.docker.network.bridge.name']||(network.Options||{})['com.docker.network.bridge.name']===bridge);
+  assert.ok(Object.keys(network.Containers).length>=4);
+  const peers=[],hostEntries=[];
+  const subnets=(network.IPAM?.Config||[]).map(x=>x.Subnet).filter(Boolean);
+  assert.equal(subnets.length,1);const subnet=subnets[0];
+  for(const id of Object.keys(network.Containers)){
+    const item=JSON.parse(command('docker',['inspect',id]))[0];
+    assert.equal(item.Config.Labels['com.supabase.cli.project'],project);assert.equal(item.HostConfig.Privileged,false);
+    assert.equal(item.State.Running,true);
+    const attachment=Object.values(item.NetworkSettings.Networks);assert.equal(attachment.length,1);
+    const ip=attachment[0].IPAddress;assert.match(ip,/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/);
+    const aliases=[item.Config.Hostname,item.Name.slice(1),...(attachment[0].Aliases||[]),...(attachment[0].DNSNames||[])];
+    assert.ok(aliases.every(x=>typeof x==='string'&&/^[a-zA-Z0-9_.-]+$/.test(x)));
+    hostEntries.push(ip+' '+[...new Set(aliases)].join(' '));
+    peers.push({id,pid:item.State.Pid,namespace:command('sudo',['-n','readlink','/proc/'+item.State.Pid+'/ns/net']),
+      handle:path.join(root,id===kong.Id?'kong-netns':'netns-'+id.slice(0,12))});
+    for(const [port,bindings]of Object.entries(item.HostConfig.PortBindings||{}))if(bindings){
+      assert.ok(port.endsWith('/tcp'));
+      for(const b of bindings)assert.ok(/^(?:5432[1-9]|8083)$/.test(b.HostPort));
+    }
+  }
+  const pid=kong.State.Pid,uid=process.getuid(),gid=process.getgid();
+  const namespace=command('sudo',['-n','readlink','/proc/'+pid+'/ns/net']);
+  return {pid,bridge,namespace,hostNamespace:fs.readlinkSync('/proc/self/ns/net'),uid,gid,
+    peers,subnet,hostEntries,groups:process.getgroups(),kongUid:Number(command('docker',['exec','supabase_kong_'+project,'id','-u'])),handle:path.join(root,'kong-netns')};
+}
+export function initializeWorker(workdir){
+  workspace(workdir,fs.realpathSync(process.env.RUNNER_TEMP));context(workdir);
+  const marker=JSON.parse(fs.readFileSync(path.join(root,'owned.json')));assert.equal(marker.project,project);assert.equal(marker.source,SOURCE_COMMIT);
+  const journal=validateIsolation(JSON.parse(fs.readFileSync(path.join(root,'isolation.json'))));
+  assert.equal(journal.project,project);const identity=journal.identity;assert.ok(identity);
+  verifyNamespaceHandle(identity);assert.equal(fs.readlinkSync('/proc/self/ns/net'),identity.namespace);
+  assert.equal(process.getuid(),identity.uid);assert.equal(process.getgid(),identity.gid);
+  assert.match(fs.readFileSync('/proc/self/status','utf8'),/^NoNewPrivs:\s+1$/m);
+  assert.ok(!fs.existsSync(path.join(root,'worker-cancel')));
+  return identity;
+}
+export function runIsolatedWorker(prepared,entry){
+  const journal=verifyIsolation(root,command),identity=journal.identity;
+  assert.deepEqual(identity,prepared.identity);
+  const args=['-n','nsenter','--net='+identity.handle,'--','setpriv','--reuid='+identity.uid,'--regid='+identity.gid,
+    '--groups='+identity.groups.join(','),'--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs','--',
+    process.execPath,entry,'--worker','--source',prepared.source,'--workdir',root];
+  const input=JSON.stringify({approval:APPROVAL,credentials:prepared.credentials});
+  const outcome=spawnSync('sudo',args,{input,encoding:'utf8',env:{...childEnv,RUNNER_TEMP:process.env.RUNNER_TEMP},timeout:480000,maxBuffer:1024*1024});
+  if(outcome.error||outcome.signal)throw new Failure(outcome.error?.code==='ETIMEDOUT'?'worker_timeout':'worker_transport_failed',outcome.error?.code==='ETIMEDOUT'?124:1);
+  const report=JSON.parse(fs.readFileSync(path.join(root,'worker-report.json'),'utf8'));
+  assert.equal(report.source,SOURCE_COMMIT);assert.equal(report.productionReady,false);
+  assert.ok(Array.isArray(report.checks));
+  const safeWord=value=>{assert.equal(typeof value,'string');assert.match(value,/^[a-z_]{1,80}$/);return value;};
+  const checks=report.checks.map(r=>{
+    assert.ok(CHECKS.includes(r.id));assert.ok(['passed','failed','infrastructure_failed'].includes(r.result));
+    return {id:r.id,result:r.result,...(r.category?{category:safeWord(r.category)}:{}),
+      ...(r.exit!==undefined?{exit:validExit(r.exit)}:{})};
+  });
+  function validExit(value){assert.ok(Number.isInteger(value)&&value>=1&&value<=255);return value;}
+  const infra=report.infrastructureFailure?{phase:safeWord(report.infrastructureFailure.phase),
+    category:safeWord(report.infrastructureFailure.category),exit:validExit(report.infrastructureFailure.exit)}:null;
+  const safe={...summarize(checks,report.cleanupPassed,infra),observations:{}};
+  for(const key of ['familyDisplayNameRetained','ownerDeletionCascadesSharedFamily','afterNullTriggerDetected',
+    'beforeNullTriggerDetected','beforeNullDeleteReportedSuccess','beforeNullWitnessReached'])if(key in report.observations){
+    assert.equal(typeof report.observations[key],'boolean');safe.observations[key]=report.observations[key];
+  }
+  for(const key of ['localRequests','rejectedRequests'])if(key in report.observations){
+    assert.ok(Number.isSafeInteger(report.observations[key])&&report.observations[key]>=0);safe.observations[key]=report.observations[key];
+  }
+  assert.equal(report.result,safe.result);assert.ok([0,1].includes(outcome.status));
+  assert.equal(outcome.status,safe.result==='passed'?0:1);
+  return {report:safe,status:outcome.status};
+}
+
+function workerCandidates(workdir,identity){
+  const entry=path.join(path.dirname(fileURLToPath(import.meta.url)),'integration.mjs');
+  const matches=[];
+  for(const name of fs.readdirSync('/proc'))if(/^[1-9][0-9]*$/.test(name)){
+    let candidate=false;
+    try{
+      if(fs.statSync('/proc/'+name).uid!==process.getuid())continue;
+      const args=fs.readFileSync('/proc/'+name+'/cmdline','utf8').split('\0');
+      const at=args.indexOf('--workdir');
+      if(!args.includes(entry)||!args.includes('--worker')||args[at+1]!==workdir)continue;
+      candidate=true;
+      if(fs.readlinkSync('/proc/'+name+'/ns/net')!==identity.namespace)throw new Failure('worker_ownership_failed');
+      matches.push(Number(name));
+    }catch(error){if(error instanceof Failure)throw error;if(!['ENOENT','ESRCH'].includes(error.code)&&(candidate||!['EACCES','EPERM'].includes(error.code)))throw new Failure('worker_inspection_failed');}
+  }
+  return matches;
+}
+function stopOwnedWorker(workdir){
+  const location=path.join(workdir,'isolation.json');if(!fs.existsSync(location))return true;
+  const journal=validateIsolation(JSON.parse(fs.readFileSync(location)));if(!journal.identity)return true;
+  fs.writeFileSync(path.join(workdir,'worker-cancel'),'1',{mode:0o600});
+  for(const signal of ['SIGTERM','SIGKILL']){
+    for(const pid of workerCandidates(workdir,journal.identity)){try{process.kill(pid,signal);}catch(error){if(error.code!=='ESRCH')throw new Failure('worker_cleanup_failed');}}
+    const end=Date.now()+1500;
+    while(Date.now()<end){if(workerCandidates(workdir,journal.identity).length===0)return true;Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,50);}
+  }
+  return workerCandidates(workdir,journal.identity).length===0;
+}
+export function createWorkspace(workdir,write=fs.writeFileSync){
+  workspace(workdir,fs.realpathSync(process.env.RUNNER_TEMP||os.tmpdir()));
+  fs.mkdirSync(workdir,{mode:0o700});
+  const directory=fs.lstatSync(workdir),marker=path.join(workdir,'owned.json');let fd,ownedMarker;
+  try{
+    fd=fs.openSync(marker,'wx',0o600);ownedMarker=fs.fstatSync(fd);
+    write(fd,JSON.stringify({project:path.basename(workdir),source:SOURCE_COMMIT}));
+  }catch(error){
+    const current=fs.lstatSync(workdir);assert.ok(!current.isSymbolicLink()&&current.dev===directory.dev&&current.ino===directory.ino);
+    if(ownedMarker){const file=fs.lstatSync(marker);assert.ok(!file.isSymbolicLink()&&file.dev===ownedMarker.dev&&file.ino===ownedMarker.ino);fs.unlinkSync(marker);}
+    fs.rmdirSync(workdir);throw error;
+  }finally{if(fd!==undefined)fs.closeSync(fd);}
+}
+function resourceIDs(run,kind,name){
+  const args=kind==='container'?['ps','-aq']:[kind,'ls','-q'];
+  // Verify BOTH labels and the CLI naming convention. Missing labels cannot hide leftovers.
+  return [...new Set([run('docker',[...args,'--filter','label=com.supabase.cli.project='+name]),
+    run('docker',[...args,'--filter','name='+name])].flatMap(s=>s.split(/\s+/).filter(Boolean)))];
+}
+export function cleanup(workdir,run=command){
+  workspace(workdir,fs.realpathSync(process.env.RUNNER_TEMP||os.tmpdir()));
+  context(workdir);const name=path.basename(workdir);
+  if(!fs.existsSync(workdir)){
+    return ['container','volume','network'].every(kind=>resourceIDs(run,kind,name).length===0)&&assertNoHostRules(name,run);
+  }
+  assert.equal(fs.realpathSync(workdir),workdir);assert.ok(!fs.lstatSync(workdir).isSymbolicLink());
+  const markerPath=path.join(workdir,'owned.json');assert.ok(!fs.lstatSync(markerPath).isSymbolicLink());
+  const marker=JSON.parse(fs.readFileSync(markerPath));assert.equal(marker.project,name);assert.equal(marker.source,SOURCE_COMMIT);
+  let failed=false,stopped=true;
+  try{stopped=stopOwnedWorker(workdir);if(!stopped)failed=true;}catch{failed=true;stopped=false;}
+  if(fs.existsSync(path.join(workdir,'start-attempted'))){
+    try{
+      const running=run('docker',['ps','-q','--filter','name=^/supabase_db_'+name+'$']);
+      if(running){const queries=ownedSessionSQL(workdir);sql(queries.kill,run);assert.equal(jsonSQL(queries.count,run),0);}
+    }catch{failed=true;}
+    try{run(path.join(workdir,'bin/supabase'),['--workdir',workdir,'stop','--no-backup'],undefined,180000);}catch{failed=true;}
+    for(const kind of ['container','volume','network']){try{if(resourceIDs(run,kind,name).length){failed=true;stopped=false;}}catch{failed=true;stopped=false;}}
+  }
+  if(stopped&&fs.existsSync(path.join(workdir,'isolation.json'))){
+    try{removeIsolation(workdir,run,true);assertNoHostRules(name,run);}catch{failed=true;}
+  }
+  if(failed)return false; // Retain journal/marker/CLI for independent fallback.
+  fs.rmSync(workdir,{recursive:true,force:true});assert.ok(!fs.existsSync(workdir));return true;
+}
+export async function prepare(opts,manifest,notify){
+  assert.equal(process.env.AMANAHLIFE_009_APPROVAL,APPROVAL);
+  assert.equal(process.env.GITHUB_ACTIONS,'true');assert.equal(process.env.RUNNER_ENVIRONMENT,'github-hosted');
+  assert.equal(process.env.GITHUB_REPOSITORY,'HEZZO7/AmanahLifeapp');assert.equal(process.platform,'linux');assert.equal(process.arch,'x64');
+  assert.equal(process.versions.node,NODE_VERSION);assert.equal(process.env.RUNNER_OS,'Linux');
+  assert.equal(JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH)).repository?.private,false);
+  assert.ok(!process.env.NODE_OPTIONS&&!process.env.NODE_USE_ENV_PROXY);
+  assert.ok(!process.env.DOCKER_HOST||process.env.DOCKER_HOST==='unix:///var/run/docker.sock');
+  assert.ok(!process.env.DOCKER_CONTEXT||process.env.DOCKER_CONTEXT==='default');
+  assertCleanEnvironment(process.env);
+  root=path.resolve(opts['--workdir']);const base=fs.realpathSync(process.env.RUNNER_TEMP);
+  const source=fs.realpathSync(opts['--source']);project=workspace(root,base,source);
+  childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');childEnv.DOCKER_CONFIG=path.join(root,'.docker');
+  assert.ok(!fs.existsSync(root));assert.equal(command('git',['-C',source,'rev-parse','HEAD']),SOURCE_COMMIT);verifySource(source,manifest);
+  verifyPackage(path.dirname(fileURLToPath(import.meta.url)),manifest);
+  const archive=fs.realpathSync(opts['--cli-archive']);
+  assert.equal(path.basename(archive),'supabase_'+CLI_VERSION+'_linux_amd64.tar.gz');assert.equal(sha256(fs.readFileSync(archive)),CLI_ARCHIVE_SHA256);
+  assert.equal(command('docker',['ps','-aq','--filter','label=com.supabase.cli.project']),'');
+  for(const kind of ['container','volume','network'])assert.equal(resourceIDs(command,kind,project).length,0);
+  createWorkspace(root);acquired=true;childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');
+  fs.mkdirSync(path.join(root,'bin'),{mode:0o700});command('tar',['-xzf',archive,'-C',path.join(root,'bin'),'supabase']);
+  cli=path.join(root,'bin/supabase');assert.equal(command(cli,['--version']),CLI_VERSION);
+  // Refuse to claim ports already used by any process before installing guards.
+  const listeners=command('ss',['-H','-ltn']);assert.ok(!/:(?:5432[1-9]|8083)\b/.test(listeners));
+  installIsolation(root,null,command);
+  for(const name of ['init','start']){
+    notify(name);if(name==='start')fs.writeFileSync(path.join(root,'start-attempted'),'1',{mode:0o600});
+    command(cli,['--workdir',root,name],undefined,name==='start'?1080000:30000);
+    assert.ok(!fs.existsSync(path.join(root,'supabase/.temp/project-ref')));
+    if(name==='init'){
+      const config=fs.readFileSync(path.join(root,'supabase/config.toml'),'utf8');assert.equal(/^project_id\s*=\s*"([a-z0-9-]+)"\s*$/m.exec(config)?.[1],project);
+      const migrations=path.join(root,'supabase/migrations');assert.ok(!fs.existsSync(migrations)||!fs.readdirSync(migrations).some(x=>x.endsWith('.sql')));
+    }
+  }
+  notify('status');
+  for(const service of ['db','auth','rest','kong']){
+    const labels=JSON.parse(command('docker',['inspect','--format','{{json .Config.Labels}}','supabase_'+service+'_'+project]));assert.equal(labels['com.supabase.cli.project'],project);
+  }
+  const credentials=localStatus(JSON.parse(command(cli,['--workdir',root,'status','-o','json'])));
+  const identity=discoverIsolation();installIsolation(root,identity,command);verifyIsolation(root,command);
+  // Docker embedded DNS is blocked before the SDK loads. Preserve LOCAL service
+  // resolution with owned-container aliases only; never add an external host.
+  for(const peer of identity.peers){
+    const hosts=path.join(root,'hosts-'+peer.id);
+    command('docker',['cp',peer.id+':/etc/hosts',hosts]);
+    assert.ok(fs.lstatSync(hosts).isFile()&&!fs.lstatSync(hosts).isSymbolicLink());
+    fs.appendFileSync(hosts,'\n'+identity.hostEntries.join('\n')+'\n');
+    command('docker',['cp',hosts,peer.id+':/etc/hosts']);fs.unlinkSync(hosts);
+  }
+  return {source,credentials,project,identity};
+}
+export async function shutdown(workdir){
+  // Preparation may reject an existing/foreign workdir before acquiring it.
+  // Never clean somebody else's run merely because preflight failed.
+  if(!acquired)return !fs.existsSync(workdir);
+  try{return cleanup(workdir);}catch{return false;} // Worker sessions are also verified by independent cleanup.
+}
+
+const sessions=new Set();let sessionCleanupFailed=false;
+export function ownedSessionSQL(workdir,name=null){
+  const projectName=path.basename(workdir),prefix=sessionPrefix(projectName);
+  if(name)assert.ok(name.startsWith(prefix)&&/^[a-z0-9-]+$/.test(name));
+  const condition="datname=current_database() and usename='postgres' and pid<>pg_backend_pid() and "+
+    (name?"application_name='"+name+"'":"application_name like '"+prefix+"%'");
+  return {kill:"select coalesce(bool_and(pg_terminate_backend(pid)),true) from pg_stat_activity where "+condition+';',
+    count:'select to_jsonb(count(*)::int) from pg_stat_activity where '+condition+';'};
+}
+export async function closeRaceSessions(items,close=session=>session.close()){
+  let ok=true;for(const item of items){try{if(await close(item)!==true)ok=false;}catch{ok=false;}}
+  if(!ok)sessionCleanupFailed=true;return ok;
+}
+export async function withSessions(names,body,create=name=>new Session(name)){
+  const items=[];let primary;
+  try{for(const name of names)items.push(create(name));return await body(items);}
+  catch(error){primary=error;throw error;}
+  finally{if(!await closeRaceSessions(items)&&!primary)throw new Failure('session_cleanup_failed');}
+}
+export class Session {
+  constructor(name){
+    assert.ok(/^[a-z0-9-]+$/.test(name));this.name=sessionPrefix(project)+randomBytes(6).toString('hex');
+    this.buffer='';this.output='';this.errorText='';this.serial=0;this.pending=null;
+    this.child=spawn('docker',['exec','-i','-e','PGAPPNAME='+this.name,'-e','PGOPTIONS='+PG_OPTIONS,'supabase_db_'+project,
+      'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate'],
+      {env:childEnv,stdio:['pipe','pipe','pipe']});
+    this.closed=new Promise(resolve=>{
+      this.child.on('error',()=>{this.ended=true;this.pending?.reject(new Failure('session_transport_failed'));resolve(false);});
+      this.child.on('close',code=>{
+        this.ended=true;const failure=new Failure('sql_session_failed',code>0?code:1);
+        failure.sqlState=/(?:ERROR|FATAL):\s+([0-9A-Z]{5})/.exec(this.errorText)?.[1];
+        this.pending?.reject(failure);resolve(code===0);
+      });
+    });
+    this.child.stderr.on('data',b=>{this.errorText=(this.errorText+b).slice(-65536);});
+    this.child.stdout.on('data',b=>{
+      this.buffer+=b;
+      while(this.buffer.includes('\n')){
+        const split=this.buffer.indexOf('\n'),line=this.buffer.slice(0,split).replace(/\r$/,'');this.buffer=this.buffer.slice(split+1);
+        if(this.pending&&line===this.pending.marker){const p=this.pending;this.pending=null;const out=this.output.trim();this.output='';p.resolve(out);}
+        else this.output+=line+'\n';
+      }
+    });
+    this.child.stdin.on('error',()=>{this.pending?.reject(new Failure('session_transport_failed'));});sessions.add(this);
+  }
+  async query(text){
+    assert.ok(!this.pending&&!this.ended);const marker='amanah009_done_'+(++this.serial);let timer;
+    try{return await new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>{
+        reject(new Failure('session_timeout',124));
+        // Cancel the OWNED backend too; killing only the Docker client is not proof.
+        try{sql(ownedSessionSQL(root,this.name).kill);}catch{sessionCleanupFailed=true;}
+        this.child.kill('SIGTERM');
+      },PG_LIMITS.client);
+      this.pending={marker,resolve,reject};this.child.stdin.write(text+'\n\\echo '+marker+'\n');
+    });}finally{clearTimeout(timer);}
+  }
+  async pid(){const value=Number(await this.query('select pg_backend_pid();'));assert.ok(Number.isSafeInteger(value)&&value>0);this.backendPid=value;return value;}
+  async finish(text='rollback;'){await this.query(text);this.child.stdin.end();assert.equal(await this.closed,true);}
+  async close(){
+    const queries=ownedSessionSQL(root,this.name);let ok=true;
+    try{sql(queries.kill);}catch{ok=false;}
+    try{this.child.stdin.destroy();}catch{}
+    if(!this.ended)this.child.kill('SIGTERM');
+    await Promise.race([this.closed,delay(1500)]);
+    if(!this.ended)this.child.kill('SIGKILL');
+    await Promise.race([this.closed,delay(1500)]);
+    const deadline=Date.now()+3000;let absent=false;
+    while(Date.now()<deadline){try{if(jsonSQL(queries.count)===0){absent=true;break;}}catch{ok=false;break;}await delay(50);}
+    return ok&&absent&&this.ended===true;
+  }
+}
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+export async function waitForBlock(waiter,blocker){
+  assert.ok(waiter!==blocker);
+  const deadline=Date.now()+6000;
+  while(Date.now()<deadline){
+    const blocked=jsonSQL('select to_jsonb(exists(select 1 from pg_stat_activity where pid='+waiter+
+      " and wait_event_type='Lock' and "+blocker+'=any(pg_blocking_pids(pid))));');
+    if(blocked===true)return;
+    await delay(100);
+  }
+  throw new Failure('required_lock_not_observed');
+}
+export async function stopSessions(){
+  const closed=await closeRaceSessions([...sessions]);
+  let absent=false;
+  try{sql(ownedSessionSQL(root).kill);absent=jsonSQL(ownedSessionSQL(root).count)===0;}catch{}
+  return closed&&absent&&!sessionCleanupFailed;
+}
+
+export async function waitForBlockedCount(blocker,count=1){
+  const deadline=Date.now()+6000;
+  while(Date.now()<deadline){
+    const seen=jsonSQL("with recursive blocked(pid) as (select pid from pg_stat_activity where wait_event_type='Lock' and "+blocker+
+      "=any(pg_blocking_pids(pid)) union select a.pid from pg_stat_activity a join blocked b on b.pid=any(pg_blocking_pids(a.pid)) where a.wait_event_type='Lock') select to_jsonb(count(distinct pid)::int) from blocked where pid<>pg_backend_pid();");
+    if(seen>=count)return;await delay(50);
+  }
+  throw new Failure('required_lock_not_observed');
+}
