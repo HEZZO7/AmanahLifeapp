@@ -11,6 +11,69 @@ export const APPROVAL='disposable-local-migration-009-only';
 export class Failure extends Error {
   constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
 }
+// Kong 2.8.1 uses this TTL for static hosts; repeated DNS init otherwise
+// applies a short configured validTtl to those same immutable owned aliases.
+export const GATEWAY_HOST_TTL=315360000;
+export const GATEWAY_FAILURE=Object.freeze(['unavailable','ownership_unverified','gateway_service_stopped','gateway_service_restarted',
+  'no_matching_gateway_log','ambiguous_gateway_log','gateway_dns_failure','upstream_connect_failure',
+  'upstream_timeout','upstream_closed','gateway_resource','gateway_lua_failure','unclassified_gateway_error']);
+const GATEWAY_REQUESTS=Object.freeze({auth_create:['POST','/auth/v1/admin/users'],auth_user:['GET','/auth/v1/user'],
+  billing_policy:['POST','/rest/v1/rpc/app_11941c8fec_account_deletion_allowed']});
+export function gatewayRequest(kind){assert.ok(Object.hasOwn(GATEWAY_REQUESTS,kind));return [...GATEWAY_REQUESTS[kind]];}
+export function classifyGatewayLogs(text,kind){
+  if(typeof text!=='string'||Buffer.byteLength(text)>512*1024||!Object.hasOwn(GATEWAY_REQUESTS,kind))return 'unavailable';
+  const [method,path]=gatewayRequest(kind),marker='request: "'+method+' '+path+' HTTP/';
+  const codes=new Set();
+  for(const line of text.split('\n')){
+    if(Buffer.byteLength(line)>65536||!line.includes(marker)||!/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2} \[(?:error|crit|alert|emerg)\] \d+#\d+:/.test(line))continue;
+    let code='unclassified_gateway_error';
+    if(/DNS resolution failed|dns client error/i.test(line))code='gateway_dns_failure';
+    else if(/connect\(\) failed .*while connecting to upstream/i.test(line))code='upstream_connect_failure';
+    else if(/upstream timed out/i.test(line))code='upstream_timeout';
+    else if(/upstream prematurely closed connection|connection reset by peer/i.test(line))code='upstream_closed';
+    else if(/worker_connections are not enough|Too many open files|Cannot allocate memory/i.test(line))code='gateway_resource';
+    else if(/lua entry thread aborted|failed to run .*_by_lua/i.test(line))code='gateway_lua_failure';
+    codes.add(code);
+  }
+  return codes.size===0?'no_matching_gateway_log':codes.size===1?[...codes][0]:'ambiguous_gateway_log';
+}
+export const TOKEN_LIFETIME=Object.freeze(['expired','not_yet_valid','not_expired','unavailable']);
+export function tokenLifetimeEvidence(token,now=Date.now()){
+  try{
+    if(typeof token!=='string'||token.length>16000||token.split('.').length!==3||!Number.isSafeInteger(now))return 'unavailable';
+    const claims=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString());
+    if(!Number.isSafeInteger(claims?.exp)||claims.exp<=0)return 'unavailable';
+    if(claims.nbf!==undefined&&(!Number.isSafeInteger(claims.nbf)||claims.nbf<0))return 'unavailable';
+    const seconds=Math.floor(now/1000);
+    return claims.exp<=seconds?'expired':claims.nbf>seconds?'not_yet_valid':'not_expired';
+  }catch{return 'unavailable';}
+}
+export function rollbackTokenHttpResult(calls){
+  if(!Array.isArray(calls))return 'unavailable';if(!calls.length)return 'no_request';
+  if(calls.length!==1||calls[0]?.method!=='GET'||calls[0]?.path!=='/auth/v1/user')return 'unexpected_requests';
+  return httpClass(calls[0].status);
+}
+export function requestOriginResult(calls){
+  if(!Array.isArray(calls)||calls.length!==1||httpClass(calls[0]?.status)!=='http_5xx')return 'unavailable';
+  return AUTH_CREATE_ORIGINS.includes(calls[0].gatewayOrigin)?calls[0].gatewayOrigin:'unavailable';
+}
+export async function checkedRollbackToken(operation,observeCalls,lifetime){
+  let outcome='request_rejected',reason='unclassified';
+  const observe=response=>{
+    if(!response||typeof response!=='object'||!Object.hasOwn(response,'error')){outcome='malformed_response';return;}
+    outcome=response.error?'response_error':'malformed_response';reason=authCreateReason(response.error);
+  };
+  try{return await operation(observe);}
+  catch(error){
+    const failure=error instanceof Failure?error:new Error('Local rollback token assertion failed');
+    let calls,localLifetime='unavailable';try{calls=observeCalls();}catch{}try{const value=lifetime();if(TOKEN_LIFETIME.includes(value))localLifetime=value;}catch{}
+    Object.assign(failure,{rollbackTokenOutcome:outcome,rollbackTokenReason:reason,rollbackTokenHttp:rollbackTokenHttpResult(calls),
+      rollbackTokenLifetime:localLifetime,requestTransport:requestTransportResult(calls)});
+    if(failure.rollbackTokenHttp==='http_5xx')failure.rollbackTokenOrigin=requestOriginResult(calls);
+    throw failure;
+  }
+}
+const ROLLBACK_TOKEN_FIELDS=Object.freeze(['rollbackTokenOutcome','rollbackTokenReason','rollbackTokenHttp','rollbackTokenOrigin','rollbackTokenLifetime']);
 export const REQUEST_TRANSPORT=Object.freeze(['not_observed','unavailable','timeout','aborted','connection_refused',
   'connection_reset','dns_failure','local_resource','headers_overflow','http_parser','unclassified','ambiguous']);
 export function transportEvidence(error){
@@ -75,6 +138,7 @@ export async function checkedBillingPolicy(operation,observeCalls){
     let calls;try{calls=observeCalls();}catch{}
     Object.assign(failure,{rpcOutcome:observed?outcome:'request_rejected',rpcErrorKind:kind,rpcSdkHttp:sdkHttp,
       rpcHttp:billingPolicyHttpResult(calls),requestTransport:requestTransportResult(calls)});
+    if(failure.rpcHttp==='http_5xx')failure.rpcOrigin=requestOriginResult(calls);
     throw failure;
   }
 }
@@ -97,11 +161,20 @@ function fixtureCreateDetails(value){
 function requestFailureDetails(value,id){
   const out={},fixture=FIXTURE_GROUPS.includes(id)&&value?.nativeStage==='fixture_create_user';
   const billing=id==='billing_history_retention'&&value?.nativeStage==='billing_policy';
+  const rollback=id==='rollback_each_cleanup_phase'&&value?.nativeStage==='token_valid';
   if(fixture)Object.assign(out,fixtureCreateDetails(value));
   if(billing&&RPC_OUTCOMES.includes(value.rpcOutcome)&&RPC_ERROR_KINDS.includes(value.rpcErrorKind)&&RPC_HTTP.includes(value.rpcSdkHttp)&&AUTH_CREATE_HTTP.includes(value.rpcHttp)){
     for(const key of RPC_FIELDS)out[key]=value[key];
+    if(value.rpcHttp==='http_5xx'&&AUTH_CREATE_ORIGINS.includes(value.rpcOrigin))out.rpcOrigin=value.rpcOrigin;
   }
-  if((fixture&&out.fixtureCreateOutcome)||(billing&&out.rpcOutcome)){
+  if(rollback&&['request_rejected','response_error','malformed_response'].includes(value.rollbackTokenOutcome)&&
+    AUTH_CREATE_REASONS.includes(value.rollbackTokenReason)&&AUTH_CREATE_HTTP.includes(value.rollbackTokenHttp)&&TOKEN_LIFETIME.includes(value.rollbackTokenLifetime)){
+    for(const key of ROLLBACK_TOKEN_FIELDS)if(key!=='rollbackTokenOrigin')out[key]=value[key];
+    if(value.rollbackTokenHttp==='http_5xx'&&AUTH_CREATE_ORIGINS.includes(value.rollbackTokenOrigin))out.rollbackTokenOrigin=value.rollbackTokenOrigin;
+  }
+  if((fixture&&out.fixtureCreateOutcome)||(billing&&out.rpcOutcome)||(rollback&&out.rollbackTokenOutcome)){
+    const http=fixture?out.fixtureCreateHttp:billing?out.rpcHttp:out.rollbackTokenHttp;
+    if(http==='http_5xx'&&GATEWAY_FAILURE.includes(value.gatewayFailure))out.gatewayFailure=value.gatewayFailure;
     if(REQUEST_TRANSPORT.includes(value.requestTransport))out.requestTransport=value.requestTransport;
     if(SERVICE_FIELDS.every(key=>OWNED_SERVICE_STATES.includes(value[key])))for(const key of SERVICE_FIELDS)out[key]=value[key];
   }
@@ -311,12 +384,12 @@ export function nativeFailureDetails(value,id){
   return out;
 }
 export function validNativeDiagnostics(row){
-  const keys=['nativeStage','cleanupPhase','billingState','databaseEvidence',...FIXTURE_CREATE_FIELDS,...RPC_FIELDS,'requestTransport',...SERVICE_FIELDS];
+  const keys=['nativeStage','cleanupPhase','billingState','databaseEvidence',...FIXTURE_CREATE_FIELDS,...RPC_FIELDS,'rpcOrigin',...ROLLBACK_TOKEN_FIELDS,'gatewayFailure','requestTransport',...SERVICE_FIELDS];
   if(!keys.some(key=>key in row))return true;
   if(!['failed','infrastructure_failed'].includes(row.result))return false;
   if(!allowedNativeStage(row.id,row.nativeStage))return false;
   if('databaseEvidence' in row&&(row.result!=='infrastructure_failed'||row.category!=='database_connection_failed'))return false;
-  const http=row.nativeStage==='fixture_create_user'?row.fixtureCreateHttp:row.rpcHttp;
+  const http=row.nativeStage==='fixture_create_user'?row.fixtureCreateHttp:row.nativeStage==='token_valid'?row.rollbackTokenHttp:row.rpcHttp;
   if('requestTransport' in row&&!['not_observed','unavailable'].includes(row.requestTransport)&&http!=='no_response')return false;
   if(row.rpcOutcome==='request_rejected'&&(row.rpcErrorKind!=='unavailable'||row.rpcSdkHttp!=='unavailable'))return false;
   if(row.rpcOutcome==='result_assertion'&&row.rpcErrorKind!=='no_error')return false;
@@ -541,7 +614,10 @@ export function trafficGuard(originalFetch){
     try{response=await originalFetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});}
     catch(error){call.transport=transportEvidence(error);throw error;}
     call.status=response.status;
-    if(call.method==='POST'&&call.path==='/auth/v1/admin/users'&&response.status>=500&&response.status<=599)call.authOrigin=authResponseOrigin(response);
+    if(response.status>=500&&response.status<=599&&Object.values(GATEWAY_REQUESTS).some(([method,path])=>call.method===method&&call.path===path)){
+      call.gatewayOrigin=authResponseOrigin(response);
+      if(call.path==='/auth/v1/admin/users')call.authOrigin=call.gatewayOrigin;
+    }
     return response;
   }};
 }

@@ -14,8 +14,8 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
   REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
   checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs,
-  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult,nativeStage,nativeFailureDetails,validNativeDiagnostics,NATIVE_CHECK_STAGES,DATABASE_EVIDENCE,transportEvidence,requestTransportResult,REQUEST_TRANSPORT,checkedBillingPolicy,billingPolicyHttpResult,SERVICE_FIELDS,OWNED_SERVICE_STATES} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway,ownedServiceDiagnostics} from './local-runtime.mjs';
+  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult,nativeStage,nativeFailureDetails,validNativeDiagnostics,NATIVE_CHECK_STAGES,DATABASE_EVIDENCE,transportEvidence,requestTransportResult,REQUEST_TRANSPORT,checkedBillingPolicy,billingPolicyHttpResult,SERVICE_FIELDS,OWNED_SERVICE_STATES,GATEWAY_HOST_TTL,GATEWAY_FAILURE,TOKEN_LIFETIME,checkedRollbackToken,tokenLifetimeEvidence,rollbackTokenHttpResult,requestOriginResult,classifyGatewayLogs,gatewayRequest} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway,ownedServiceDiagnostics,gatewayDiagnostics} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -1018,7 +1018,7 @@ function gatewayReloadFixture(base){
   const run=(exe,args)=>{
     assert.equal(exe,'docker');state.calls.push(args);
     if(args[0]==='inspect')return JSON.stringify(state.view);
-    assert.equal(args[0],'exec');assert.equal(args[1],peer.id);
+    assert.equal(args[0],'exec');assert.equal(args[1]==='-e'?args[3]:args[1],peer.id);
     if(args.at(-2)==='id')return state.uid;
     if(args.at(-1)==='reload'){
       state.reloads++;if(state.reloadError)throw state.reloadError;state.afterReload?.();return '';
@@ -1030,8 +1030,9 @@ function gatewayReloadFixture(base){
 }
 test('Kong hosts refresh reloads the same owned master once and rechecks UID, PID and namespace',()=>scratch(base=>{
   const f=gatewayReloadFixture(base);f.run();assert.equal(f.state.reloads,1);assert.equal(f.state.checks,2);
-  assert.deepEqual(f.state.calls.filter(args=>args[0]==='exec').map(args=>args.slice(2)),[
-    ['id','-u'],['kong','reload'],['id','-u'],['kong','health'],
+  assert.deepEqual(f.state.calls.filter(args=>args[0]==='exec'),[
+    ['exec',f.i.peers[0].id,'id','-u'],['exec','-e','KONG_DNS_VALID_TTL='+GATEWAY_HOST_TTL,f.i.peers[0].id,'kong','reload'],
+    ['exec',f.i.peers[0].id,'id','-u'],['exec',f.i.peers[0].id,'kong','health'],
   ]);
   assert.ok(f.state.calls.every(args=>!args.includes('restart')&&!args.includes('start')&&!args.includes('sh')));
   assert.match(runtime,/installOwnedHosts\(root,identity\);[\s\S]*?reloadOwnedGateway\(root,identity\);verifyIsolation\(root,command\)/);
@@ -1298,4 +1299,105 @@ test('unknown, partial, mis-scoped or contradictory request evidence is rejected
     const row={...base,...patch};assert.equal(validNativeDiagnostics(row),false);assert.equal(summarize([row],true).invalid,true);
     const f=controllerFixture();f.state.report={...summarize([row],true),observations:{}};f.state.outcome={status:1,stdout:''};assert.throws(f.run,e=>e.workerStage==='controller_report_checks');
   }
+});
+
+
+test('owned Kong aliases retain the reference ten-year hosts TTL through one pre-test reload only',()=>{
+  assert.equal(GATEWAY_HOST_TTL,10*365*24*60*60);
+  assert.match(runtime,/KONG_DNS_VALID_TTL='\+GATEWAY_HOST_TTL/);
+  assert.equal((runtime.match(/'kong','reload'/g)||[]).length,1);
+  assert.doesNotMatch(runner,/kong.*reload|KONG_DNS_VALID_TTL/);
+  const d=commandDiagnostic('docker',['exec','-e','KONG_DNS_VALID_TTL='+GATEWAY_HOST_TTL,'SIMULATED_PRIVATE','kong','reload'],{status:1,stderr:'SIMULATED_PRIVATE'});
+  assert.equal(d.operation,'reload_owned_gateway');assert.doesNotMatch(JSON.stringify(d),/SIMULATED_PRIVATE|315360000/);
+});
+test('token lifetime evidence is bounded local timing only and never emits claims',()=>{
+  const token=claims=>'e30.'+Buffer.from(JSON.stringify({...claims,sub:'SIMULATED_PRIVATE',email:'SIMULATED_PRIVATE'})).toString('base64url')+'.signature';
+  for(const [claims,expected]of [[{exp:101},'not_expired'],[{exp:100},'expired'],[{exp:99},'expired'],[{exp:200,nbf:101},'not_yet_valid'],[{exp:'101'},'unavailable'],[{},'unavailable'],[{exp:200,nbf:'x'},'unavailable']]){
+    assert.equal(tokenLifetimeEvidence(token(claims),100000),expected);
+  }
+  for(const value of [null,'SIMULATED_PRIVATE','x'.repeat(16001)])assert.equal(tokenLifetimeEvidence(value,100000),'unavailable');
+  assert.equal(TOKEN_LIFETIME.length,4);
+});
+test('rollback token diagnostics preserve a real verification assertion and separate HTTP errors from expiration',async()=>{
+  for(const [status,http,reason,lifetime]of [[500,'http_5xx','server_error','not_expired'],[401,'http_4xx','unauthorized','expired'],[0,'no_response','no_http_status','not_expired']]){
+    let calls=0;const trace=[{method:'GET',path:'/auth/v1/user',status:status||null,...(status===500?{gatewayOrigin:'gateway_generated'}:{})}];
+    await assert.rejects(nativeStage('rollback_each_cleanup_phase','token_valid',()=>checkedRollbackToken(async observe=>{
+      calls++;const r={data:{user:null},error:{status,message:'SIMULATED_PRIVATE'}};observe(r);assert.equal(r.error,null);return r;
+    },()=>trace,()=>lifetime),{cleanupPhase:'push_subscriptions'}),error=>{
+      const d=nativeFailureDetails(error,'rollback_each_cleanup_phase');assert.equal(d.rollbackTokenOutcome,'response_error');assert.equal(d.rollbackTokenHttp,http);
+      assert.equal(d.rollbackTokenReason,reason);assert.equal(d.rollbackTokenLifetime,lifetime);assert.equal(d.cleanupPhase,'push_subscriptions');
+      if(status===500)assert.equal(d.rollbackTokenOrigin,'gateway_generated');assert.equal(error instanceof Failure,false);assert.doesNotMatch(JSON.stringify(error),/SIMULATED_PRIVATE/);return true;
+    });assert.equal(calls,1);
+  }
+});
+test('token transport and diagnostic failures never replace the original failure class or add requests',async()=>{
+  const f=new Failure('timeout',124);let calls=0;
+  await assert.rejects(nativeStage('rollback_each_cleanup_phase','token_valid',()=>checkedRollbackToken(async()=>{calls++;throw f;},()=>{throw Error('SIMULATED_PRIVATE');},()=>{throw Error('SIMULATED_PRIVATE');})),error=>{
+    assert.equal(error,f);assert.equal(error.exitCode,124);assert.equal(error.rollbackTokenOutcome,'request_rejected');assert.equal(error.rollbackTokenLifetime,'unavailable');return true;
+  });assert.equal(calls,1);
+  const verified={error:null,data:{user:{id}}};assert.equal(await checkedRollbackToken(async observe=>{observe(verified);assert.equal(verified.error,null);return verified;},()=>assert.fail('Failure only'),()=>assert.fail('Failure only')),verified);
+});
+test('billing and rollback HTTP 5xx origins are independently observed from the same guarded headers',async()=>{
+  const responses=[new Response('{}',{status:500,headers:{'x-kong-response-latency':'1'}}),new Response('{}',{status:500,headers:{'x-kong-upstream-latency':'1'}})];
+  const guard=trafficGuard(async()=>responses.shift());await guard.fetch(API_ORIGIN+'/auth/v1/user',{method:'GET'});
+  assert.equal(rollbackTokenHttpResult(guard.state.calls),'http_5xx');assert.equal(requestOriginResult(guard.state.calls),'gateway_generated');
+  await guard.fetch(API_ORIGIN+'/rest/v1/rpc/app_11941c8fec_account_deletion_allowed',{method:'POST'});
+  const trace=guard.state.calls.slice(1);assert.equal(requestOriginResult(trace),'proxy_attempted');
+  await assert.rejects(nativeStage('billing_history_retention','billing_policy',()=>checkedBillingPolicy(async observe=>{const r={error:{code:''},status:500};observe(r);throwIfDatabaseInfrastructure(r.error);},()=>trace)),e=>e.rpcOrigin==='proxy_attempted'&&e.rpcHttp==='http_5xx');
+});
+const nginxError=(message,kind='auth_create',severity='error')=>{const [method,path]=gatewayRequest(kind);return '2026/10/31 12:00:00 ['+severity+'] 100#0: '+message+', request: "'+method+' '+path+' HTTP/1.1", client: SIMULATED_PRIVATE';};
+test('gateway log classification requires a pinned error format and exact operation, never messages in reports',()=>{
+  const cases=[['DNS resolution failed','gateway_dns_failure'],['connect() failed (111: Connection refused) while connecting to upstream','upstream_connect_failure'],
+    ['upstream timed out','upstream_timeout'],['upstream prematurely closed connection','upstream_closed'],['worker_connections are not enough','gateway_resource'],
+    ['lua entry thread aborted','gateway_lua_failure'],['SIMULATED_PRIVATE','unclassified_gateway_error']];
+  for(const [message,expected]of cases)assert.equal(classifyGatewayLogs(nginxError(message),'auth_create'),expected);
+  assert.equal(classifyGatewayLogs(nginxError('DNS resolution failed','auth_user'),'auth_create'),'no_matching_gateway_log');
+  assert.equal(classifyGatewayLogs(nginxError('DNS resolution failed','auth_create','info'),'auth_create'),'no_matching_gateway_log');
+  assert.equal(classifyGatewayLogs(JSON.stringify({message:nginxError('DNS resolution failed')}),'auth_create'),'no_matching_gateway_log');
+  assert.equal(classifyGatewayLogs(nginxError('DNS resolution failed')+'\n'+nginxError('upstream timed out'),'auth_create'),'ambiguous_gateway_log');
+  assert.equal(classifyGatewayLogs(nginxError('DNS resolution failed')+'\n'+nginxError('DNS resolution failed'),'auth_create'),'gateway_dns_failure');
+  assert.equal(classifyGatewayLogs('x'.repeat(512*1024+1),'auth_create'),'unavailable');
+  assert.equal(classifyGatewayLogs(nginxError('DNS resolution failed'),'SIMULATED_PRIVATE'),'unavailable');
+});
+function gatewayLogFixture(){
+  const f=authServerFixture(),i=identity(),peer=i.peers[0];f.state.item={id:peer.id,name:'/supabase_kong_'+projectName,project:projectName,running:true,pid:peer.pid,privileged:false};
+  f.probe.verifyNamespaceHandle=value=>{assert.equal(value.id,peer.id);assert.equal(value.handle,i.handle);assert.equal(f.state.badNamespace,false);f.state.verified=true;};
+  f.state.outcome={status:0,stderr:nginxError('DNS resolution failed')+'\n'};
+  return {...f,run:()=>gatewayDiagnostics(f.workdir,99000,100000,'auth_create',f.probe)};
+}
+test('gateway collector reads only the pinned owned Kong ID and namespace in a bounded request window',()=>{
+  const f=gatewayLogFixture();assert.equal(f.run(),'gateway_dns_failure');assert.equal(f.state.captures.length,1);
+  const {args,options}=f.state.captures[0];assert.equal(args.at(-1),identity().peers[0].id);assert.ok(args.includes('--follow'));assert.ok(args.includes('--until'));
+  assert.deepEqual(args.slice(-3),['--tail','64',identity().peers[0].id]);assert.equal(options.timeout,5000);assert.equal(options.maxBuffer,512*1024);
+  assert.doesNotMatch(f.state.inspections[0][2],/Config\.Env|State\.Error|Health\.Log/);
+});
+test('foreign/stale gateway ownership is rejected before reading any logs',()=>{
+  for(const mutate of [s=>s.marker.source='foreign',s=>s.item.id=identity().peers[2].id,s=>s.item.project='foreign',s=>s.item.name='/foreign',s=>s.item.privileged=true,s=>s.badNamespace=true]){
+    const f=gatewayLogFixture();mutate(f.state);assert.equal(f.run(),'ownership_unverified');assert.equal(f.state.captures.length,0);
+  }
+  for(const [mutate,expected]of [[s=>s.item.running=false,'gateway_service_stopped'],[s=>s.item.pid++,'gateway_service_restarted']]){
+    const f=gatewayLogFixture();mutate(f.state);assert.equal(f.run(),expected);assert.equal(f.state.captures.length,0);
+  }
+});
+test('gateway log timeout evidence requires a closed window and complete bounded frames',()=>{
+  const f=gatewayLogFixture();f.probe.now=()=>102000;f.state.outcome={error:{code:'ETIMEDOUT'},signal:'SIGTERM',status:null,stderr:nginxError('DNS resolution failed')+'\n'};
+  assert.equal(f.run(),'gateway_dns_failure');
+  f.state.outcome.stderr=nginxError('DNS resolution failed');assert.equal(f.run(),'unavailable');
+  f.state.outcome.stderr+='\n';f.probe.now=()=>100000;assert.equal(f.run(),'unavailable');
+  f.probe.now=()=>102000;f.state.outcome.error.code='ENOBUFS';assert.equal(f.run(),'unavailable');
+});
+test('rollback token, gateway and RPC evidence survive strict controller validation without claim leakage',()=>{
+  const rows=complete();rows[6]={id:'rollback_each_cleanup_phase',result:'failed',category:'assertion_failed',nativeStage:'token_valid',cleanupPhase:'push_subscriptions',
+    rollbackTokenOutcome:'response_error',rollbackTokenReason:'server_error',rollbackTokenHttp:'http_5xx',rollbackTokenOrigin:'gateway_generated',rollbackTokenLifetime:'not_expired',gatewayFailure:'gateway_dns_failure',requestTransport:'not_observed'};
+  rows[13]={id:'billing_history_retention',result:'infrastructure_failed',category:'database_connection_failed',exit:1,nativeStage:'billing_policy',rpcOutcome:'response_error',rpcErrorKind:'missing_code',rpcSdkHttp:'http_5xx',rpcHttp:'http_5xx',rpcOrigin:'gateway_generated',gatewayFailure:'gateway_dns_failure'};
+  const f=controllerFixture();f.state.report={...summarize(rows,true),observations:{}};f.state.outcome={status:1,stdout:''};assert.deepEqual(f.run().report.checks,rows);
+});
+test('passing/wrong-stage/unknown token and gateway hints are rejected without loosening assertions',()=>{
+  const base={id:'rollback_each_cleanup_phase',result:'failed',nativeStage:'token_valid',rollbackTokenOutcome:'response_error',rollbackTokenReason:'server_error',rollbackTokenHttp:'http_5xx',rollbackTokenLifetime:'not_expired',gatewayFailure:'gateway_dns_failure'};
+  for(const patch of [{result:'passed'},{nativeStage:'token_identity'},{rollbackTokenOutcome:'SIMULATED_PRIVATE'}, {rollbackTokenLifetime:'SIMULATED_PRIVATE'},
+    {rollbackTokenOrigin:'SIMULATED_PRIVATE'},{rollbackTokenHttp:'http_4xx'},{gatewayFailure:'SIMULATED_PRIVATE'},{rpcOrigin:'gateway_generated'}]){
+    const row={...base,...patch};assert.equal(validNativeDiagnostics(row),false);assert.equal(summarize([row],true).invalid,true);
+    const f=controllerFixture();f.state.report={...summarize([row],true),observations:{}};f.state.outcome={status:1,stdout:''};assert.throws(f.run,e=>e.workerStage==='controller_report_checks');
+  }
+  assert.match(runner,/at\('fault_proof',\(\)=>assert.equal\(faultProof,true\)\)/);
 });

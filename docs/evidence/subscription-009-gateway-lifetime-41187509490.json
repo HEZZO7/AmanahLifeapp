@@ -1,0 +1,158 @@
+{
+  "run": "41187509490",
+  "artifact": "13037800756",
+  "artifactDownloaded": false,
+  "artifactWebHttp": 404,
+  "inputPackage": "39d7326705d08b015782ce29e5cf8c5334448f97",
+  "source": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "userVerifiedSummary": {
+    "passed": 6,
+    "failed": 10,
+    "infrastructureFailed": 1,
+    "notTested": 4,
+    "firstFailure": {
+      "id": "rollback_each_cleanup_phase",
+      "nativeStage": "token_valid",
+      "cleanupPhase": "push_subscriptions"
+    },
+    "dependentFailures": "fault_proof",
+    "fixtureFailureGroups": 7,
+    "fixtureAcknowledgedCreates": 3,
+    "failedAttempts": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "fixtureHttp": "http_5xx",
+    "fixtureOrigin": "gateway_generated",
+    "billingStage": "billing_policy",
+    "billingHttp": "http_5xx",
+    "billingCodeKind": "missing_code",
+    "independentCleanupPassed": true
+  },
+  "historicalServiceRootCauseEstablished": false,
+  "historicalGatewayEffectiveTtlObserved": false,
+  "historicalGatewayImageBytesObserved": false,
+  "verifiedReferenceDefect": "Kong_2_8_1_repeated_dns_init_shortens_static_host_lifetime_with_configured_validTtl",
+  "component": {
+    "nativeAuthExecuted": false,
+    "databaseStarted": false,
+    "network": "none",
+    "beforeAlias": {
+      "status": 500,
+      "responseLatency": true,
+      "upstreamLatency": false
+    },
+    "persistentResolution": {
+      "requests": 31,
+      "passed": 21,
+      "failed": 10,
+      "firstStatus": 200,
+      "lastStatus": 500,
+      "validTtlSeconds": 1,
+      "elapsedBeyondTtl": true
+    },
+    "correctedResolution": {
+      "requests": 31,
+      "passed": 31,
+      "failed": 0,
+      "firstStatus": 200,
+      "lastStatus": 200,
+      "validTtlSeconds": 315360000,
+      "elapsedBeyondOriginalTtl": true
+    },
+    "hostsFileUnchangedAcrossCorrection": true,
+    "upstream500": {
+      "status": 500,
+      "responseLatency": false,
+      "upstreamLatency": true
+    },
+    "dns500": {
+      "status": 500,
+      "responseLatency": true,
+      "upstreamLatency": false
+    },
+    "connect502": {
+      "status": 502,
+      "responseLatency": false,
+      "upstreamLatency": true
+    },
+    "gatewayLogSignals": {
+      "dnsMessage": true,
+      "connectMessage": true,
+      "requestMarker": true,
+      "nginxError": true
+    },
+    "gatewayLogClasses": {
+      "auth": "gateway_dns_failure",
+      "billing": "upstream_connect_failure"
+    },
+    "containerPidUnchanged": true,
+    "imageDigest": "kong@sha256:1b53405d8680a09d6f44494b7990bf7da2ea43f84a258c59717d4539abf09f6d",
+    "ownedResourcesRemoved": true
+  },
+  "imageSourceComparison": {
+    "dns-client.lua": {
+      "sha256": "645a468b563a9dceb4c5cbec126a90d0acace690d49cdd6b8b8542b20b004b00",
+      "matchesPublicTag": true
+    },
+    "conf-loader.lua": {
+      "sha256": "78268f1a73702b4d55d88befe697a2bb3a99c27338545f2f82611d41b4c5b3ed",
+      "matchesPublicTag": true
+    },
+    "kong-init.lua": {
+      "sha256": "d88976f7d023c997fdf030259369f06cc5cccd16024eb02181920cdab227925b",
+      "matchesPublicTag": true
+    },
+    "ownedResourcesRemoved": true
+  },
+  "validation": {
+    "offline": {
+      "review-final": {
+        "tests": 135,
+        "pass": 135,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "billing": {
+        "tests": 76,
+        "pass": 76,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "account": {
+        "tests": 55,
+        "pass": 55,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    "ownedHosts": 9,
+    "workflow": 14,
+    "sourceFiles": 12,
+    "packageFiles": 10,
+    "lockedDependencyVersions": 9,
+    "astOriginalCalls": {
+      "assertions": 168,
+      "operations": 146
+    }
+  },
+  "applicationChanged": false,
+  "migration009Changed": false,
+  "isolationCodeChanged": false,
+  "workflowChanged": false,
+  "workflowDispatched": false,
+  "nativeSuiteExecutedHere": false,
+  "productionReady": false
+}

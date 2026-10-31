@@ -596,3 +596,61 @@ missing Health keys must use map `index`, not direct `.State.Health` access.
 All labelled component resources/volumes are removed. This does not reproduce the
 historical root cause or replace any native group. The complete native suite still
 requires the documented fresh GitHub-hosted runner; it was not dispatched here.
+
+### Stable owned Kong DNS and independent rollback-token evidence
+
+Run `41187509490` (user-verified sanitized artifact `13037800756`) first fails at
+`rollback_each_cleanup_phase/token_valid/push_subscriptions`, **before** fixture
+creation attempt 4. The witness, full account/control snapshots and Auth-link
+counts for that phase already passed; the final Auth fault phase was not reached.
+The two subsequent `fault_proof` failures do not independently prove trial loss or
+restart. Those assertions remain mandatory and fail until the entire proof passes.
+The token stage alone cannot distinguish expired/rejected JWT from gateway failure.
+
+A separate Kong 2.8.1 component reproduction established a DNS lifetime defect.
+`kong.conf_loader` and `kong.init` each initialize the same DNS client. Its retained
+`validTtl` upvalue can shorten reinserted hosts-file entries on the second init,
+despite their intended ten-year TTL. With configured TTL=1, identical unchanged
+hosts aliases initially resolved and later produced gateway DNS HTTP 500. The
+control returned 21/31 successes then 10 failures; the last request failed. One
+reload with `KONG_DNS_VALID_TTL=315360000` returned 31/31 successes beyond the old
+expiry, with the same container PID and hosts-file digest. The image's three
+relevant Lua files independently matched the public 2.8.1 tag. This proves the
+component defect; the historical runner's effective TTL/image/logs were not read,
+so it does **not** prove the exact cause of that hosted failure.
+
+The existing **single pre-test owned Kong reload** now supplies that one explicit
+non-secret environment override. It restores the reference static-host lifetime
+for the job's immutable owned peer addresses. It does not change container image,
+restart resources, reload during tests, enable Docker/external DNS, permit new
+traffic, or change real Auth/SQL assertions. Before/after ID/PID/UID/namespace and
+ownership checks, post-reload health and full firewall verification are unchanged.
+The value applies to Kong's resolver; all outbound restrictions remain enforced.
+
+Failed rollback token checks now include closed `rollbackTokenOutcome/Reason/Http`,
+optional 5xx `rollbackTokenOrigin`, and `rollbackTokenLifetime`. Lifetime is only
+local exp/nbf timing evidence; it never authenticates a token or exposes any claims.
+The real `getUser(B.token)`, error=null and identity assertions are still required,
+with no refresh/retry/mock. Billing 5xx also records its own `rpcOrigin`; it is not
+inferred from Auth failures. A proxy-attempt header alone cannot prove an upstream
+response: the real Kong probe produced that header on a refused upstream too.
+
+For these three exact failed HTTP 5xx scopes only, `gatewayFailure` reads a bounded
+private Kong log window after checking the full owned gateway ID/PID/project/
+namespace. It emits one fixed DNS/connect/timeout/closed/resource/Lua/unclassified/
+ambiguous/unavailable category, never text, arguments, paths, identities, tokens,
+URLs, request IDs or bodies. Only the pinned Nginx error-line format with the
+exact method/path is classified. Logs follow a closed request window (+1s),
+64-line tail, 512KiB cap and 5s cutoff; timeout data needs complete frames and a
+closed window. No log is written to disk. Missing matches, formats, tail loss or
+logging delay mean unavailable evidence, not proof that an upstream was untouched.
+Correlation is method/path/time, not a per-request ID or a causality guarantee.
+The controller rejects unknown, misplaced, passing or non-5xx gateway metadata.
+
+`ci/subscription009/reproduce-kong-dns-lifetime.py` runs only Kong and generic HTTP
+controls in an owned network-none namespace, without Auth/DB/provider services or
+host ports, with all capabilities dropped and no-new-privileges. It verifies the
+lifetime A/B result, unchanged PID/hosts, DNS-generated 500 versus upstream 500
+and connect-generated 502 header behavior, and the gateway classifier against
+real bounded component logs. It retains only sanitized proof and removes all its
+labelled containers/anonymous volumes. It does not replace any native group.

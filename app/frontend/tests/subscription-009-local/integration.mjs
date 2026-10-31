@@ -7,8 +7,8 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails,checkedBillingPolicy,requestTransportResult} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics,ownedServiceDiagnostics} from './local-runtime.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails,checkedBillingPolicy,requestTransportResult,checkedRollbackToken,tokenLifetimeEvidence} from './safety.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics,ownedServiceDiagnostics,gatewayDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
@@ -179,6 +179,7 @@ async function exercise(source,credentials){
           if(error.fixtureCreateHttp==='http_5xx'){
             error.fixtureCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
             error.fixtureCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+            error.gatewayFailure=gatewayDiagnostics(workingDirectory,requestStart,Date.now(),'auth_create');
           }
         }
         if(authAccount!==null&&error.authCreateHttp==='http_5xx'){
@@ -287,7 +288,14 @@ async function exercise(source,credentials){
           at('account_rollback',()=>assert.deepEqual(accountRows(B.id),before));
           at('control_unchanged',()=>assert.deepEqual(accountRows(A.id),baselineA));
           at('auth_links_rollback',()=>assert.deepEqual(authLinkCounts(B.id),links));
-          const verified=await at('token_valid',async()=>{const verified=await B.client.auth.getUser(B.token);assert.equal(verified.error,null);return verified;});
+          const tokenStart=guard.state.calls.length,tokenTime=Date.now();
+          const verified=await at('token_valid',async()=>{
+            try{return await checkedRollbackToken(async observe=>{
+              const verified=await B.client.auth.getUser(B.token);observe(verified);assert.equal(verified.error,null);return verified;
+            },()=>guard.state.calls.slice(tokenStart),()=>tokenLifetimeEvidence(B.token));}
+            catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+              if(error.rollbackTokenHttp==='http_5xx')error.gatewayFailure=gatewayDiagnostics(workingDirectory,tokenTime,Date.now(),'auth_user');throw error;}
+          });
           at('token_identity',()=>assert.equal(verified.data.user.id,B.id));
         }
         faultProof=true;
@@ -375,12 +383,13 @@ async function exercise(source,credentials){
           at('expired_fixture',()=>assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true),state);
         }
         const evidence=at('read_evidence',()=>billingRows(A.id),state);
-        const policyStart=guard.state.calls.length;
+        const policyStart=guard.state.calls.length,policyTime=Date.now();
         await at('billing_policy',async()=>{
           try{return await checkedBillingPolicy(async observe=>{
             assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id},observe)).data,false);
           },()=>guard.state.calls.slice(policyStart));}
-          catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));throw error;}
+          catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+            if(error.rpcHttp==='http_5xx')error.gatewayFailure=gatewayDiagnostics(workingDirectory,policyTime,Date.now(),'billing_policy');throw error;}
         },state);
         at('evidence_seeded',()=>{for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);},state);
         await at('adapter_denial',async()=>assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409),state);

@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs,nativeFailureDetails,validNativeDiagnostics,SERVICE_FIELDS} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs,nativeFailureDetails,validNativeDiagnostics,SERVICE_FIELDS,GATEWAY_HOST_TTL,classifyGatewayLogs,gatewayRequest} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -79,6 +79,36 @@ export function ownedServiceDiagnostics(workdir,probe={}){
     }
     return result;
   }catch{return state('ownership_unverified');}
+}
+export function gatewayDiagnostics(workdir,start,end,kind,probe={}){
+  const io=probe.fs??fs,run=probe.run??((exe,args)=>command(exe,args,undefined,3000)),capture=probe.capture??spawnSync;
+  const verify=probe.verifyNamespaceHandle??verifyNamespaceHandle,now=probe.now??Date.now;
+  let failure='ownership_unverified';
+  try{
+    gatewayRequest(kind);assert.ok(Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&end>=start&&end-start<=60000);
+    const current=now();assert.ok(start>=current-61000&&end<=current+1000);
+    workspace(workdir,path.dirname(workdir));assert.equal(io.realpathSync(workdir),workdir);
+    const name=path.basename(workdir),marker=JSON.parse(io.readFileSync(path.join(workdir,'owned.json')));
+    assert.equal(marker.project,name);assert.equal(marker.source,SOURCE_COMMIT);
+    const journal=validateIsolation(JSON.parse(io.readFileSync(path.join(workdir,'isolation.json'))));
+    assert.equal(journal.project,name);assert.ok(journal.identity);
+    const peer=journal.identity.peers.find(peer=>peer.handle===journal.identity.handle);assert.ok(peer);
+    const format='{"id":{{json .Id}},"name":{{json .Name}},"project":{{json (index .Config.Labels "com.supabase.cli.project")}},"running":{{json .State.Running}},"pid":{{json .State.Pid}},"privileged":{{json .HostConfig.Privileged}}}';
+    const item=JSON.parse(run('docker',['inspect','--format',format,peer.id]));
+    assert.equal(item.id,peer.id);assert.equal(item.name,'/supabase_kong_'+name);assert.equal(item.project,name);assert.equal(item.privileged,false);
+    if(item.running===false)return 'gateway_service_stopped';
+    assert.equal(item.running,true);assert.ok(Number.isSafeInteger(item.pid)&&item.pid>1);
+    if(item.pid!==peer.pid)return 'gateway_service_restarted';
+    verify({...peer,hostNamespace:journal.identity.hostNamespace});failure='unavailable';
+    const outcome=capture('docker',['logs','--follow','--since',new Date(start).toISOString(),'--until',new Date(end+1000).toISOString(),
+      '--tail','64',peer.id],{env:{...childEnv},encoding:'utf8',timeout:5000,maxBuffer:512*1024});
+    const text=(outcome.stdout||'')+'\n'+(outcome.stderr||'');
+    if(outcome.error||outcome.signal||outcome.status!==0){
+      if(outcome.error?.code!=='ETIMEDOUT'||outcome.signal!=='SIGTERM'||outcome.status!==null||now()<end+1000||Buffer.byteLength(text)>512*1024)return 'unavailable';
+      if([outcome.stdout,outcome.stderr].some(value=>value&&!value.endsWith('\n')))return 'unavailable';
+    }
+    return classifyGatewayLogs(text,kind);
+  }catch{return failure;}
 }
 export function authServerDiagnostics(workdir,start,end,probe={}){
   const io=probe.fs??fs,run=probe.run??command,capture=probe.capture??spawnSync;
@@ -211,7 +241,7 @@ export function reloadOwnedGateway(workdir,identity,run=command,verify=verifyNam
     verify({...peer,hostNamespace:identity.hostNamespace});
     const uid=run('docker',['exec',peer.id,'id','-u']);assert.match(uid,/^(?:0|[1-9][0-9]*)$/);assert.equal(Number(uid),identity.kongUid);
   };
-  inspect();run('docker',['exec',peer.id,'kong','reload']);inspect();
+  inspect();run('docker',['exec','-e','KONG_DNS_VALID_TTL='+GATEWAY_HOST_TTL,peer.id,'kong','reload']);inspect();
   run('docker',['exec',peer.id,'kong','health']);
 }
 function discoverIsolation(){
