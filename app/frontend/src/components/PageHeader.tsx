@@ -1,11 +1,14 @@
 import { useNavigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
-  icon: string;
+  icon?: string;
   title: string;
+  subtitle?: string;
+  rightAction?: ReactNode;
 }
 
-export default function PageHeader({ icon, title }: PageHeaderProps) {
+export default function PageHeader({ icon, title, subtitle, rightAction }: PageHeaderProps) {
   const navigate = useNavigate();
 
   return (
@@ -19,9 +22,11 @@ export default function PageHeader({ icon, title }: PageHeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-xl font-bold text-foreground">
-          {icon} {title}
-        </h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold text-foreground">{icon} {title}</h1>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        {rightAction && <div className="shrink-0">{rightAction}</div>}
       </div>
     </header>
   );

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 
-const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
-const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/app_11941c8fec_push_notify`;
+const EDGE_FUNCTION_URL = edgeFunctionUrl('app_11941c8fec_push_notify');
 
 // Real VAPID public key - safe to ship in client source (that's the whole
 // point of the public/private VAPID split, same as any other publishable
@@ -12,7 +12,7 @@ const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/app_11941c8fec_push_noti
 // this replaced the old hardcoded Web Push tutorial demo key with.
 const VAPID_PUBLIC_KEY = 'BMUp_FS7rsxaOSVNK70SzGGFPIx3tKtDNIB4IWfKq2dEZzJ4awMAtgunI8npER14GSMwOFn7hBUjgIWqSF2kJdg';
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
@@ -217,14 +217,15 @@ export function useNotifications() {
     if (permission !== 'granted') return;
 
     if (swRegistration) {
-      swRegistration.showNotification(title, {
+      const notificationOptions = {
         body,
         icon: options?.icon || 'https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-07-03/rxebjjaaaira/amanah-logo_variant_3.png',
         badge: 'https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-07-03/rxecotaaairq/amanah-logo_variant_4.png',
         vibrate: [100, 50, 100],
         data: { url: options?.url || '/' },
         tag: options?.tag || 'general',
-      });
+      };
+      swRegistration.showNotification(title, notificationOptions);
     }
   }, [permission, swRegistration]);
 

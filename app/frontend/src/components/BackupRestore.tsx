@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 
 const APP_VERSION = '2.0.0';
-const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 
 // Tables that contain user data
 const USER_TABLES = [
@@ -189,7 +188,11 @@ export default function BackupRestore() {
           }));
 
           // Remove id field to let DB generate new ones
-          const cleanRows = updatedRows.map(({ id, ...rest }: Record<string, unknown>) => rest);
+          const cleanRows = updatedRows.map((row: Record<string, unknown>) => {
+            const copy = { ...row };
+            delete copy.id;
+            return copy;
+          });
           
           if (cleanRows.length > 0) {
             await supabase.from(table).insert(cleanRows);

@@ -88,7 +88,7 @@ export default function FamilyBudget() {
     if (mirrorTimer.current) clearTimeout(mirrorTimer.current);
     mirrorTimer.current = setTimeout(() => {
       mirrorToServer(userId, data).then((res) => {
-        if (!res.ok) console.warn('[FamilyBudget] server mirror failed:', res.error);
+        if (res.ok === false) console.warn('[FamilyBudget] server mirror failed:', res.error);
       });
     }, 1500);
     return () => {

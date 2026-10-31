@@ -131,9 +131,10 @@ export default function PrayerReminderSettings() {
 // Setup prayer time reminders using setTimeout
 function setupPrayerTimers(config: PrayerReminderConfig) {
   // Clear any existing timers
-  const existingTimers = (window as any).__prayerTimers || [];
+  const timerWindow = window as Window & { __prayerTimers?: number[] };
+  const existingTimers = timerWindow.__prayerTimers || [];
   existingTimers.forEach((t: number) => clearTimeout(t));
-  (window as any).__prayerTimers = [];
+  timerWindow.__prayerTimers = [];
 
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   if (!('serviceWorker' in navigator)) return;
@@ -176,6 +177,7 @@ async function fetchAndSchedule(config: PrayerReminderConfig) {
 }
 
 function schedulePrayerNotifications(timings: Record<string, string>, config: PrayerReminderConfig) {
+  const timerWindow = window as Window & { __prayerTimers?: number[] };
   const prayers: Array<{ key: keyof PrayerReminderConfig; timeKey: string }> = [
     { key: 'fajr', timeKey: 'Fajr' },
     { key: 'dhuhr', timeKey: 'Dhuhr' },
@@ -220,18 +222,20 @@ function schedulePrayerNotifications(timings: Record<string, string>, config: Pr
           : `${prayerNamesEn[prayer.key]} prayer in ${config[prayer.key].minutesBefore} minutes`;
 
         navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, {
+          // Some browsers accept vibration in addition to the shared DOM fields.
+          const notificationOptions = {
             body,
             icon: '/assets/amanah-logo.png',
             badge: 'https://mgx-backend-cdn.metadl.com/generate/images/1249149/2026-07-03/rxr47qaaaiqq/amanah-logo_variant_1.png',
             tag: `prayer-${prayer.key}`,
             vibrate: [200, 100, 200],
-          });
+          };
+          reg.showNotification(title, notificationOptions);
         });
       }, delay);
       timers.push(timer);
     }
   }
 
-  (window as any).__prayerTimers = timers;
+  timerWindow.__prayerTimers = timers;
 }

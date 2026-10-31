@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -18,7 +17,7 @@ import { gregorianToHijri, formatHijri, formatGregorian } from '@/lib/hijriDate'
 import { getCategories } from '@/lib/dashboardNav';
 
 export default function HomePage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const { t, language, setLanguage, isRTL } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();

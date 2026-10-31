@@ -282,7 +282,7 @@ export async function mirrorToServer(
       : null;
 
     const results = await Promise.all(
-      [settings, categories, income, expenses].filter(Boolean) as Promise<{ error: unknown }>[]
+      [settings, categories, income, expenses].filter(request => request !== null)
     );
     const failed = results.find((r) => r && (r as { error?: unknown }).error);
     if (failed) {
