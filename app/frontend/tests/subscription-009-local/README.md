@@ -537,3 +537,62 @@ a fresh subsequent connection and absence of leftover database sessions, then
 removes only its labelled owned container and anonymous volumes. It runs no
 GoTrue, JWT, provider or native Auth test. A full reproduction still requires the
 documented GitHub-hosted runner and isolation; none of those requirements changes.
+
+### Later fixture creation and billing HTTP evidence (run 41182311183)
+
+The user-verified sanitized summary for artifact `13034798945` reports the first
+11 groups passed; groups 12/13/15/16/17 failed at `fixture_create_user`, billing
+failed at `billing_policy/active` with `missing_error_code`, and the final four
+were not executed. The GitHub artifact web route returned HTTP 404 here, so its
+contents/provenance were not independently read. No historical service/transport
+root cause is established. In group 12, the failing fixture can be in either
+iteration; the stage alone does not establish which one or whether the request
+was rejected, error-bearing, or malformed.
+
+A verified diagnostic defect discarded `checkedAuthCreate`'s safe classifications
+when `nativeStage` rebuilt an ordinary Error. Later fixture failures now retain
+closed `fixtureCreateOutcome/Reason/Http` values; 5xx failures also carry the
+existing closed `fixtureCreateOrigin/Server` evidence. Synthetic counters
+`fixtureCreateAttempt/fixtureCreateSucceeded` are bounded to 1..64/0..63 and count
+attempts/acknowledged creates, **not** live users, full fixtures or erased accounts.
+They identify progress without identities. No successful create is retried.
+
+For failed billing policy assertions, `rpcOutcome` distinguishes request rejection,
+response error, malformed response and result assertion. `rpcErrorKind` distinguishes
+missing code, no error, SQL permission/other SQL, PostgREST and unknown code/shape;
+`rpcSdkHttp` and `rpcHttp` separately classify the SDK status and the actual guarded
+HTTP response. All are fixed vocabulary, never raw codes/status/messages. The
+original `data === false` assertion remains unchanged; the observer runs before
+the existing infrastructure classifier. Existing PGRST202 schema-cache polling
+is unchanged; this patch adds no Auth, RPC or HTTP retries.
+
+`requestTransport` records only allowlisted pre-SDK failure classes: timeout,
+abort, refused/reset connection, DNS, local resource, headers overflow, HTTP
+parser, ambiguous/unclassified/unavailable, or not observed. It reads only fixed
+name/code fields and at most four aggregate causes, never message/stack/body.
+The original thrown fetch error is preserved even when classification is unavailable.
+
+After a later failed create or billing policy operation, one bounded (3s) Docker
+inspect snapshots only the four owned gateway/database/Auth/REST containers. It
+rechecks source/project markers, journal, full IDs, names, non-privileged state,
+and matching PID/namespaces. `serviceGateway/Database/Auth/Rest` contain only
+running/stopped/restarted/oom_observed/unhealthy/starting/ownership_unverified/
+unavailable. Running means a matching process/namespace, **not** HTTP readiness;
+OOM and liveness snapshots do not establish cause or event timing. Restarted or
+stopped peers are never entered through stale namespaces. Inspect never reads
+Config.Env, Health.Log, State.Error, user data or server logs, and does not change
+resources or failure results. The existing bounded Auth-log classifier is reused
+only for 5xx. All new fields are validated on failed relevant stages only, in the
+worker controller and final summary; unknown/incoherent metadata fails closed.
+
+`ci/subscription009/reproduce-postgrest-transport.py` is an independent component
+probe using the exact installed SDK and `node:24.19.0-bookworm-slim`. It mounts the
+package read-only, uses network none/no ports/non-root/dropped capabilities/
+no-new-privileges/read-only root, and sends exactly one RPC to an empty container's
+loopback. It proves a real refused HTTP connection yields SDK status 0/empty code
+and the closed transport signal, without Auth, database or provider services.
+It verifies the Docker inspect template on an owned never-started container too:
+missing Health keys must use map `index`, not direct `.State.Health` access.
+All labelled component resources/volumes are removed. This does not reproduce the
+historical root cause or replace any native group. The complete native suite still
+requires the documented fresh GitHub-hosted runner; it was not dispatched here.

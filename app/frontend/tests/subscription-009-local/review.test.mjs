@@ -14,8 +14,8 @@ import {CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION
   WORKER_PREFLIGHT_STAGES,workerStageFailure,workerFailureDetails,workerStageSignal,lastWorkerPreflightStage,workerLaunchDetails,
   REAL_AUTH_STAGES,realAuthStage,realAuthFailureDetails,AUTH_CREATE_OUTCOMES,AUTH_CREATE_REASONS,authCreateReason,
   checkedAuthCreate,createdAuthIdentity,validRealAuthDiagnostics,AUTH_CREATE_HTTP,authCreateHttpResult,AUTH_CREATE_SERVER,classifyAuthServerLogs,
-  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult,nativeStage,nativeFailureDetails,validNativeDiagnostics,NATIVE_CHECK_STAGES,DATABASE_EVIDENCE} from './safety.mjs';
-import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway} from './local-runtime.mjs';
+  AUTH_CREATE_ORIGINS,authResponseOrigin,authCreateOriginResult,nativeStage,nativeFailureDetails,validNativeDiagnostics,NATIVE_CHECK_STAGES,DATABASE_EVIDENCE,transportEvidence,requestTransportResult,REQUEST_TRANSPORT,checkedBillingPolicy,billingPolicyHttpResult,SERVICE_FIELDS,OWNED_SERVICE_STATES} from './safety.mjs';
+import {command,cleanup,createWorkspace,verifySource,verifyPackage,shutdown,withSessions,ownedSessionSQL,installOwnedHosts,OWNED_HOSTS_APPEND_SCRIPT,initializeWorker,workerRuntimeDirectory,runIsolatedWorker,authServerDiagnostics,reloadOwnedGateway,ownedServiceDiagnostics} from './local-runtime.mjs';
 import {isolationRules,validateIsolation,ruleCommand,installIsolation,removeIsolation,assertNoHostRules,isolationTag} from './isolation.mjs';
 import {options,nullTriggerSQL,reserveSQL} from './integration.mjs';
 
@@ -1185,4 +1185,117 @@ test('fixture failures before a native group body retain fixed diagnostics throu
   infra.nativeStage='SIMULATED_PRIVATE';
   const bad=controllerFixture();bad.state.report={...summarize([],true,infra),observations:{}};bad.state.outcome={status:1,stdout:''};
   assert.throws(bad.run,e=>e.workerStage==='controller_report_infrastructure');
+});
+
+
+test('later fixture admin failures retain the existing allowlisted Auth outcome and HTTP evidence',async()=>{
+  for(const [error,http,reason]of [[{status:429,code:'over_request_rate_limit'},'http_4xx','rate_limit'],[{status:500},'http_5xx','server_error'],[{status:0},'no_response','no_http_status']]){
+    let calls=0;
+    await assert.rejects(nativeStage('trial_races_deletion','fixture_create_user',()=>checkedAuthCreate(async()=>{calls++;return {data:{user:null},error:{...error,message:'SIMULATED_PRIVATE'}};},()=>http)),failure=>{
+      assert.deepEqual(nativeFailureDetails(failure,'trial_races_deletion'),{nativeStage:'fixture_create_user',fixtureCreateOutcome:'response_error',fixtureCreateHttp:http,fixtureCreateReason:reason});
+      assert.equal(failure instanceof Failure,false);assert.doesNotMatch(JSON.stringify(failure),/SIMULATED_PRIVATE/);return true;
+    });assert.equal(calls,1);
+  }
+});
+test('fixture malformed responses and request rejection remain distinct and fail once',async()=>{
+  for(const [operation,outcome]of [[async()=>({error:null,data:null}),'malformed_response'],[async()=>{throw Error('SIMULATED_PRIVATE');},'request_rejected']]){
+    await assert.rejects(nativeStage('family_member_privacy','fixture_create_user',()=>checkedAuthCreate(operation,()=> 'no_response')),failure=>{
+      assert.equal(failure.fixtureCreateOutcome,outcome);assert.equal(failure.nativeStage,'fixture_create_user');assert.doesNotMatch(JSON.stringify(failure),/SIMULATED_PRIVATE/);return true;
+    });
+  }
+});
+test('transport classification reads only bounded known codes, never error messages or stacks',()=>{
+  const cases=[['ECONNREFUSED','connection_refused'],['ECONNRESET','connection_reset'],['UND_ERR_SOCKET','connection_reset'],['UND_ERR_CONNECT_TIMEOUT','timeout'],
+    ['ABORT_ERR','aborted'],['ENOTFOUND','dns_failure'],['EMFILE','local_resource'],['ENOMEM','local_resource'],['UND_ERR_HEADERS_OVERFLOW','headers_overflow'],['HPE_INVALID_HEADER_TOKEN','http_parser']];
+  for(const [code,expected]of cases){
+    const error={cause:{code},get message(){assert.fail('Never inspect message');},get stack(){assert.fail('Never inspect stack');}};
+    assert.equal(transportEvidence(error),expected);
+  }
+  assert.equal(transportEvidence({cause:{errors:[{code:'ECONNRESET'},{code:'ECONNREFUSED'}]}}),'ambiguous');
+  assert.equal(transportEvidence({cause:{code:'SIMULATED_PRIVATE'}}),'unclassified');
+  assert.equal(transportEvidence({name:'TimeoutError'}),'timeout');assert.equal(transportEvidence({name:'AbortError'}),'aborted');
+});
+test('HTTP guard preserves a thrown transport error and records one closed pre-SDK signal',async()=>{
+  const error=new TypeError('SIMULATED_PRIVATE',{cause:{code:'ECONNREFUSED'}}),guard=trafficGuard(async()=>{throw error;});
+  await assert.rejects(guard.fetch(API_ORIGIN+'/auth/v1/admin/users',{method:'POST'}),e=>e===error);
+  assert.equal(guard.state.calls.length,1);assert.equal(authCreateHttpResult(guard.state.calls),'no_response');
+  assert.equal(requestTransportResult(guard.state.calls),'connection_refused');assert.doesNotMatch(JSON.stringify(guard.state),/SIMULATED_PRIVATE/);
+  const opaque=new Error('SIMULATED_PRIVATE');Object.defineProperty(opaque,'cause',{get(){throw Error('SIMULATED_PRIVATE');}});
+  const broken=trafficGuard(async()=>{throw opaque;});await assert.rejects(broken.fetch(API_ORIGIN+'/auth/v1/admin/users',{method:'POST'}),e=>e===opaque);
+  assert.equal(broken.state.calls[0].transport,'unavailable');
+  assert.equal(requestTransportResult([]),'unavailable');assert.equal(requestTransportResult([{status:200}]),'not_observed');
+});
+test('pinned PostgREST SDK can return empty error code for transport failure without any Auth operation',async()=>{
+  const {createClient}=await import('@supabase/supabase-js');let requests=0;
+  const guard=trafficGuard(async()=>{requests++;throw new TypeError('SIMULATED_PRIVATE',{cause:{code:'ECONNREFUSED'}});});
+  const client=createClient(API_ORIGIN,'synthetic-public-test-key',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:guard.fetch}});
+  await assert.rejects(nativeStage('billing_history_retention','billing_policy',()=>checkedBillingPolicy(async observe=>{
+    const response=await client.rpc('app_11941c8fec_account_deletion_allowed',{p_user:id});
+    assert.equal(response.status,0);assert.equal(response.error.code,'');observe(response);throwIfDatabaseInfrastructure(response.error);assert.equal(response.data,false);
+  },()=>guard.state.calls)),failure=>{
+    assert.equal(failure.category,'database_connection_failed');assert.equal(failure.databaseEvidence,'missing_error_code');
+    assert.equal(failure.rpcOutcome,'response_error');assert.equal(failure.rpcErrorKind,'missing_code');assert.equal(failure.rpcSdkHttp,'no_response');
+    assert.equal(failure.rpcHttp,'no_response');assert.equal(failure.requestTransport,'connection_refused');
+    assert.equal(validNativeDiagnostics({id:'billing_history_retention',result:'infrastructure_failed',category:failure.category,...nativeFailureDetails(failure,'billing_history_retention')}),true);
+    assert.doesNotMatch(JSON.stringify(failure),/SIMULATED_PRIVATE|synthetic-public-test-key/);return true;
+  });assert.equal(requests,1);
+});
+test('billing query rejection, result assertion and missing-code HTTP errors remain distinct failures',async()=>{
+  const route='/rest/v1/rpc/app_11941c8fec_account_deletion_allowed';
+  for(const [response,outcome,kind,http]of [[{status:403,error:{code:'42501'},data:null},'response_error','sql_permission','http_4xx'],
+    [{status:500,error:{code:''},data:null},'response_error','missing_code','http_5xx'],[{status:200,error:null,data:true},'result_assertion','no_error','http_2xx']]){
+    await assert.rejects(nativeStage('billing_history_retention','billing_policy',()=>checkedBillingPolicy(async observe=>{observe(response);throwIfDatabaseInfrastructure(response.error);assert.equal(response.data,false);},()=>[{method:'POST',path:route,status:response.status}])),failure=>{
+      assert.equal(failure.rpcOutcome,outcome);assert.equal(failure.rpcErrorKind,kind);assert.equal(failure.rpcHttp,http);
+      assert.equal(failure instanceof Failure,response.error?.code==='');return true;
+    });
+  }
+});
+test('billing diagnostics do not add requests or alter the original false policy result',async()=>{
+  let requests=0;const r={status:200,error:null,data:false};
+  await checkedBillingPolicy(async observe=>{requests++;observe(r);throwIfDatabaseInfrastructure(r.error);assert.equal(r.data,false);},()=>assert.fail('Only inspect observations on failure'));
+  assert.equal(requests,1);
+  await assert.rejects(nativeStage('billing_history_retention','billing_policy',()=>checkedBillingPolicy(async()=>{throw Error('SIMULATED_PRIVATE');},()=>[])),e=>e.rpcOutcome==='request_rejected'&&e.rpcErrorKind==='unavailable'&&e.rpcHttp==='no_request');
+});
+function serviceFixture(){
+  const f=authServerFixture(),services=['kong','db','auth','rest'],i=identity();f.state.verified=[];
+  f.state.items=services.map((service,n)=>({id:i.peers[n].id,name:'/supabase_'+service+'_'+projectName,project:projectName,running:true,pid:i.peers[n].pid,privileged:false,oom:false,health:null}));
+  f.probe.run=(exe,args)=>{assert.equal(exe,'docker');assert.equal(args[0],'inspect');f.state.inspections.push(args);return f.state.items.map(item=>JSON.stringify(item)).join('\n');};
+  f.probe.verifyNamespaceHandle=peer=>{assert.equal(f.state.badNamespace,false);assert.ok(i.peers.some(p=>p.id===peer.id&&p.pid===peer.pid));f.state.verified.push(peer.id);};
+  return {...f,run:()=>ownedServiceDiagnostics(f.workdir,f.probe)};
+}
+test('service evidence inspects only four owned peers and never reads logs, environment or health output',()=>{
+  const f=serviceFixture();assert.deepEqual(f.run(),Object.fromEntries(SERVICE_FIELDS.map(key=>[key,'running'])));
+  assert.equal(f.state.inspections.length,1);assert.equal(f.state.verified.length,4);const args=f.state.inspections[0];
+  assert.equal(args.length,7);assert.doesNotMatch(args[2],/Config\.Env|State\.Error|Health\.Log|\.Output|\.State\.Health/);
+  assert.ok(args[2].includes('index .State "Health"'));
+  assert.deepEqual(args.slice(3),['kong','db','auth','rest'].map(s=>'supabase_'+s+'_'+projectName));
+});
+test('service ownership or namespace mismatch yields no trusted service attribution',()=>{
+  for(const mutate of [s=>s.marker.source='foreign',s=>s.journal.project='foreign',s=>s.items[2].id='f'.repeat(64),s=>s.items[2].project='foreign',s=>s.items[2].name='/foreign',s=>s.items[2].privileged=true,s=>s.badNamespace=true]){
+    const f=serviceFixture();mutate(f.state);assert.deepEqual(f.run(),Object.fromEntries(SERVICE_FIELDS.map(key=>[key,'ownership_unverified'])));
+  }
+});
+test('owned service stop, restart, unhealthy and OOM signals remain snapshots rather than causal claims',()=>{
+  for(const [mutate,code]of [[s=>s.running=false,'stopped'],[s=>s.pid++,'restarted'],[s=>s.health='unhealthy','unhealthy'],[s=>s.health='starting','starting'],[s=>s.oom=true,'oom_observed']]){
+    const f=serviceFixture();mutate(f.state.items[2]);const r=f.run();assert.equal(r.serviceAuth,code);assert.equal(r.serviceDatabase,'running');
+    assert.doesNotMatch(JSON.stringify(r),/supabase|netns|pid|[a-f0-9]{64}/);
+  }
+  const f=serviceFixture();f.probe.run=()=>{throw Error('SIMULATED_PRIVATE');};assert.deepEqual(f.run(),Object.fromEntries(SERVICE_FIELDS.map(key=>[key,'unavailable'])));
+});
+test('controller preserves fixture request context and billing evidence, including pre-group fixture failure',()=>{
+  const rows=complete(),services=Object.fromEntries(SERVICE_FIELDS.map(key=>[key,'running']));
+  rows[11]={id:'trial_races_deletion',result:'failed',category:'assertion_failed',nativeStage:'fixture_create_user',fixtureCreateOutcome:'response_error',fixtureCreateReason:'no_http_status',fixtureCreateHttp:'no_response',requestTransport:'connection_reset',fixtureCreateAttempt:7,fixtureCreateSucceeded:6,...services};
+  rows[13]={id:'billing_history_retention',result:'infrastructure_failed',category:'database_connection_failed',exit:1,nativeStage:'billing_policy',billingState:'active',databaseEvidence:'missing_error_code',rpcOutcome:'response_error',rpcErrorKind:'missing_code',rpcSdkHttp:'no_response',rpcHttp:'no_response',requestTransport:'connection_reset',...services};
+  const f=controllerFixture();f.state.report={...summarize(rows,true),observations:{}};f.state.outcome={status:1,stdout:''};assert.deepEqual(f.run().report.checks,rows);
+  const infra={phase:'unreviewed_trigger_readiness',category:'assertion_failed',exit:1,...nativeFailureDetails(rows[11],'trial_races_deletion')};
+  const g=controllerFixture();g.state.report={...summarize([],true,infra),observations:{}};g.state.outcome={status:1,stdout:''};assert.deepEqual(g.run().report.infrastructureFailure,infra);
+});
+test('unknown, partial, mis-scoped or contradictory request evidence is rejected fail-closed',()=>{
+  const base={id:'trial_races_deletion',result:'failed',nativeStage:'fixture_create_user',fixtureCreateOutcome:'response_error',fixtureCreateReason:'rate_limit',fixtureCreateHttp:'http_4xx'};
+  for(const patch of [{result:'passed'},{nativeStage:'race_sessions'},{fixtureCreateReason:'SIMULATED_PRIVATE'}, {fixtureCreateHttp:'SIMULATED_PRIVATE'},
+    {fixtureCreateOutcome:'SIMULATED_PRIVATE'},{fixtureCreateOrigin:'gateway_generated'},{fixtureCreateAttempt:7},{fixtureCreateAttempt:7,fixtureCreateSucceeded:7},
+    {serviceAuth:'running'},{requestTransport:'connection_refused'},{rpcOutcome:'response_error'}]){
+    const row={...base,...patch};assert.equal(validNativeDiagnostics(row),false);assert.equal(summarize([row],true).invalid,true);
+    const f=controllerFixture();f.state.report={...summarize([row],true),observations:{}};f.state.outcome={status:1,stdout:''};assert.throws(f.run,e=>e.workerStage==='controller_report_checks');
+  }
 });

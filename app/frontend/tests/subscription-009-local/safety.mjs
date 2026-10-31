@@ -11,6 +11,102 @@ export const APPROVAL='disposable-local-migration-009-only';
 export class Failure extends Error {
   constructor(category='assertion_failed',exitCode=1){super('Local test failed');this.category=category;this.exitCode=exitCode;}
 }
+export const REQUEST_TRANSPORT=Object.freeze(['not_observed','unavailable','timeout','aborted','connection_refused',
+  'connection_reset','dns_failure','local_resource','headers_overflow','http_parser','unclassified','ambiguous']);
+export function transportEvidence(error){
+  try{
+  const classify=value=>{
+    const code=value?.code;
+    if(['UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','ETIMEDOUT'].includes(code)||value?.name==='TimeoutError')return 'timeout';
+    if(code==='ABORT_ERR'||value?.name==='AbortError')return 'aborted';
+    if(code==='ECONNREFUSED')return 'connection_refused';
+    if(['ECONNRESET','EPIPE','UND_ERR_SOCKET'].includes(code))return 'connection_reset';
+    if(['ENOTFOUND','EAI_AGAIN'].includes(code))return 'dns_failure';
+    if(['EMFILE','ENFILE','ENOMEM','ENOBUFS'].includes(code))return 'local_resource';
+    if(['UND_ERR_HEADERS_OVERFLOW','HPE_HEADER_OVERFLOW'].includes(code))return 'headers_overflow';
+    if(['HPE_INVALID_HEADER_TOKEN','HPE_UNEXPECTED_CONTENT_LENGTH'].includes(code))return 'http_parser';
+    return null;
+  };
+  // Inspect only fixed name/code fields and a bounded aggregate cause. Never messages/stacks.
+  const cause=error?.cause,values=[error,cause];
+  if(Array.isArray(cause?.errors)&&cause.errors.length<=4)values.push(...cause.errors);
+  const codes=[...new Set(values.map(classify).filter(Boolean))];
+  return codes.length===1?codes[0]:codes.length>1?'ambiguous':'unclassified';
+  }catch{return 'unavailable';}
+}
+export function requestTransportResult(calls){
+  if(!Array.isArray(calls)||calls.length!==1)return 'unavailable';
+  return REQUEST_TRANSPORT.includes(calls[0]?.transport)?calls[0].transport:'not_observed';
+}
+export const OWNED_SERVICE_STATES=Object.freeze(['running','stopped','restarted','oom_observed','unhealthy','starting','ownership_unverified','unavailable']);
+export const SERVICE_FIELDS=Object.freeze(['serviceGateway','serviceDatabase','serviceAuth','serviceRest']);
+const RPC_OUTCOMES=Object.freeze(['request_rejected','response_error','result_assertion','malformed_response']);
+const RPC_ERROR_KINDS=Object.freeze(['missing_code','no_error','sql_permission','sql_error','postgrest_error','other_code','malformed_error','unavailable']);
+const RPC_HTTP=Object.freeze(['no_response','http_2xx','http_4xx','http_5xx','http_other','unavailable']);
+const FIXTURE_CREATE_FIELDS=Object.freeze(['fixtureCreateOutcome','fixtureCreateReason','fixtureCreateHttp','fixtureCreateOrigin','fixtureCreateServer','fixtureCreateAttempt','fixtureCreateSucceeded']);
+const RPC_FIELDS=Object.freeze(['rpcOutcome','rpcErrorKind','rpcSdkHttp','rpcHttp']);
+function httpClass(status){
+  if(status===0||status===null)return 'no_response';
+  if(!Number.isInteger(status)||status<100||status>599)return 'unavailable';
+  return status>=500?'http_5xx':status>=400?'http_4xx':status>=200&&status<=299?'http_2xx':'http_other';
+}
+export function billingPolicyHttpResult(calls){
+  if(!Array.isArray(calls))return 'unavailable';
+  if(!calls.length)return 'no_request';
+  if(calls.length!==1||calls[0]?.method!=='POST'||calls[0]?.path!=='/rest/v1/rpc/app_11941c8fec_account_deletion_allowed')return 'unexpected_requests';
+  return httpClass(calls[0].status);
+}
+export async function checkedBillingPolicy(operation,observeCalls){
+  let observed=false,outcome='request_rejected',kind='unavailable',sdkHttp='unavailable';
+  const observe=response=>{
+    observed=true;sdkHttp=httpClass(response?.status);
+    if(!response||typeof response!=='object'||!Object.hasOwn(response,'error')){outcome='malformed_response';kind='malformed_error';return;}
+    const error=response.error;
+    outcome=error?'response_error':'result_assertion';
+    if(error===null){kind='no_error';return;}
+    if(!error||typeof error!=='object'){outcome='malformed_response';kind='malformed_error';return;}
+    const code=error.code;
+    kind=!code?'missing_code':code==='42501'?'sql_permission':typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?'sql_error':
+      typeof code==='string'&&/^PGRST[0-9]{3}$/.test(code)?'postgrest_error':'other_code';
+  };
+  try{return await operation(observe);}
+  catch(error){
+    const failure=error instanceof Failure?error:new Error('Local billing policy assertion failed');
+    let calls;try{calls=observeCalls();}catch{}
+    Object.assign(failure,{rpcOutcome:observed?outcome:'request_rejected',rpcErrorKind:kind,rpcSdkHttp:sdkHttp,
+      rpcHttp:billingPolicyHttpResult(calls),requestTransport:requestTransportResult(calls)});
+    throw failure;
+  }
+}
+function fixtureCreateDetails(value){
+  const out={},outcome=value?.fixtureCreateOutcome;
+  if(!['request_rejected','response_error','malformed_response'].includes(outcome)||!AUTH_CREATE_HTTP.includes(value.fixtureCreateHttp))return out;
+  if(outcome!=='malformed_response'&&!AUTH_CREATE_REASONS.includes(value.fixtureCreateReason))return out;
+  out.fixtureCreateOutcome=outcome;out.fixtureCreateHttp=value.fixtureCreateHttp;
+  if(outcome!=='malformed_response')out.fixtureCreateReason=value.fixtureCreateReason;
+  if(value.fixtureCreateHttp==='http_5xx'){
+    if(AUTH_CREATE_ORIGINS.includes(value.fixtureCreateOrigin))out.fixtureCreateOrigin=value.fixtureCreateOrigin;
+    if(AUTH_CREATE_SERVER.includes(value.fixtureCreateServer))out.fixtureCreateServer=value.fixtureCreateServer;
+  }
+  if(Number.isSafeInteger(value.fixtureCreateAttempt)&&value.fixtureCreateAttempt>=1&&value.fixtureCreateAttempt<=64&&
+    Number.isSafeInteger(value.fixtureCreateSucceeded)&&value.fixtureCreateSucceeded>=0&&value.fixtureCreateSucceeded<value.fixtureCreateAttempt){
+    out.fixtureCreateAttempt=value.fixtureCreateAttempt;out.fixtureCreateSucceeded=value.fixtureCreateSucceeded;
+  }
+  return out;
+}
+function requestFailureDetails(value,id){
+  const out={},fixture=FIXTURE_GROUPS.includes(id)&&value?.nativeStage==='fixture_create_user';
+  const billing=id==='billing_history_retention'&&value?.nativeStage==='billing_policy';
+  if(fixture)Object.assign(out,fixtureCreateDetails(value));
+  if(billing&&RPC_OUTCOMES.includes(value.rpcOutcome)&&RPC_ERROR_KINDS.includes(value.rpcErrorKind)&&RPC_HTTP.includes(value.rpcSdkHttp)&&AUTH_CREATE_HTTP.includes(value.rpcHttp)){
+    for(const key of RPC_FIELDS)out[key]=value[key];
+  }
+  if((fixture&&out.fixtureCreateOutcome)||(billing&&out.rpcOutcome)){
+    if(REQUEST_TRANSPORT.includes(value.requestTransport))out.requestTransport=value.requestTransport;
+    if(SERVICE_FIELDS.every(key=>OWNED_SERVICE_STATES.includes(value[key])))for(const key of SERVICE_FIELDS)out[key]=value[key];
+  }
+  return out;
+}
 const ACCOUNT_AUTH_STEPS=Object.freeze(['create_user','password_signin','created_identity','session_token',
   'verify_token','verified_identity','seed_personal_data']);
 export const REAL_AUTH_STAGES=Object.freeze([
@@ -211,14 +307,19 @@ export function nativeFailureDetails(value,id){
   if(id==='rollback_each_cleanup_phase'&&[...CLEANUP_TABLES,'auth'].includes(value.cleanupPhase))out.cleanupPhase=value.cleanupPhase;
   if(id==='billing_history_retention'&&['active','expired','refunded'].includes(value.billingState))out.billingState=value.billingState;
   if(DATABASE_EVIDENCE.includes(value.databaseEvidence))out.databaseEvidence=value.databaseEvidence;
+  Object.assign(out,requestFailureDetails(value,id));
   return out;
 }
 export function validNativeDiagnostics(row){
-  const keys=['nativeStage','cleanupPhase','billingState','databaseEvidence'];
+  const keys=['nativeStage','cleanupPhase','billingState','databaseEvidence',...FIXTURE_CREATE_FIELDS,...RPC_FIELDS,'requestTransport',...SERVICE_FIELDS];
   if(!keys.some(key=>key in row))return true;
   if(!['failed','infrastructure_failed'].includes(row.result))return false;
   if(!allowedNativeStage(row.id,row.nativeStage))return false;
   if('databaseEvidence' in row&&(row.result!=='infrastructure_failed'||row.category!=='database_connection_failed'))return false;
+  const http=row.nativeStage==='fixture_create_user'?row.fixtureCreateHttp:row.rpcHttp;
+  if('requestTransport' in row&&!['not_observed','unavailable'].includes(row.requestTransport)&&http!=='no_response')return false;
+  if(row.rpcOutcome==='request_rejected'&&(row.rpcErrorKind!=='unavailable'||row.rpcSdkHttp!=='unavailable'))return false;
+  if(row.rpcOutcome==='result_assertion'&&row.rpcErrorKind!=='no_error')return false;
   const details=nativeFailureDetails(row,row.id);
   return keys.every(key=>!(key in row)||(Object.hasOwn(details,key)&&details[key]===row[key]));
 }
@@ -228,7 +329,11 @@ export function nativeStage(id,stage,operation,context={}){
   const fail=error=>{
     const failure=error instanceof Failure?error:new Error('Local native assertion failed');
     const inner=nativeFailureDetails(error,id);
-    Object.assign(failure,inner.nativeStage?inner:details);
+    Object.assign(failure,details,inner);
+    const carried={...error,...nativeFailureDetails(failure,id)};
+    if(stage==='fixture_create_user'&&AUTH_CREATE_OUTCOMES.includes(error?.authCreateOutcome))Object.assign(carried,{
+      fixtureCreateOutcome:error.authCreateOutcome,fixtureCreateReason:error.authCreateReason,fixtureCreateHttp:error.authCreateHttp});
+    Object.assign(failure,requestFailureDetails(carried,id));
     if(DATABASE_EVIDENCE.includes(error?.databaseEvidence))failure.databaseEvidence=error.databaseEvidence;
     throw failure;
   };
@@ -432,7 +537,9 @@ export function trafficGuard(originalFetch){
     try{u=allowedURL(input);}catch{state.rejected++;throw Error('nonlocal_request');}
     // Record BEFORE fetch: a caught SDK guard/fetch exception cannot hide attempts.
     const call={method:init.method||input?.method||'GET',path:u.pathname,status:null};state.calls.push(call);
-    const response=await originalFetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});
+    let response;
+    try{response=await originalFetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(20000)});}
+    catch(error){call.transport=transportEvidence(error);throw error;}
     call.status=response.status;
     if(call.method==='POST'&&call.path==='/auth/v1/admin/users'&&response.status>=500&&response.status<=599)call.authOrigin=authResponseOrigin(response);
     return response;

@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync,spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,NODE_VERSION,CLI_VERSION,CLI_ARCHIVE_SHA256,APPROVAL,
-  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs,nativeFailureDetails,validNativeDiagnostics} from './safety.mjs';
+  workspace,gitBlob,sha256,localStatus,commandCategory,commandDiagnostic,assertCleanEnvironment,Failure,PG_OPTIONS,PG_LIMITS,sessionPrefix,CHECKS,summarize,workerStageFailure,workerFailureDetails,lastWorkerPreflightStage,workerLaunchDetails,realAuthFailureDetails,validRealAuthDiagnostics,classifyAuthServerLogs,nativeFailureDetails,validNativeDiagnostics,SERVICE_FIELDS} from './safety.mjs';
 
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
@@ -48,6 +48,37 @@ export function verifyPackage(directory,manifest){
 function context(workdir){
   root=workdir;project=path.basename(workdir);
   childEnv.HOME=root;childEnv.XDG_CONFIG_HOME=path.join(root,'.config');childEnv.DOCKER_CONFIG=path.join(root,'.docker');
+}
+export function ownedServiceDiagnostics(workdir,probe={}){
+  const io=probe.fs??fs,run=probe.run??((exe,args)=>command(exe,args,undefined,3000));
+  const verify=probe.verifyNamespaceHandle??verifyNamespaceHandle;
+  const state=value=>Object.fromEntries(SERVICE_FIELDS.map(key=>[key,value]));
+  try{
+    workspace(workdir,path.dirname(workdir));assert.equal(io.realpathSync(workdir),workdir);
+    const name=path.basename(workdir),marker=JSON.parse(io.readFileSync(path.join(workdir,'owned.json')));
+    assert.equal(marker.project,name);assert.equal(marker.source,SOURCE_COMMIT);
+    const journal=validateIsolation(JSON.parse(io.readFileSync(path.join(workdir,'isolation.json'))));
+    assert.equal(journal.project,name);assert.ok(journal.identity);
+    const services=['kong','db','auth','rest'];
+    const format='{"id":{{json .Id}},"name":{{json .Name}},"project":{{json (index .Config.Labels "com.supabase.cli.project")}},"running":{{json .State.Running}},"pid":{{json .State.Pid}},"privileged":{{json .HostConfig.Privileged}},"oom":{{json .State.OOMKilled}},"health":{{if index .State "Health"}}{{json (index (index .State "Health") "Status")}}{{else}}null{{end}}}';
+    let raw;try{raw=run('docker',['inspect','--format',format,...services.map(service=>'supabase_'+service+'_'+name)]);}catch{return state('unavailable');}
+    assert.ok(Buffer.byteLength(raw)<=16384);const rows=raw.trim().split('\n').map(line=>JSON.parse(line));assert.equal(rows.length,4);assert.equal(new Set(rows.map(row=>row.id)).size,4);
+    const result={};
+    for(const [index,service]of services.entries()){
+      const item=rows.find(row=>row.name==='/supabase_'+service+'_'+name);assert.ok(item);
+      assert.equal(item.project,name);assert.equal(item.privileged,false);assert.equal(typeof item.running,'boolean');assert.equal(typeof item.oom,'boolean');assert.ok(item.health===null||['healthy','unhealthy','starting'].includes(item.health));
+      const peer=journal.identity.peers.find(peer=>peer.id===item.id);assert.ok(peer);
+      let code;
+      if(!item.running)code=item.oom?'oom_observed':'stopped';
+      else{
+        assert.ok(Number.isSafeInteger(item.pid)&&item.pid>1);
+        if(item.pid!==peer.pid)code=item.oom?'oom_observed':'restarted';
+        else{verify({...peer,hostNamespace:journal.identity.hostNamespace});code=item.oom?'oom_observed':item.health==='unhealthy'?'unhealthy':item.health==='starting'?'starting':'running';}
+      }
+      result[SERVICE_FIELDS[index]]=code;
+    }
+    return result;
+  }catch{return state('ownership_unverified');}
 }
 export function authServerDiagnostics(workdir,start,end,probe={}){
   const io=probe.fs??fs,run=probe.run??command,capture=probe.capture??spawnSync;

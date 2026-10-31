@@ -1,0 +1,98 @@
+{
+  "run": "41182311183",
+  "artifact": "13034798945",
+  "artifactAccess": {
+    "downloaded": false,
+    "webHttpStatus": 404,
+    "rawServerLogsRetrieved": false
+  },
+  "inputPackage": "399961136fc582bc5bcac9bc5cd58fd48d1b0bd9",
+  "source": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+  "userVerifiedResults": {
+    "nativePassed": 11,
+    "nativeRequired": 21,
+    "fixtureCreateFailedGroups": [
+      "trial_races_deletion",
+      "simultaneous_auth_deletions",
+      "family_member_privacy",
+      "family_owner_deletion",
+      "after_delete_null_control"
+    ],
+    "billingFailure": {
+      "nativeStage": "billing_policy",
+      "billingState": "active",
+      "databaseEvidence": "missing_error_code"
+    },
+    "notTested": 4,
+    "independentCleanupPassed": true
+  },
+  "confirmedDiagnosticDefect": "nativeStage_discarded_safe_auth_create_metadata",
+  "historicalAuthRootCause": "unresolved",
+  "historicalBillingRootCause": "unresolved",
+  "newValidation": {
+    "offline": {
+      "review-final": {
+        "tests": 124,
+        "pass": 124,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "billing": {
+        "tests": 76,
+        "pass": 76,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "account-offline": {
+        "tests": 55,
+        "pass": 55,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    "hostsTests": 9,
+    "workflowTests": 14,
+    "sourceFiles": 12,
+    "packageFiles": 10,
+    "lockedInstalledDependencies": 9,
+    "ast": {
+      "observerArgumentOnlyNormalization": true,
+      "assertions": 168,
+      "operations": 146
+    },
+    "transportComponent": {
+      "nativeAuthExecuted": false,
+      "databaseStarted": false,
+      "providerCalled": false,
+      "node": "v24.19.0",
+      "sdk": "2.110.0",
+      "requests": 1,
+      "sdkStatusAbsent": true,
+      "sdkErrorCodeEmpty": true,
+      "category": "database_connection_failed",
+      "nativeStage": "billing_policy",
+      "databaseEvidence": "missing_error_code",
+      "rpcOutcome": "response_error",
+      "rpcErrorKind": "missing_code",
+      "rpcSdkHttp": "no_response",
+      "rpcHttp": "no_response",
+      "requestTransport": "connection_refused",
+      "serviceInspectTemplateVerified": true,
+      "imageDigest": "node@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df",
+      "ownedResourcesRemoved": true
+    }
+  },
+  "applicationChanged": false,
+  "migration009Changed": false,
+  "isolationChanged": false,
+  "workflowChanged": false,
+  "workflowDispatched": false,
+  "nativeSuiteExecutedHere": false,
+  "productionReady": false
+}

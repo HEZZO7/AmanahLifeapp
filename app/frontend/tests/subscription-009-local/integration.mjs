@@ -7,8 +7,8 @@ import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
   trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
-  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics} from './local-runtime.mjs';
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails,checkedBillingPolicy,requestTransportResult} from './safety.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics,ownedServiceDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
@@ -156,20 +156,31 @@ async function exercise(source,credentials){
       for(const file of migrationFiles.slice(0,6))sql(fs.readFileSync(path.join(source,file),'utf8'));
       sql("insert into public."+prefix+"payment_environment(singleton,mode) values(true,'test');");
     },true);
-    async function rpc(client,name,args){
+    async function rpc(client,name,args,observe=()=>{}){
       const deadline=Date.now()+8000;
-      while(true){const r=await client.rpc(prefix+name,args);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
+      while(true){const r=await client.rpc(prefix+name,args);observe(r);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
     }
+    let fixtureCreateAttempts=0,fixtureCreateSucceeded=0;
     async function newAccount(trial=true,authAccount=null){
       // Labels are fixed A/B fixture positions, never user identifiers. Later
       // groups retain its operations with closed fixture-stage diagnostics.
       const at=(step,operation)=>authAccount===null?nativeStage(phase,'fixture_'+step,operation):realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
-      const createStart=guard.state.calls.length,requestStart=Date.now();let created;
+      const createStart=guard.state.calls.length,requestStart=Date.now(),attempt=++fixtureCreateAttempts;let created;
       try{
         created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
           ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
+        fixtureCreateSucceeded++;
       }catch(error){
+        if(authAccount===null){
+          error.fixtureCreateAttempt=attempt;error.fixtureCreateSucceeded=fixtureCreateSucceeded;
+          error.requestTransport=requestTransportResult(guard.state.calls.slice(createStart));
+          Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+          if(error.fixtureCreateHttp==='http_5xx'){
+            error.fixtureCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
+            error.fixtureCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+          }
+        }
         if(authAccount!==null&&error.authCreateHttp==='http_5xx'){
           error.authCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
           error.authCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
@@ -364,7 +375,13 @@ async function exercise(source,credentials){
           at('expired_fixture',()=>assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true),state);
         }
         const evidence=at('read_evidence',()=>billingRows(A.id),state);
-        await at('billing_policy',async()=>assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id})).data,false),state);
+        const policyStart=guard.state.calls.length;
+        await at('billing_policy',async()=>{
+          try{return await checkedBillingPolicy(async observe=>{
+            assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id},observe)).data,false);
+          },()=>guard.state.calls.slice(policyStart));}
+          catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));throw error;}
+        },state);
         at('evidence_seeded',()=>{for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);},state);
         await at('adapter_denial',async()=>assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409),state);
         // Call GoTrue directly too: bypassing the Edge precheck must not bypass 008.
