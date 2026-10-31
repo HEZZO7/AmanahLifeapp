@@ -1,3 +1,4 @@
+import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -138,7 +139,7 @@ export default function Settings() {
       }
 
       const response = await fetch(
-        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_delete_account',
+        edgeFunctionUrl('app_11941c8fec_delete_account'),
         {
           method: 'POST',
           headers: {

@@ -6,8 +6,9 @@ import {randomBytes} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {API_ORIGIN,APPROVAL,CHECKS,CLEANUP_TABLES,SOURCE_COMMIT,SDK_VERSION,
-  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus} from './safety.mjs';
-import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,verifySource,verifyPackage,stopSessions} from './local-runtime.mjs';
+  trafficGuard,uuid,summarize,workspace,failureLatch,expectSQLFailure,throwIfDatabaseInfrastructure,localStatus,commandFailureDetails,
+  workerStageFailure,workerFailureDetails,workerStageSignal,realAuthStage,realAuthFailureDetails,checkedAuthCreate,createdAuthIdentity,authCreateHttpResult,authCreateOriginResult,nativeStage,nativeFailureDetails,checkedBillingPolicy,requestTransportResult,checkedRollbackToken,tokenLifetimeEvidence} from './safety.mjs';
+import {Failure,prepare,cleanup,shutdown,sql,jsonSQL,withSessions,waitForBlock,waitForBlockedCount,runIsolatedWorker,initializeWorker,workerRuntimeDirectory,verifySource,verifyPackage,stopSessions,authServerDiagnostics,ownedServiceDiagnostics,gatewayDiagnostics} from './local-runtime.mjs';
 
 const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',import.meta.url)));
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
@@ -16,6 +17,11 @@ const q=id=>"'"+uuid(id)+"'";
 const results=[],observations={};let phase='preflight',cleanupPassed=false,workingDirectory;
 const assertSQLState=(error,expected)=>{throwIfDatabaseInfrastructure(error);assert.equal(error?.code,expected);};
 const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
+let workerMode=false,activeWorkerStage=null,workerTempDirectory;
+function notifyWorkerStage(stage){
+  const signal=workerStageSignal(stage);activeWorkerStage=stage;
+  if(workerMode)process.stdout.write(signal);
+}
 export function options(args){
   const out={};
   for(let i=0;i<args.length;i++){
@@ -35,7 +41,8 @@ async function check(id,fn,fatal=false){
   catch(error){
     const infrastructure=error instanceof Failure;
     results.push({id,result:infrastructure?'infrastructure_failed':'failed',
-      ...(infrastructure?{category:error.category,exit:error.exitCode}:{category:'assertion_failed'})});
+      ...(infrastructure?{category:error.category,exit:error.exitCode}:{category:'assertion_failed'}),
+      ...(id==='real_auth_jwt'?realAuthFailureDetails(error):{}),...nativeFailureDetails(error,id)});
     if(fatal)throw new Failure('prerequisite_failed');
   }
   emit(results.at(-1));
@@ -129,40 +136,84 @@ function verifyMetadata(m){
 }
 
 async function exercise(source,credentials){
+  notifyWorkerStage('worker_client_setup');
   const originalFetch=globalThis.fetch,originalDeno=globalThis.Deno;
   const guard=trafficGuard(originalFetch);globalThis.fetch=guard.fetch;
   try{
+    notifyWorkerStage('worker_sdk_import');
     const {createClient}=await import('@supabase/supabase-js');
+    notifyWorkerStage('worker_sdk_version');
     assert.equal(JSON.parse(read('./node_modules/@supabase/supabase-js/package.json')).version,SDK_VERSION);
+    notifyWorkerStage('worker_client_setup');
     const sdk=key=>createClient(API_ORIGIN,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
     const admin=sdk(credentials.service),anon=sdk(credentials.anon);
     const migrationFiles=manifest.migrationOrder;
+    notifyWorkerStage('worker_migration_order');
     assert.deepEqual(migrationFiles.map(f=>f.match(/00([1-9])_/)[1]),['1','2','3','4','5','8','9']);
+    notifyWorkerStage(null);
     await check('schema_dependencies',()=>{
       sql(read('./fixture.sql'));
       for(const file of migrationFiles.slice(0,6))sql(fs.readFileSync(path.join(source,file),'utf8'));
       sql("insert into public."+prefix+"payment_environment(singleton,mode) values(true,'test');");
     },true);
-    async function rpc(client,name,args){
+    async function rpc(client,name,args,observe=()=>{}){
       const deadline=Date.now()+8000;
-      while(true){const r=await client.rpc(prefix+name,args);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
+      while(true){const r=await client.rpc(prefix+name,args);observe(r);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
     }
-    async function newAccount(trial=true){
+    let fixtureCreateAttempts=0,fixtureCreateSucceeded=0;
+    async function newAccount(trial=true,authAccount=null){
+      // Labels are fixed A/B fixture positions, never user identifiers. Later
+      // groups retain its operations with closed fixture-stage diagnostics.
+      const at=(step,operation)=>authAccount===null?nativeStage(phase,'fixture_'+step,operation):realAuthStage(authAccount+'_'+step,operation);
       const email='migration009-'+randomBytes(8).toString('hex')+'@example.invalid',password=randomBytes(24).toString('base64url')+'aA1!';
-      const created=await admin.auth.admin.createUser({email,password,email_confirm:true});assert.equal(created.error,null);
-      const client=sdk(credentials.anon),signed=await client.auth.signInWithPassword({email,password});assert.equal(signed.error,null);
-      const user={id:uuid(created.data.user.id),client,token:signed.data.session.access_token};
-      const verified=await client.auth.getUser(user.token);assert.equal(verified.error,null);assert.equal(verified.data.user.id,user.id);
-      if(trial){const r=await rpc(client,'start_trial');assert.equal(r.error,null);assert.equal(r.data.error,null);}
-      else sql('insert into '+sub+'(user_id) values('+q(user.id)+');');
-      for(const table of CLEANUP_TABLES.slice(1))sql('insert into public.'+prefix+table+"(user_id,marker) values("+q(user.id)+",'synthetic-private');");
+      const createStart=guard.state.calls.length,requestStart=Date.now(),attempt=++fixtureCreateAttempts;let created;
+      try{
+        created=await at('create_user',()=>checkedAuthCreate(()=>admin.auth.admin.createUser({email,password,email_confirm:true}),
+          ()=>authCreateHttpResult(guard.state.calls.slice(createStart))));
+        fixtureCreateSucceeded++;
+      }catch(error){
+        if(authAccount===null){
+          error.fixtureCreateAttempt=attempt;error.fixtureCreateSucceeded=fixtureCreateSucceeded;
+          error.requestTransport=requestTransportResult(guard.state.calls.slice(createStart));
+          Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+          if(error.fixtureCreateHttp==='http_5xx'){
+            error.fixtureCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
+            error.fixtureCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+            error.gatewayFailure=gatewayDiagnostics(workingDirectory,requestStart,Date.now(),'auth_create');
+          }
+        }
+        if(authAccount!==null&&error.authCreateHttp==='http_5xx'){
+          error.authCreateOrigin=authCreateOriginResult(guard.state.calls.slice(createStart));
+          error.authCreateServer=authServerDiagnostics(workingDirectory,requestStart,Date.now());
+        }
+        throw error;
+      }
+      const client=sdk(credentials.anon),signed=await at('password_signin',async()=>{
+        const r=await client.auth.signInWithPassword({email,password});assert.equal(r.error,null);return r;
+      });
+      const user={id:await at('created_identity',()=>createdAuthIdentity(created)),client,
+        token:await at('session_token',()=>signed.data.session.access_token)};
+      const verified=await at('verify_token',async()=>{
+        const r=await client.auth.getUser(user.token);assert.equal(r.error,null);return r;
+      });
+      await at('verified_identity',()=>assert.equal(verified.data.user.id,user.id));
+      if(trial){
+        const r=await at('trial_rpc',async()=>{const response=await rpc(client,'start_trial');assert.equal(response.error,null);return response;});
+        await at('trial_result',()=>assert.equal(r.data.error,null));
+      }else await at('seed_subscription',()=>sql('insert into '+sub+'(user_id) values('+q(user.id)+');'));
+      await at('seed_personal_data',()=>{
+        for(const table of CLEANUP_TABLES.slice(1))sql('insert into public.'+prefix+table+"(user_id,marker) values("+q(user.id)+",'synthetic-private');");
+      });
       return user;
     }
     let A,B,handler,baselineA,baselineB,originalTrial;
     await check('real_auth_jwt',async()=>{
-      A=await newAccount(false);B=await newAccount(true);assert.notEqual(A.id,B.id);
-      assert.equal((await anon.auth.getUser('invalid-synthetic-token')).error!==null,true);
-      originalTrial=accountRows(B.id).subscriptions;assert.equal(originalTrial.length,1);assert.equal(originalTrial[0].trial_used,true);
+      A=await newAccount(false,'a');B=await newAccount(true,'b');
+      await realAuthStage('distinct_identities',()=>assert.notEqual(A.id,B.id));
+      await realAuthStage('reject_invalid_token',async()=>assert.equal((await anon.auth.getUser('invalid-synthetic-token')).error!==null,true));
+      originalTrial=await realAuthStage('read_trial_snapshot',()=>accountRows(B.id).subscriptions);
+      await realAuthStage('trial_row_count',()=>assert.equal(originalTrial.length,1));
+      await realAuthStage('trial_used',()=>assert.equal(originalTrial[0].trial_used,true));
     },true);
     await check('migration_idempotency_metadata',async()=>{
       const dataBefore=[accountRows(A.id),accountRows(B.id),billingRows(A.id),billingRows(B.id)];
@@ -229,69 +280,83 @@ async function exercise(source,credentials){
     await check('rollback_each_cleanup_phase',async()=>{
       try{
         for(const stage of [...CLEANUP_TABLES,'auth']){
-          fault(B.id,stage);const hit=witness(),before=accountRows(B.id),links=authLinkCounts(B.id);
-          assert.equal((await remove(B,{user_id:A.id})).status,503);
-          assert.equal(witness(),hit+1,'Fault must execute after verified real cleanup, not an earlier failure');
-          assert.deepEqual(accountRows(B.id),before);assert.deepEqual(accountRows(A.id),baselineA);
-          assert.deepEqual(authLinkCounts(B.id),links);
-          const verified=await B.client.auth.getUser(B.token);assert.equal(verified.error,null);assert.equal(verified.data.user.id,B.id);
+          const at=(step,operation)=>nativeStage('rollback_each_cleanup_phase',step,operation,{cleanupPhase:stage});
+          at('install_fault',()=>fault(B.id,stage));
+          const {hit,before,links}=at('read_before',()=>({hit:witness(),before:accountRows(B.id),links:authLinkCounts(B.id)}));
+          await at('delete_status',async()=>assert.equal((await remove(B,{user_id:A.id})).status,503));
+          at('witness_increment',()=>assert.equal(witness(),hit+1,'Fault must execute after verified real cleanup, not an earlier failure'));
+          at('account_rollback',()=>assert.deepEqual(accountRows(B.id),before));
+          at('control_unchanged',()=>assert.deepEqual(accountRows(A.id),baselineA));
+          at('auth_links_rollback',()=>assert.deepEqual(authLinkCounts(B.id),links));
+          const tokenStart=guard.state.calls.length,tokenTime=Date.now();
+          const verified=await at('token_valid',async()=>{
+            try{return await checkedRollbackToken(async observe=>{
+              const verified=await B.client.auth.getUser(B.token);observe(verified);assert.equal(verified.error,null);return verified;
+            },()=>guard.state.calls.slice(tokenStart),()=>tokenLifetimeEvidence(B.token));}
+            catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+              if(error.rollbackTokenHttp==='http_5xx')error.gatewayFailure=gatewayDiagnostics(workingDirectory,tokenTime,Date.now(),'auth_user');throw error;}
+          });
+          at('token_identity',()=>assert.equal(verified.data.user.id,B.id));
         }
         faultProof=true;
-      }finally{clearFault(B.id);}
+      }finally{nativeStage('rollback_each_cleanup_phase','clear_fault',()=>clearFault(B.id));}
     });
-    await check('failed_delete_preserves_trial',()=>{assert.equal(faultProof,true);assert.deepEqual(accountRows(B.id),baselineB);});
+    await check('failed_delete_preserves_trial',()=>{nativeStage('failed_delete_preserves_trial','fault_proof',()=>assert.equal(faultProof,true));nativeStage('failed_delete_preserves_trial','trial_snapshot',()=>assert.deepEqual(accountRows(B.id),baselineB));});
     await check('failed_delete_cannot_restart_trial',async()=>{
-      assert.equal(faultProof,true);const r=await rpc(B.client,'start_trial');assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used');
-      assert.deepEqual(accountRows(B.id),baselineB);
+      const at=(step,operation)=>nativeStage('failed_delete_cannot_restart_trial',step,operation);
+      at('fault_proof',()=>assert.equal(faultProof,true));
+      const r=await at('trial_rpc',async()=>{const r=await rpc(B.client,'start_trial');assert.equal(r.error,null);return r;});
+      at('trial_result',()=>assert.equal(r.data.error,'trial_already_used'));
+      at('trial_snapshot',()=>assert.deepEqual(accountRows(B.id),baselineB));
     });
     await check('checkout_wins_race',async()=>{
       const user=await newAccount(false);
-      await withSessions(['a009-checkout-first','a009-delete-second'],async([checkout,deletion])=>{
+      await nativeStage('checkout_wins_race','race_sessions',()=>withSessions(['a009-checkout-first','a009-delete-second'],async([checkout,deletion])=>{
       const [cpid,dpid]=await Promise.all([checkout.pid(),deletion.pid()]);assert.notEqual(cpid,dpid);
       await checkout.query('begin;'+reserveSQL(user.id,'a'));await deletion.query('begin;');
       const pending=deletion.query('delete from auth.users where id='+q(user.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(dpid,cpid);await checkout.finish('commit;');
-      const outcome=await pending;expectSQLFailure(outcome,'42501');
+      const outcome=await pending;nativeStage('checkout_wins_race','expected_sql_failure',()=>expectSQLFailure(outcome,'42501'));
       assert.ok(accountRows(user.id).auth);assert.equal(billingRows(user.id).intents.length,1);
-      });
+      }));
       // Also exercise an already-locked subscription projection update. The
       // nested 008 subscription DELETE guard must see the committed paid state.
       const projected=await newAccount();
-      await withSessions(['a009-paid-update','a009-paid-delete'],async([writer,blockedDelete])=>{
+      await nativeStage('checkout_wins_race','race_sessions',()=>withSessions(['a009-paid-update','a009-paid-delete'],async([writer,blockedDelete])=>{
       const [wpid,bpid]=await Promise.all([writer.pid(),blockedDelete.pid()]);assert.notEqual(wpid,bpid);
       await writer.query("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";");
       await blockedDelete.query('begin;');
       const blocked=blockedDelete.query('delete from auth.users where id='+q(projected.id)+';').then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(bpid,wpid);await writer.finish('commit;');
-      const denied=await blocked;expectSQLFailure(denied,'42501');
+      const denied=await blocked;nativeStage('checkout_wins_race','expected_sql_failure',()=>expectSQLFailure(denied,'42501'));
       const surviving=accountRows(projected.id);assert.ok(surviving.auth);assert.equal(surviving.subscriptions[0].tier,'balanced');assert.equal(surviving.subscriptions[0].trial_used,true);
-      });
+      }));
     });
     await check('deletion_wins_race',async()=>{
       const user=await newAccount();
-      await withSessions(['a009-delete-first','a009-checkout-second'],async([deletion,checkout])=>{
+      await nativeStage('deletion_wins_race','race_sessions',()=>withSessions(['a009-delete-first','a009-checkout-second'],async([deletion,checkout])=>{
       const [dpid,cpid]=await Promise.all([deletion.pid(),checkout.pid()]);assert.notEqual(dpid,cpid);
       await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');await checkout.query('begin;');
       const pending=checkout.query(reserveSQL(user.id,'b')).then(()=>({ok:true}),error=>({ok:false,error}));
       await waitForBlock(cpid,dpid);await deletion.finish('commit;');
-      const outcome=await pending;expectSQLFailure(outcome,'23503');assertDeleted(user.id);
-      });
+      const outcome=await pending;nativeStage('deletion_wins_race','expected_sql_failure',()=>expectSQLFailure(outcome,'23503'));assertDeleted(user.id);
+      }));
     });
     await check('trial_races_deletion',async()=>{
       for(const rollback of [true,false]){
         const user=await newAccount(rollback),before=accountRows(user.id);
-        await withSessions([rollback?'a009-trial-rollback':'a009-trial-commit'],async([deletion])=>{
+        await nativeStage('trial_races_deletion','race_sessions',()=>withSessions([rollback?'a009-trial-rollback':'a009-trial-commit'],async([deletion])=>{
         const pid=await deletion.pid();await deletion.query('begin;delete from auth.users where id='+q(user.id)+';');
         const pending=rpc(user.client,'start_trial');await waitForBlockedCount(pid);
         await deletion.finish(rollback?'rollback;':'commit;');const r=await pending;
         if(rollback){assert.equal(r.error,null);assert.equal(r.data.error,'trial_already_used');assert.deepEqual(accountRows(user.id),before);}
         else{assertSQLState(r.error,'23503');assertDeleted(user.id);}
-        });
+        }));
       }
     });
     await check('simultaneous_auth_deletions',async()=>{
       const user=await newAccount();
-      await withSessions(['a009-double-delete'],async([locker])=>{const pid=await locker.pid();
+      await nativeStage('simultaneous_auth_deletions','race_sessions',()=>withSessions(['a009-double-delete'],async([locker])=>{const pid=await locker.pid();
       await locker.query('begin;select id from auth.users where id='+q(user.id)+' for update;');
       const start=guard.state.calls.length;
       const pending=Promise.all([remove(user),remove(user)]).then(responses=>({responses}),()=>({failure:true}));
@@ -303,32 +368,44 @@ async function exercise(source,credentials){
       await waitForBlockedCount(pid,2);await locker.finish('commit;');
       const outcome=await pending;assert.equal(outcome.failure,undefined);const responses=outcome.responses;assert.ok(responses.some(r=>r.status===200));
       for(const r of responses)assert.ok([200,503].includes(r.status));assertDeleted(user.id);
-      });
+      }));
     });
     let billingBefore;
     await check('billing_history_retention',async()=>{
-      sql("begin;"+reserveSQL(A.id,'c')+
+      const at=(step,operation,billingState)=>nativeStage('billing_history_retention',step,operation,billingState?{billingState}:{});
+      at('seed_billing',()=>sql("begin;"+reserveSQL(A.id,'c')+
         "insert into public."+prefix+"payment_bindings(mode,subscription_id,user_id,customer_id,order_id,product_id,variant_id,tier,billing,last_state) values('test','8008',"+q(A.id)+",'8009','8010','8002','8003','balanced','monthly','{\"provider_status\":\"active\"}');"+
-        "insert into public."+prefix+"payment_periods(mode,subscription_id,proof_id,user_id,kind,access_start,access_end,confirmed_at,tier,billing,product_id,variant_id) values('test','8008','8011',"+q(A.id)+",'renewal',now()-interval '1 day',now()+interval '14 days',now()-interval '1 day','balanced','monthly','8002','8003');commit;");
+        "insert into public."+prefix+"payment_periods(mode,subscription_id,proof_id,user_id,kind,access_start,access_end,confirmed_at,tier,billing,product_id,variant_id) values('test','8008','8011',"+q(A.id)+",'renewal',now()-interval '1 day',now()+interval '14 days',now()-interval '1 day','balanced','monthly','8002','8003');commit;"));
       for(const state of ['active','expired','refunded']){
-        sql("update public."+prefix+"payment_bindings set last_state=jsonb_build_object('provider_status','"+state+"') where user_id="+q(A.id)+";");
-        if(state!=='active')sql("update public."+prefix+"payment_intents set expires_at=now()-interval '1 second' where user_id="+q(A.id)+";update public."+prefix+"payment_periods set access_end=now()-interval '1 second',revoked_at=now()-interval '1 second' where user_id="+q(A.id)+";");
+        at('set_billing_state',()=>sql("update public."+prefix+"payment_bindings set last_state=jsonb_build_object('provider_status','"+state+"') where user_id="+q(A.id)+";"),state);
+        if(state!=='active')at('expire_evidence',()=>sql("update public."+prefix+"payment_intents set expires_at=now()-interval '1 second' where user_id="+q(A.id)+";update public."+prefix+"payment_periods set access_end=now()-interval '1 second',revoked_at=now()-interval '1 second' where user_id="+q(A.id)+";"),state);
         if(state!=='active'){
-          assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true);
+          at('expired_fixture',()=>assert.equal(jsonSQL("select to_jsonb(not exists(select 1 from public."+prefix+"payment_periods where user_id="+q(A.id)+" and access_end>now() and revoked_at is null) and not exists(select 1 from public."+prefix+"payment_intents where user_id="+q(A.id)+" and expires_at>now()) and not exists(select 1 from "+sub+" where user_id="+q(A.id)+" and (tier<>'free' or paid_access_from is not null or paid_access_until is not null)) and not exists(select 1 from public."+prefix+"payment_bindings where user_id="+q(A.id)+" and last_state->>'provider_status' not in ('expired','refunded')));"),true),state);
         }
-        const evidence=billingRows(A.id);assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id})).data,false);
-        for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);
-        assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409);
+        const evidence=at('read_evidence',()=>billingRows(A.id),state);
+        const policyStart=guard.state.calls.length,policyTime=Date.now();
+        await at('billing_policy',async()=>{
+          try{return await checkedBillingPolicy(async observe=>{
+            assert.equal((await rpc(admin,'account_deletion_allowed',{p_user:A.id},observe)).data,false);
+          },()=>guard.state.calls.slice(policyStart));}
+          catch(error){Object.assign(error,ownedServiceDiagnostics(workingDirectory));
+            if(error.rpcHttp==='http_5xx')error.gatewayFailure=gatewayDiagnostics(workingDirectory,policyTime,Date.now(),'billing_policy');throw error;}
+        },state);
+        at('evidence_seeded',()=>{for(const table of ['accounts','intents','bindings','periods'])assert.ok(evidence[table].length>0);},state);
+        await at('adapter_denial',async()=>assert.equal((await remove(A,{user_id:B.id,cancelled:true,status:'expired'})).status,409),state);
         // Call GoTrue directly too: bypassing the Edge precheck must not bypass 008.
-        assert.ok((await admin.auth.admin.deleteUser(A.id,false)).error);
-        assert.deepEqual(billingRows(A.id),evidence);assert.deepEqual(accountRows(A.id),baselineA);
+        await at('direct_auth_denial',async()=>assert.ok((await admin.auth.admin.deleteUser(A.id,false)).error),state);
+        at('billing_unchanged',()=>assert.deepEqual(billingRows(A.id),evidence),state);
+        at('account_unchanged',()=>assert.deepEqual(accountRows(A.id),baselineA),state);
       }
-      billingBefore=billingRows(A.id);
+      billingBefore=at('save_billing',()=>billingRows(A.id));
       // Legacy/current paid projections must also block even without a ledger.
       const projected=await newAccount(false);
-      sql("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',status='active',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";commit;");
-      const saved=accountRows(projected.id);assert.equal((await remove(projected)).status,409);
-      assert.ok((await admin.auth.admin.deleteUser(projected.id,false)).error);assert.deepEqual(accountRows(projected.id),saved);
+      at('seed_projection',()=>sql("begin;select set_config('amanahlife.trusted_payment_write','yes',true);update "+sub+" set tier='balanced',status='active',paid_access_from=now()-interval '1 day',paid_access_until=now()+interval '1 day' where user_id="+q(projected.id)+";commit;"));
+      const saved=at('read_projection',()=>accountRows(projected.id));
+      await at('projection_adapter_denial',async()=>assert.equal((await remove(projected)).status,409));
+      await at('projection_auth_denial',async()=>assert.ok((await admin.auth.admin.deleteUser(projected.id,false)).error));
+      at('projection_unchanged',()=>assert.deepEqual(accountRows(projected.id),saved));
     });
     async function family(owner,member){
       const created=await owner.client.from(prefix+'families').insert({owner_user_id:owner.id,name:'Synthetic family'}).select('id,join_code').single();
@@ -377,8 +454,9 @@ async function exercise(source,credentials){
     // Test the actual review finding as well: BEFORE, unlike AFTER, may veto a
     // DELETE without throwing. These are ordinary mandatory FAILING assertions
     // on the approved vulnerable source, never xfail/skip/green conversions.
-    const adversarial=await newAccount(),adversarialBefore=accountRows(adversarial.id);let attempted=false;
-    sql(nullTriggerSQL(adversarial.id,'BEFORE'));
+    phase='unreviewed_trigger_readiness';
+    const adversarial=await newAccount(),adversarialBefore=nativeStage('unreviewed_trigger_readiness','fixture_snapshot',()=>accountRows(adversarial.id));let attempted=false;
+    nativeStage('unreviewed_trigger_readiness','install_null_trigger',()=>sql(nullTriggerSQL(adversarial.id,'BEFORE')));
     try{
       await check('unreviewed_trigger_readiness',async()=>{
         const r=await rpc(admin,'account_deletion_ready');assert.equal(r.error,null);
@@ -391,6 +469,13 @@ async function exercise(source,credentials){
         observations.beforeNullWitnessReached=witness()===hit+1;
         assert.deepEqual(accountRows(adversarial.id),adversarialBefore,'A vetoed Auth deletion must preserve the entire trial/account');
         assert.notEqual(response.status,200,'Do not report successful deletion while Auth remains');
+        assert.equal(witness(),hit,'Readiness must block the adapter before Auth DELETE');
+        // Bypass the HTTP readiness preflight to model DDL committed between
+        // preflight and DELETE. The DB cleanup guard must fail before erasure.
+        const direct=await admin.auth.admin.deleteUser(adversarial.id,false);
+        assert.ok(direct.error,'Direct Auth deletion must reject a late unreviewed veto');
+        assert.equal(witness(),hit,'Late veto must not run after destructive cleanup');
+        assert.deepEqual(accountRows(adversarial.id),adversarialBefore);
       });
       await check('before_delete_null_cannot_restart_trial',async()=>{
         assert.equal(attempted,true);const r=await rpc(adversarial.client,'start_trial');assert.equal(r.error,null);
@@ -416,7 +501,13 @@ export async function execute(opts){
     const prepared=await prepare(opts,manifest,name=>{phase=name;emit({phase:name,result:'started'});});
     phase='isolated_worker';const {report}=runIsolatedWorker(prepared,new URL(import.meta.url).pathname);
     results.push(...report.checks);Object.assign(observations,report.observations);
-    if(report.infrastructureFailure)throw new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
+    if(report.infrastructureFailure){
+      const failure=new Failure(report.infrastructureFailure.category,report.infrastructureFailure.exit);
+      Object.assign(failure,workerFailureDetails(report.infrastructureFailure));
+      const details=nativeFailureDetails(report.infrastructureFailure,report.infrastructureFailure.phase);
+      if(details.nativeStage)Object.assign(failure,details,{nativePhase:report.infrastructureFailure.phase});
+      throw failure;
+    }
     if(!report.cleanupPassed)throw new Failure('session_cleanup_failed');
   }finally{
     const previous=phase;phase='cleanup';cleanupPassed=await shutdown(workingDirectory);
@@ -424,13 +515,20 @@ export async function execute(opts){
   }
 }
 async function worker(opts){
-  phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
-  initializeWorker(workingDirectory);const source=fs.realpathSync(opts['--source']);
-  workspace(workingDirectory,fs.realpathSync(process.env.RUNNER_TEMP),source);
-  verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);verifySource(source,manifest);
-  // Private stdin only: no local JWT/key in argv, environment, or console.
-  const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
-  const input=JSON.parse(raw);assert.equal(input.approval,APPROVAL);
+  workerMode=true;phase='worker_preflight';workingDirectory=path.resolve(opts['--workdir']);
+  // Read the bounded private channel before any environment-dependent preflight.
+  notifyWorkerStage('worker_private_input');const raw=fs.readFileSync(0,'utf8');assert.ok(raw.length<65536);
+  const input=JSON.parse(raw);
+  notifyWorkerStage('worker_approval');assert.equal(input.approval,APPROVAL);
+  initializeWorker(workingDirectory,input.runtimeTemp,notifyWorkerStage);
+  workerTempDirectory=input.runtimeTemp;
+  notifyWorkerStage('worker_source_path');const source=fs.realpathSync(opts['--source']);
+  notifyWorkerStage('worker_source_workspace');
+  workspace(workingDirectory,workerTempDirectory,source);
+  notifyWorkerStage('worker_package_integrity');verifyPackage(path.dirname(new URL(import.meta.url).pathname),manifest);
+  notifyWorkerStage('worker_source_integrity');verifySource(source,manifest);
+  // Credentials remain on private stdin only, never argv/environment/console.
+  notifyWorkerStage('worker_credentials');
   const credentials=localStatus({API_URL:input.credentials.url,
     DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres',ANON_KEY:input.credentials.anon,SERVICE_ROLE_KEY:input.credentials.service});
   try{await exercise(source,credentials);}
@@ -442,7 +540,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   const publish=report=>{
     // A late rejection rewrites the already-published report as FAILED.
     if(workingDirectory){
-      const base=fs.realpathSync(process.env.RUNNER_TEMP);workspace(workingDirectory,base);
+      const base=opts?.['--worker']?workerRuntimeDirectory(workingDirectory,workerTempDirectory):fs.realpathSync(process.env.RUNNER_TEMP);workspace(workingDirectory,base);
       const file=opts?.['--worker']?path.join(workingDirectory,'worker-report.json'):
         path.join(base,path.basename(workingDirectory)+'-report.json');
       fs.writeFileSync(file,JSON.stringify(report)+'\n',{mode:0o600});
@@ -461,7 +559,12 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
   });
   let infrastructureFailure=null;
   try{opts=options(process.argv.slice(2));if(opts['--worker'])await worker(opts);else await execute(opts);}
-  catch(error){infrastructureFailure={phase,category:error instanceof Failure?error.category:'assertion_failed',exit:error instanceof Failure?error.exitCode:1};}
+  catch(error){
+    const failure=activeWorkerStage?workerStageFailure(activeWorkerStage,error):error;
+    const failedPhase=CHECKS.includes(failure?.nativePhase)?failure.nativePhase:phase;
+    infrastructureFailure={phase:failedPhase,category:failure instanceof Failure?failure.category:'assertion_failed',exit:failure instanceof Failure?failure.exitCode:1,
+      ...commandFailureDetails(failure),...workerFailureDetails(failure),...nativeFailureDetails(failure,failedPhase)};
+  }
   if(opts?.['--cleanup']){
     latch.publish({mode:'cleanup',result:cleanupPassed&&!infrastructureFailure?'passed':'failed',
       cleanupPassed:cleanupPassed&&!infrastructureFailure,productionReady:false,infrastructureFailure});

@@ -13,6 +13,7 @@ export function serveAi(createHandler: (deps: AiDependencies) => (req: Request) 
     });
   };
   Deno.serve(createHandler({
+    origin: Deno.env.get('AMANAHLIFE_APP_ORIGIN'),
     user: async token => {
       const { data, error } = await clientFor(token).auth.getUser(token);
       if (error) {

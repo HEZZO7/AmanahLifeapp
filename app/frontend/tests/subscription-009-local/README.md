@@ -1,6 +1,7 @@
-# Migration 009 — isolated local integration package (NOT EXECUTED)
+# Migration 009 — isolated local integration package (native Auth run pending)
 
-Application: `c50ae2b2fd99ff8484be67b0f9e5c5c3b7f6cfdc`.
+Application: `e6dd3fc5e014ea0539df8da12a6ee84582b302b9`.
+Recovery baseline: `880faf9053b7e21c06ae10542c47ab446a04d493`.
 Preparation only. This directory installs no workflow and grants no execution,
 installation, deployment, production, provider or billing authorization.
 Every report has `productionReady=false`, including a fully passing report.
@@ -59,10 +60,163 @@ migrations must remove them. Test-only fault objects have all API grants revoked
 
 The **AFTER** trigger is a negative control: PostgreSQL ignores its return value,
 so RETURN NULL cannot veto deletion. The reviewed concern requires **BEFORE**.
-On the approved source, the last three BEFORE-related security groups are
-expected to fail if the suspected veto scenario is reproduced. This is an
-expectation, NOT an executed result. Failures remain ordinary failures, exit 1;
-do not change application code, skip them or turn them into expected passes.
+The recovery source rejects unreviewed BEFORE DELETE row/statement triggers
+in readiness and again inside the transactional cleanup. This also rejects a
+late trigger installed between HTTP preflight and direct Auth deletion. The
+adapter requires an explicit user_not_found confirmation before success, so
+an early silent veto cannot produce a false success. All 21 groups remain
+mandatory ordinary failures on any regression; none is skipped or expected-pass.
+The complete native Auth run has NOT been executed. Separate PostgreSQL 17 SQL
+fixtures and offline adapter tests are recorded in
+`docs/subscription-009-recovery-validation-ar.md`; they do not replace this run.
+
+### Narrow real Auth assertion diagnostics
+
+The supplied artifact for run `40379165351` reports `schema_dependencies` passed,
+`real_auth_jwt` failed with `assertion_failed`, and the other 19 groups untested;
+independent cleanup passed. This does not identify the failing assertion or prove
+an application, JWT-signing, Auth-service or harness defect. No historical private
+logs or response payloads are available to this package investigation.
+
+Failed `real_auth_jwt` checks now optionally include one fixed `authStage` code:
+
+| Stage | Original operation/assertion |
+|---|---|
+| `a_create_user`, `b_create_user` | Real admin createUser, require error=null |
+| `a_password_signin`, `b_password_signin` | Real password grant, require error=null |
+| `a_created_identity`, `b_created_identity` | Read and validate created UUID |
+| `a_session_token`, `b_session_token` | Read the issued session access_token |
+| `a_verify_token`, `b_verify_token` | Real GoTrue getUser(token), require error=null |
+| `a_verified_identity`, `b_verified_identity` | Verified identity equals created identity |
+| `a_seed_subscription` | Seed A's non-trial subscription using owned local SQL |
+| `a_seed_personal_data`, `b_seed_personal_data` | Seed the four personal fixture rows |
+| `b_trial_rpc` | Real authenticated start_trial RPC, require error=null |
+| `b_trial_result` | Require RPC payload error=null |
+| `distinct_identities` | Require A and B to differ |
+| `reject_invalid_token` | Real GoTrue must reject the synthetic invalid token |
+| `read_trial_snapshot`, `trial_row_count`, `trial_used` | Read B's trial snapshot; require one row and trial_used=true |
+
+A/B are fixed fixture positions, not user identifiers. Codes come from a closed
+22-value list: no error text, status payload, token, credential, email, user ID,
+URL, path or private log is emitted. Wrappers execute each original operation
+once and retain its original ordinary-failure/infrastructure-failure classification
+and exit status. All native Auth requests, JWT verification and trial assertions
+remain unchanged. Later groups use the original helper without JWT diagnostics.
+The controller accepts codes only on failed/infrastructure-failed real_auth_jwt
+entries and rejects unknown codes, codes on another group or codes on a passing
+entry. Diagnostics cannot satisfy a missing group or produce a passing result.
+
+Run `40437402291` narrows the failure to `a_create_user`, which originally wrapped
+both awaiting `admin.createUser` and asserting `response.error===null`. UUID
+validation was a later `a_created_identity` stage, so this artifact does not prove
+an identity-assertion failure. The pinned SDK converts recognized Auth errors,
+including HTTP and transport errors, into resolved `{data,error}` responses; a
+stage alone cannot distinguish them from a thrown SDK exception or bad shape.
+
+Admin-create diagnostics now add fixed `authCreateOutcome` and, for error outcomes,
+fixed `authCreateReason` hints. `request_rejected` means the original SDK operation
+threw/rejected (not proof of HTTP rejection); `response_error` means the SDK
+resolved with a non-null error; `malformed_response` means the result lacks the
+required error/data/user shape; `identity_assertion` means the original UUID
+assertion failed at a_created_identity/b_created_identity. The error=null assertion
+and UUID validation remain mandatory, with additional fail-closed shape checks.
+The request is executed once, without new retries or Auth substitutions.
+
+Reasons map only selected SDK error codes/names and HTTP status classes to a
+closed 18-value list, e.g. admin_authorization, token_rejected, input_validation,
+no_http_status, response_decode, server_error or unclassified. No raw code,
+status, message, response, identity, credential, address or URL is retained in
+diagnostics. Hints classify observed control flow and do not establish root cause.
+The controller and summary reject unknown fields' values, inconsistent stage/
+outcome pairs, missing required reasons and diagnostics on successful/other groups.
+An additional fixed `authCreateHttp` bucket is derived from the existing guarded
+fetch observation for this exact POST: no_request, no_response, http_2xx, http_4xx,
+http_5xx, http_other, unexpected_requests or unavailable. It records only whether
+an HTTP response arrived and its class, without reading its body or exposing the
+route/status. For example response_error plus http_2xx points to SDK/result
+handling after HTTP success; response_error plus http_4xx records an API/gateway
+refusal. no_http_status is an SDK hint and alone does NOT prove a transport error.
+An unavailable diagnostic never replaces or suppresses the original failure.
+Old authStage-only reports remain accepted with all original failure gates.
+
+For run `40469026749`, response_error/server_error/http_5xx proves an HTTP server
+failure on this route, not whether GoTrue, a database dependency or the gateway
+caused it. Schema DDL passing under postgres does not prove the Auth service's
+database operations work. The fixture and reviewed 001/002/003/004/005/008 do not
+install an Auth INSERT/UPDATE trigger; 008 adds a BEFORE DELETE guard only. Actual
+native bootstrap triggers and service initialization in that run remain unknown.
+
+Only after a failed A/B create request with observed http_5xx, a read-only probe
+may add `authCreateServer`. It rechecks the canonical workdir, owned source/project
+marker, isolation journal, exact Auth container name/project/full ID/nonprivileged
+status, captured PID and pinned namespace. It inspects no container environment.
+A stopped/restarted owned Auth container gets a fixed liveness code without
+reading logs or entering a stale namespace. Unverified ownership prevents reads.
+
+The probe captures at most 64 Auth log lines in the request's bounded time window,
+with a five-second cutoff and 512 KiB limit. Both stdout/stderr stay private in
+memory and are discarded; no raw log is written to disk, console or artifacts.
+Only one structured error-level api POST /admin/users completion with HTTP 5xx
+may be classified. Zero/multiple matching events report no_matching_auth_log or
+ambiguous_auth_log. This is time/operation matching, not independent request-ID
+correlation; logging delay, changed formats and ambiguity never justify a cause.
+
+Only a fixed PostgreSQL driver `(SQLSTATE <5 characters>)` marker from that
+event's error field yields database_dependency/privilege/constraint/raised_exception/
+connection/resource/timeout/transaction/data_error/other. Multiple distinct states
+give ambiguous_database_error. A structured panic gets gotrue_panic; other matched
+errors stay gotrue_server_unclassified. These 19 allowlisted codes are categories,
+not proof of a particular table, trigger, migration or root cause. No error text,
+SQLSTATE, identity, request ID, address, timestamp, SQL, connection string or log
+field is emitted. Diagnostic failure never replaces the original failed assertion,
+retries Auth, changes a group result or bypasses cleanup or source verification.
+The controller rejects unknown/misplaced server codes, including codes without
+an observed http_5xx or on a successful check. All existing gates remain mandatory.
+
+### Gateway/collector audit and Kong hosts refresh
+
+Run `40485609190` reports no_matching_auth_log, not evidence that Auth never received
+the request. Container selection checks the owned name/project/full ID, PID and
+pinned namespace, but the snapshot could precede GoTrue's completion log. A future
+Docker --until bound does not itself wait for a future record. Strict JSON format,
+64-line tail, buffering and image-format differences also limit negative evidence.
+
+The collector now follows only the SAME bounded window, still limited to 5 seconds
+and 512 KiB. If Docker keeps the stream open beyond --until, an expected SIGTERM
+timeout may supply evidence only after the window closed and only if all captured
+streams end at complete JSON lines. Buffer overflow, other exits/signals, partial
+JSON and open windows remain unavailable. Missing/ambiguous logs still prove no
+origin. No Auth retry or wider log scan is added.
+
+Kong 2.8.1 documents that /etc/hosts is snapshotted in memory and changes require
+reload. The old sequence started Kong, blocked DNS, then appended aliases without
+refreshing this snapshot. A network-none micro-test of Kong 2.8.1 reproduced HTTP
+500 before AND after an alias append, then HTTP 200 after kong reload with the same
+container PID. This establishes a harness initialization defect, not the historical
+run's root cause. The test uses Kong's own loopback Admin API as a DNS-only upstream;
+it runs no Auth/database service and does not replace any native group.
+
+After all owned aliases/readbacks are verified, preparation now reloads the SAME
+owned Kong master exactly once, checks kong health, and re-verifies all isolation
+rules before the worker. Marker, source, journal identity, full container ID/name/
+project/nonprivileged state, UID, PID and pinned namespace must agree before AND
+after reload. Any drift or reload/health failure aborts; no restart, rediscovery,
+DNS allowance, config change, sleep or retry is used in the harness.
+
+Failed admin HTTP 5xx checks may also include authCreateOrigin, based only on three
+allowlisted response headers: gateway_generated, proxy_attempted, gotrue_error_signal,
+conflicting_headers or unavailable. Numeric Kong response-latency indicates a
+Kong-produced response. Upstream-latency alone means proxy was attempted, NOT that
+GoTrue replied: Kong sets its proxy-intent flag before balancing may fail. A known
+GoTrue error header is a signal, not cryptographic provenance. Server/Via, raw
+header values, bodies, addresses and request IDs are never retained by this probe.
+Unknown/missing/contradictory evidence cannot establish a root cause. The controller
+allows these codes only on failed create checks with observed http_5xx.
+
+The standalone reproducible component test is
+`python3 ci/subscription009/reproduce-gateway-hosts.py`; it requires the two images
+already available on local Docker. It is NOT the native 21-group suite, does not
+alter CLI defaults, and verifies cleanup of its labelled disposable resources.
 
 ## Runtime architecture and safety
 
@@ -103,6 +257,26 @@ IPv6 permits only ::1. Embedded Docker DNS (127.0.0.11) is blocked to prevent
 resolver forwarding; verified local service aliases are added only to these
 owned disposable containers' /etc/hosts. This preserves internal resolution
 without permitting external DNS. No existing containers are reused or changed.
+
+Aliases are appended **in place** to each owned container's Docker-managed hosts
+backing file. Docker rejects replacement of its `/etc/hosts` bind mount with
+`docker cp` (`resource busy`, reproduced separately). The local daemon's
+`DockerRootDir` and the inspected container's `HostsPath` must agree exactly on
+`<DockerRootDir>/containers/<full-container-id>/hosts`. Labels, running state,
+PID, nonprivileged status, private IP and pinned namespace are checked again.
+The already-required host sudo runs a fixed `python3 -I` writer with private
+stdin; no shell or utility inside a service image is assumed. Directory-FD walks
+reject symlinks, and the existing single-link regular file is opened with
+`O_APPEND|O_NOFOLLOW`, never create/truncate/rename. Only validated aliases for
+discovered private peer addresses are added; conflicting existing aliases fail
+closed. Existing bytes, inode, owner and mode must survive unchanged. A read-only
+`docker cp` from the container independently verifies the result's SHA256; its
+private temporary snapshot is deleted. Unsupported daemon layout, unavailable
+sudo/storage access or a readback mismatch aborts setup before any worker.
+No DNS/firewall rule is changed by this correction. Docker removes the backing
+file with its owned container during normal ownership-scoped cleanup.
+The verified aliases are then loaded into Kong's in-memory hosts snapshot through
+the ownership-checked reload described above; kernel isolation remains installed.
 
 The SDK and real adapter run in a child process inside the owned Kong namespace,
 with the original nonroot runner UID, no-new-privileges, and all process
@@ -233,6 +407,71 @@ continue-on-error, retry, rerun or acceptance based solely on cleanup success.
 
 ## Limits and acceptance
 
+### Worker preflight diagnostics (no relaxed checks)
+
+The report from run `40315180426` identifies only `isolated_worker` and
+`assertion_failed` with zero groups accepted by the controller. That label includes controller isolation and
+identity checks, sudo/nsenter/setpriv launch, worker initialization, SDK setup and
+validation of `worker-report.json`; it does not identify a root cause by itself.
+The controller copies group results only after report validation, so zero accepted
+groups alone cannot prove that the child never attempted a group.
+
+Infrastructure reports now retain a fixed `workerStage` code for each boundary:
+controller isolation/identity/launch and report file/JSON/source/checks/observations/
+result/exit checks, or worker workspace/marker/journal/namespace/UID/GID/NoNewPrivs/
+cancel/source/package/stdin/credential/SDK/migration-order checks. No actual UID,
+path, environment value, argument, credential or error message is published.
+Before each worker preflight operation, the worker emits a two-field stage marker
+on its captured private stdout. The controller accepts only exact allowlisted
+markers and discards all other output. A `workerPreflightStage` hint can therefore
+identify the last attempted preflight check even if report publication itself
+fails. The hint is cleared before the first native group; it is never a pass.
+Valid failed worker reports preserve these codes when forwarded by the controller.
+If the child fails before producing a report, bounded `workerExit` and an optional
+fixed `workerLaunchStage` hint distinguish stderr origins `sudo`, `nsenter`,
+`setpriv` and `node`. No stderr text or arguments are retained or emitted.
+
+Run `40361669068` identified `worker_runtime_temp` before report creation.
+The old launcher supplied `RUNNER_TEMP` to sudo's environment, but did not ensure
+sudo preserved it. A disposable, network-disabled reproduction with sudo's default
+`env_reset` drops this variable; setpriv alone retains it. The historical artifact
+does not expose the actual variable or distinguish an absent path from an invalid
+one. The verified defect is reliance on environment propagation across sudo.
+
+The controller now passes its canonical, already-verified temporary directory as
+`runtimeTemp` alongside approval and credentials on private stdin. Both controller
+and worker require a bounded absolute canonical existing directory that is the
+expected workspace's direct parent; symlinks, missing paths, files, traversal and
+foreign parents fail closed. Worker initialization, source separation and report
+publication use this validated context, independent of inherited `RUNNER_TEMP`.
+The controller's own environment and independent cleanup are unchanged. No sudo
+`-E`, environment-preservation exception or credential in argv/environment is added.
+Namespace, UID/GID, ownership marker, capability drops, NoNewPrivs, immutable source,
+report integrity and cleanup requirements all remain mandatory.
+
+### Sanitized infrastructure command diagnostics
+
+The historical run `40272569296` exited before all groups with
+`phase=status, category=command_failed, exit=1`. That phase covers the four
+required-container label inspections, the CLI's
+`<workdir>/bin/supabase --workdir <workdir> status -o json`, isolation discovery,
+rule installation/verification, and owned-container hosts-file copies. It does
+not uniquely identify the CLI status command. The original report alone cannot
+establish a root cause, and cleanup success does not establish startup readiness.
+
+Failed controller subprocesses now add only
+`infrastructureFailure.diagnostic.operation` and `.reason`, selected from fixed
+allowlists. For example `supabase_status_json`, `inspect_auth_labels`,
+`bind_namespace`, `namespace_rule_insert`, or `append_owned_hosts` identifies the
+operation without publishing its arguments or resource identifiers. Reasons such
+as `permission_denied`, `object_missing`, or `resource_busy` are bounded hints
+from captured output, not verified root-cause conclusions. Unknown messages stay
+`unknown`. Executable paths, arguments, stdout/stderr, Auth status JSON, credentials
+and error messages are never included in the diagnostic. Original exit codes and
+failure categories remain nonzero; no command is retried or bypassed. The final
+integration JSON retained by the workflow carries these fields before independent
+cleanup overwrites the harness's working report path.
+
 Estimated cold execution: **15–30 minutes**, dependency availability permitting;
 the CLI start has an 18-minute bound and the isolated worker an 8-minute bound. Plan a bounded job with time for independent
 cleanup. Expected additional services cost: **$0**, using a standard public-repo
@@ -246,3 +485,172 @@ Never-billed successful deletion does not implement an email-level lifetime
 trial ledger. Historical data already lost before this fix cannot be recovered.
 Before accepting the fix, all security groups must genuinely pass; the original
 008 integration evidence remains unchanged. Production subscriptions stay NO-GO.
+
+
+### Rollback, shared fixture and billing-stage diagnostics
+
+For supplied run `40492736650`, the user-verified sanitized summary reports six
+native passes, ten assertions, one `billing_history_retention` infrastructure
+failure and four missing groups. Artifact `12729675366` could not be downloaded
+in this investigation (GitHub artifact route returned HTTP 404). The detailed
+failed assertion and the historical package/source provenance were therefore
+not independently read; the locally available pinned workflow still selects
+source `e6dd3fc5e014ea0539df8da12a6ee84582b302b9` and the preceding package
+`772f0a77f6ae1f59b360e190783939b880223cb2`.
+
+Failed checks can now include one fixed `nativeStage`, validated for that group
+in `NATIVE_CHECK_STAGES`. Rollback has ten stages distinguishing fault installation,
+snapshot acquisition, adapter status, witness increment, account/control/Auth-link
+rollback, JWT validity/identity and fault clearing. `cleanupPhase` is restricted
+to the five original cleanup table labels or `auth`. The two dependent trial
+checks distinguish the original `faultProof` prerequisite from their own snapshot
+and RPC assertions. A failed prerequisite still fails; no assertion is bypassed.
+
+Billing stages distinguish committed fixture seeding, each active/expired/refunded
+state, evidence expiry, the expired-fixture assertion, policy RPC, evidence counts,
+Edge/direct Auth denials, unchanged account/ledger snapshots, and the separate
+paid-projection control. Optional `billingState` contains only those three fixed
+states. Later groups share ten fixed fixture stages, including admin creation,
+password grant, token verification, trial RPC and personal-row seeding. Races
+retain the five awaited `withSessions` calls and original finalizers; diagnostics
+separate session work from expected SQLSTATE validation. The unguarded adversarial
+setup between groups 17 and 18 also identifies fixture snapshot/trigger setup
+failures without inventing results for the final four unexecuted groups.
+
+`database_connection_failed` remains fail-closed and keeps its prior classification.
+Optional `databaseEvidence` distinguishes `missing_error_code`, `missing_sqlstate`,
+`connection_sqlstate`, `server_shutdown`, `connection_limit`, or
+`postgrest_connection`. Missing SDK/SQLSTATE evidence is **not** proof that the
+server is down. No SQLSTATE, SDK message, response body, query, identity, path,
+URL, actual/expected assertion data, token or credential is published. The worker
+controller and summary reject unknown stages, wrong groups, passing-result
+metadata and incoherent infrastructure evidence. Original failures and exit
+classes are retained; operations are performed once, without retries added here.
+
+`ci/subscription009/reproduce-rollback-fixture.py` is a separate SQL component
+probe, never a substitute for any native group. It verifies source/package bytes,
+starts a fresh PostgreSQL 17 with network none/no ports/tmpfs data/dropped
+capabilities/no-new-privileges, creates an explicitly synthetic minimal Auth
+schema, applies the unchanged fixture and pinned migrations, and verifies all six
+fault witnesses and complete account snapshots. It also verifies fault clearing,
+a fresh subsequent connection and absence of leftover database sessions, then
+removes only its labelled owned container and anonymous volumes. It runs no
+GoTrue, JWT, provider or native Auth test. A full reproduction still requires the
+documented GitHub-hosted runner and isolation; none of those requirements changes.
+
+### Later fixture creation and billing HTTP evidence (run 41182311183)
+
+The user-verified sanitized summary for artifact `13034798945` reports the first
+11 groups passed; groups 12/13/15/16/17 failed at `fixture_create_user`, billing
+failed at `billing_policy/active` with `missing_error_code`, and the final four
+were not executed. The GitHub artifact web route returned HTTP 404 here, so its
+contents/provenance were not independently read. No historical service/transport
+root cause is established. In group 12, the failing fixture can be in either
+iteration; the stage alone does not establish which one or whether the request
+was rejected, error-bearing, or malformed.
+
+A verified diagnostic defect discarded `checkedAuthCreate`'s safe classifications
+when `nativeStage` rebuilt an ordinary Error. Later fixture failures now retain
+closed `fixtureCreateOutcome/Reason/Http` values; 5xx failures also carry the
+existing closed `fixtureCreateOrigin/Server` evidence. Synthetic counters
+`fixtureCreateAttempt/fixtureCreateSucceeded` are bounded to 1..64/0..63 and count
+attempts/acknowledged creates, **not** live users, full fixtures or erased accounts.
+They identify progress without identities. No successful create is retried.
+
+For failed billing policy assertions, `rpcOutcome` distinguishes request rejection,
+response error, malformed response and result assertion. `rpcErrorKind` distinguishes
+missing code, no error, SQL permission/other SQL, PostgREST and unknown code/shape;
+`rpcSdkHttp` and `rpcHttp` separately classify the SDK status and the actual guarded
+HTTP response. All are fixed vocabulary, never raw codes/status/messages. The
+original `data === false` assertion remains unchanged; the observer runs before
+the existing infrastructure classifier. Existing PGRST202 schema-cache polling
+is unchanged; this patch adds no Auth, RPC or HTTP retries.
+
+`requestTransport` records only allowlisted pre-SDK failure classes: timeout,
+abort, refused/reset connection, DNS, local resource, headers overflow, HTTP
+parser, ambiguous/unclassified/unavailable, or not observed. It reads only fixed
+name/code fields and at most four aggregate causes, never message/stack/body.
+The original thrown fetch error is preserved even when classification is unavailable.
+
+After a later failed create or billing policy operation, one bounded (3s) Docker
+inspect snapshots only the four owned gateway/database/Auth/REST containers. It
+rechecks source/project markers, journal, full IDs, names, non-privileged state,
+and matching PID/namespaces. `serviceGateway/Database/Auth/Rest` contain only
+running/stopped/restarted/oom_observed/unhealthy/starting/ownership_unverified/
+unavailable. Running means a matching process/namespace, **not** HTTP readiness;
+OOM and liveness snapshots do not establish cause or event timing. Restarted or
+stopped peers are never entered through stale namespaces. Inspect never reads
+Config.Env, Health.Log, State.Error, user data or server logs, and does not change
+resources or failure results. The existing bounded Auth-log classifier is reused
+only for 5xx. All new fields are validated on failed relevant stages only, in the
+worker controller and final summary; unknown/incoherent metadata fails closed.
+
+`ci/subscription009/reproduce-postgrest-transport.py` is an independent component
+probe using the exact installed SDK and `node:24.19.0-bookworm-slim`. It mounts the
+package read-only, uses network none/no ports/non-root/dropped capabilities/
+no-new-privileges/read-only root, and sends exactly one RPC to an empty container's
+loopback. It proves a real refused HTTP connection yields SDK status 0/empty code
+and the closed transport signal, without Auth, database or provider services.
+It verifies the Docker inspect template on an owned never-started container too:
+missing Health keys must use map `index`, not direct `.State.Health` access.
+All labelled component resources/volumes are removed. This does not reproduce the
+historical root cause or replace any native group. The complete native suite still
+requires the documented fresh GitHub-hosted runner; it was not dispatched here.
+
+### Stable owned Kong DNS and independent rollback-token evidence
+
+Run `41187509490` (user-verified sanitized artifact `13037800756`) first fails at
+`rollback_each_cleanup_phase/token_valid/push_subscriptions`, **before** fixture
+creation attempt 4. The witness, full account/control snapshots and Auth-link
+counts for that phase already passed; the final Auth fault phase was not reached.
+The two subsequent `fault_proof` failures do not independently prove trial loss or
+restart. Those assertions remain mandatory and fail until the entire proof passes.
+The token stage alone cannot distinguish expired/rejected JWT from gateway failure.
+
+A separate Kong 2.8.1 component reproduction established a DNS lifetime defect.
+`kong.conf_loader` and `kong.init` each initialize the same DNS client. Its retained
+`validTtl` upvalue can shorten reinserted hosts-file entries on the second init,
+despite their intended ten-year TTL. With configured TTL=1, identical unchanged
+hosts aliases initially resolved and later produced gateway DNS HTTP 500. The
+control returned 21/31 successes then 10 failures; the last request failed. One
+reload with `KONG_DNS_VALID_TTL=315360000` returned 31/31 successes beyond the old
+expiry, with the same container PID and hosts-file digest. The image's three
+relevant Lua files independently matched the public 2.8.1 tag. This proves the
+component defect; the historical runner's effective TTL/image/logs were not read,
+so it does **not** prove the exact cause of that hosted failure.
+
+The existing **single pre-test owned Kong reload** now supplies that one explicit
+non-secret environment override. It restores the reference static-host lifetime
+for the job's immutable owned peer addresses. It does not change container image,
+restart resources, reload during tests, enable Docker/external DNS, permit new
+traffic, or change real Auth/SQL assertions. Before/after ID/PID/UID/namespace and
+ownership checks, post-reload health and full firewall verification are unchanged.
+The value applies to Kong's resolver; all outbound restrictions remain enforced.
+
+Failed rollback token checks now include closed `rollbackTokenOutcome/Reason/Http`,
+optional 5xx `rollbackTokenOrigin`, and `rollbackTokenLifetime`. Lifetime is only
+local exp/nbf timing evidence; it never authenticates a token or exposes any claims.
+The real `getUser(B.token)`, error=null and identity assertions are still required,
+with no refresh/retry/mock. Billing 5xx also records its own `rpcOrigin`; it is not
+inferred from Auth failures. A proxy-attempt header alone cannot prove an upstream
+response: the real Kong probe produced that header on a refused upstream too.
+
+For these three exact failed HTTP 5xx scopes only, `gatewayFailure` reads a bounded
+private Kong log window after checking the full owned gateway ID/PID/project/
+namespace. It emits one fixed DNS/connect/timeout/closed/resource/Lua/unclassified/
+ambiguous/unavailable category, never text, arguments, paths, identities, tokens,
+URLs, request IDs or bodies. Only the pinned Nginx error-line format with the
+exact method/path is classified. Logs follow a closed request window (+1s),
+64-line tail, 512KiB cap and 5s cutoff; timeout data needs complete frames and a
+closed window. No log is written to disk. Missing matches, formats, tail loss or
+logging delay mean unavailable evidence, not proof that an upstream was untouched.
+Correlation is method/path/time, not a per-request ID or a causality guarantee.
+The controller rejects unknown, misplaced, passing or non-5xx gateway metadata.
+
+`ci/subscription009/reproduce-kong-dns-lifetime.py` runs only Kong and generic HTTP
+controls in an owned network-none namespace, without Auth/DB/provider services or
+host ports, with all capabilities dropped and no-new-privileges. It verifies the
+lifetime A/B result, unchanged PID/hosts, DNS-generated 500 versus upstream 500
+and connect-generated 502 header behavior, and the gateway classifier against
+real bounded component logs. It retains only sanitized proof and removes all its
+labelled containers/anonymous volumes. It does not replace any native group.

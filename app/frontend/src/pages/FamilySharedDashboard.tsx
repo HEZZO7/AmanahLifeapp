@@ -1,3 +1,4 @@
+import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -20,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 // to a real member list would wrongly imply they're actually shared.
 const FAMILIES_TABLE = 'app_11941c8fec_families';
 const MEMBERS_TABLE = 'app_11941c8fec_family_members';
-const FAMILY_INVITE_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_family_invite';
+const FAMILY_INVITE_ENDPOINT = edgeFunctionUrl('app_11941c8fec_family_invite');
 
 type AgeGroup = 'adult' | 'minor';
 

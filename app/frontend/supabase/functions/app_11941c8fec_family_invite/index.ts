@@ -15,6 +15,11 @@ const ALLOWED_ORIGINS = new Set([
   "https://app.amanahlife.com",
   "https://amanahlife.com",
 ]);
+try {
+  const configured = Deno.env.get('AMANAHLIFE_APP_ORIGIN');
+  const url = new URL(configured || '');
+  if (url.protocol === 'https:' && url.origin === configured) ALLOWED_ORIGINS.add(url.origin);
+} catch { /* Invalid configuration does not broaden CORS. */ }
 
 function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin");
@@ -90,7 +95,7 @@ Deno.serve(async (req: Request) => {
         .select("id, name, join_code")
         .single();
       if (createError || !created) {
-        console.error(JSON.stringify({ requestId, userId: user.id, action: "create_family_error", error: createError?.message }));
+        console.error(JSON.stringify({ requestId, event: "create_family_error" }));
         return json({ error: "Could not create family" }, 500, corsHeaders);
       }
       family = created;
@@ -106,7 +111,7 @@ Deno.serve(async (req: Request) => {
     const smtpFrom = Deno.env.get("SMTP_FROM") || smtpUser;
 
     if (!smtpHost || !smtpUser || !smtpPassword) {
-      console.error(JSON.stringify({ requestId, userId: user.id, action: "smtp_not_configured" }));
+      console.error(JSON.stringify({ requestId, event: "smtp_not_configured" }));
       // The family/code still exists even if email delivery isn't configured -
       // return it so the UI can fall back to "share this code" manually.
       return json({ familyId: family.id, joinCode: family.join_code, emailSent: false }, 200, corsHeaders);
@@ -134,10 +139,10 @@ Deno.serve(async (req: Request) => {
         </div>`;
 
       await transporter.sendMail({ from: smtpFrom, to: email, subject, html });
-      console.log(JSON.stringify({ requestId, userId: user.id, action: "invite_sent", familyId: family.id }));
+      console.log(JSON.stringify({ requestId, event: "invite_sent" }));
       return json({ familyId: family.id, joinCode: family.join_code, emailSent: true }, 200, corsHeaders);
     } catch (error) {
-      console.error(JSON.stringify({ requestId, userId: user.id, action: "smtp_send_error", error: error instanceof Error ? error.message : String(error) }));
+      console.error(JSON.stringify({ requestId, event: "smtp_send_error" }));
       return json({ familyId: family.id, joinCode: family.join_code, emailSent: false }, 200, corsHeaders);
     }
   }

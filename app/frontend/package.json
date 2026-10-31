@@ -6,7 +6,11 @@
     "build": "vite build",
     "lint": "eslint --quiet ./src",
     "preview": "vite preview",
-    "postinstall": "echo 'Dependencies installed successfully'"
+    "postinstall": "echo 'Dependencies installed successfully'",
+    "test:payments": "node --experimental-strip-types --import ./tests/deny-network.mjs --test tests/*.test.mjs",
+    "test:payments:sql": "npm --prefix tests/payment-phase2-db test",
+    "verify:subscription009": "node tests/verify-payment-baseline.mjs",
+    "check:payment-types": "tsc --noEmit --strict --allowImportingTsExtensions --module ESNext --moduleResolution Bundler --target ES2022 --lib ES2022,DOM --skipLibCheck --resolveJsonModule --allowSyntheticDefaultImports supabase/functions/_shared/lemonPayments.ts supabase/functions/_shared/verifyWebhookSignature.ts supabase/functions/_shared/aiAccess.ts supabase/functions/_shared/familyEntitlement.ts supabase/functions/_shared/paymentRuntimePolicy.ts src/lib/paymentEnvironment.ts src/lib/paymentCatalog.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -4,6 +4,7 @@ export type AiEvent = 'access_unavailable' | 'handler_error' | 'provider_error' 
   | 'receipt_parsed' | 'invalid_body' | 'fallback_tip' | 'empty_response' | 'tip_completed';
 export type AiLog = { requestId: string; event: AiEvent; status?: number };
 export type AiDependencies = {
+  origin?: string;
   user: (token: string) => Promise<{ id: string } | null>;
   entitled: (token: string) => Promise<unknown>;
   key: () => string | undefined;
@@ -22,10 +23,15 @@ export function createAiHandler(
   process: (req: Request, context: AiContext) => Promise<Response>,
   deps: AiDependencies,
 ): (req: Request) => Promise<Response> {
+  const allowedOrigins = new Set(origins);
+  try {
+    const configured = new URL(deps.origin ?? '');
+    if (configured.protocol === 'https:' && configured.origin === deps.origin) allowedOrigins.add(configured.origin);
+  } catch { /* An invalid configured origin never broadens CORS. */ }
   return async req => {
     const origin = req.headers.get('Origin');
     const corsHeaders = {
-      'Access-Control-Allow-Origin': !origin ? '*' : origins.has(origin) ? origin : 'https://app.amanahlife.com',
+      'Access-Control-Allow-Origin': !origin ? '*' : allowedOrigins.has(origin) ? origin : 'https://app.amanahlife.com',
       'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Cache-Control': 'no-store',

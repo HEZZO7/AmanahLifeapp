@@ -1,3 +1,4 @@
+import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -42,7 +43,7 @@ const CATEGORY_MAP: Record<string, string> = {
 // entirely and return a random pick from 4 hardcoded mock receipts after a fake
 // 2-second delay, despite the "AI analyzing receipt" label. Same endpoint
 // pattern as app_11941c8fec_ai_life_coach.
-const RECEIPT_SCAN_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_receipt_scan';
+const RECEIPT_SCAN_ENDPOINT = edgeFunctionUrl('app_11941c8fec_receipt_scan');
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 

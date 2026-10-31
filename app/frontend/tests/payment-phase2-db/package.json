@@ -1,0 +1,1 @@
+{"name":"amanahlife-payment-phase2-db","private":true,"type":"module","scripts":{"test":"node --import ../deny-network.mjs --test run.test.mjs"},"dependencies":{"@electric-sql/pglite":"0.3.14"}}

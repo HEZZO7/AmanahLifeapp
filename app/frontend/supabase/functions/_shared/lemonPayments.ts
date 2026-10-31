@@ -1,4 +1,5 @@
 import { verifySignature } from './verifyWebhookSignature.ts';
+import catalog from '../../../public/payment-catalog.json' with { type: 'json' };
 
 export type Mode = 'test' | 'live';
 type ObjectData = { type: string; id: string; attributes: Record<string, unknown> };
@@ -6,6 +7,7 @@ type Offer = { tier: 'balanced' | 'family'; billing: 'monthly' | 'yearly'; varia
 export type Config = {
   mode: Mode; apiKey: string; secret: string; store: string; origin: string;
   offers: Record<string, Offer>; refundPolicy: string;
+  checkoutEnabled?: boolean; discountVerified?: boolean;
 };
 type Result = { data: unknown; error: unknown };
 export type Dependencies = {
@@ -78,7 +80,9 @@ export function configuration(get: (key: string) => string | undefined, mode: Mo
   if (new Set(Object.values(offers).map(o => o.variant)).size !== 4) throw new PaymentError('Variant mapping overlaps');
   const origin = new URL(need('APP_ORIGIN')).origin;
   if (!origin.startsWith('https://')) throw new PaymentError('HTTPS application origin required');
-  return { mode, offers, origin, store: id(need('STORE_ID')), apiKey: need('API_KEY'), secret: need('WEBHOOK_SECRET'), refundPolicy: 'review_keep_current' };
+  return { mode, offers, origin, store: id(need('STORE_ID')), apiKey: need('API_KEY'), secret: need('WEBHOOK_SECRET'), refundPolicy: 'review_keep_current',
+    checkoutEnabled: get(`AMANAHLIFE_LS_${mode.toUpperCase()}_CHECKOUT_APPROVED`) === 'true',
+    discountVerified: get(`AMANAHLIFE_LS_${mode.toUpperCase()}_DISCOUNT_VERIFIED`) === 'true' };
 }
 async function rpc(d: Dependencies, name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await d.rpc(prefix + name, args);
@@ -133,6 +137,12 @@ export async function checkout(req: Request, c: Config, d: Dependencies): Promis
       return response({ url: safeProviderUrl(url) }, 200, headers);
     }
     if (b.action !== undefined) throw new PaymentError('Unsupported action', 400);
+    // Existing customers retain portal access while NEW checkout creation is paused.
+    if (c.checkoutEnabled !== true) throw new PaymentError('New checkouts are disabled', 503);
+    if (b.discountCode !== undefined && (c.discountVerified !== true || !catalog.promotion.verified
+      || b.discountCode !== catalog.promotion.code || b.offer !== catalog.promotion.offer)) {
+      throw new PaymentError('Discount requires verification', 409);
+    }
     const offer = typeof b.offer === 'string' && c.offers[b.offer];
     if (!offer) throw new PaymentError('Invalid offer', 400);
     const variant = object((await provider(d, c, `variants/${offer.variant}`)).data, 'variants', offer.variant);
@@ -162,7 +172,9 @@ export async function checkout(req: Request, c: Config, d: Dependencies): Promis
       test_mode: c.mode === 'test',
       expires_at: new Date(Date.now() + 3600000).toISOString(),
       checkout_data: { email: user.email, custom: { app_id: '11941c8fec', intent: nonce }, ...(b.discountCode ? { discount_code: b.discountCode } : {}) },
-      checkout_options: { embed: false, skip_trial: state.trial_used === true },
+      // The sole trial is the account-bound, card-free DB trial. Never stack a
+      // second provider trial on top, even when the app trial is not yet used.
+      checkout_options: { embed: false, skip_trial: true },
       product_options: { enabled_variants: [Number(offer.variant)], redirect_url: `${c.origin}/subscription?checkout=returned` },
     }, relationships: { store: { data: { type: 'stores', id: c.store } }, variant: { data: { type: 'variants', id: offer.variant } } } } };
     const created = object((await provider(d, c, 'checkouts', { method: 'POST', body: JSON.stringify(payload) })).data, 'checkouts');

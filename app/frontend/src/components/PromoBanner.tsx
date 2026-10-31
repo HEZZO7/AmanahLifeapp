@@ -5,7 +5,8 @@ import { createAppCheckout } from '@/lib/lemonSqueezyCheckout';
 
 const FIRST_USE_KEY = 'amanahlife_first_use';
 const DISMISSED_KEY = 'amanahlife_promo_dismissed';
-const COUPON_CODE = 'AMANAH30';
+import { catalog } from '@/lib/paymentCatalog';
+const COUPON_CODE = catalog.promotion.code;
 const DAYS_BEFORE_SHOW = 7;
 const DAYS_BEFORE_RESHOW = 3;
 
@@ -23,7 +24,7 @@ export default function PromoBanner() {
     }
 
     // Only show for free-tier users
-    if (tier !== 'free') {
+    if (!catalog.promotion.verified || tier !== 'free') {
       setVisible(false);
       return;
     }
@@ -85,7 +86,7 @@ export default function PromoBanner() {
         return;
       }
 
-      const result = await createAppCheckout(session.access_token, 'balanced_monthly', COUPON_CODE);
+      const result = await createAppCheckout(session.access_token, catalog.promotion.offer, COUPON_CODE);
       if (result.url) window.location.href = result.url;
     } catch {
       // Silently fail
@@ -131,10 +132,10 @@ export default function PromoBanner() {
       <div className="relative z-[1] p-5 text-center">
         <p className="text-2xl mb-2">🎉</p>
         <h3 className="text-lg font-bold text-white font-arabic leading-relaxed">
-          عرض خاص! خصم 30% على أول شهر اشتراك
+          عرض خاص! خصم {catalog.promotion.percent}% على أول شهر اشتراك
         </h3>
         <p className="text-sm text-teal-200/80 mt-1">
-          Use code <span className="font-bold text-[#D4A017]">AMANAH30</span> for 30% off your first month
+          Use code <span className="font-bold text-[#D4A017]">{COUPON_CODE}</span> for {catalog.promotion.percent}% off your first month
         </p>
 
         {/* Coupon code badge */}

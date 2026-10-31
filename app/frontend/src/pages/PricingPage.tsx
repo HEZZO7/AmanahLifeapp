@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSEO } from '@/hooks/useSEO';
 import { useNavigate } from 'react-router-dom';
+import { catalog, displayedMonthly, displayedTotal } from '@/lib/paymentCatalog';
 import PageHeader from '@/components/PageHeader';
 import Footer from '@/components/Footer';
 
@@ -20,6 +21,7 @@ export default function PricingPage() {
 
   const plans = [
     {
+      id: 'free' as const,
       name: isAr ? 'مجاني' : 'Free',
       price: { monthly: 0, yearly: 0 },
       description: isAr ? 'ابدأ رحلتك' : 'Start your journey',
@@ -30,8 +32,9 @@ export default function PricingPage() {
       highlight: false,
     },
     {
+      id: 'balanced' as const,
       name: isAr ? 'الحياة المتوازنة' : 'Balanced Life',
-      price: { monthly: 6.99, yearly: 4.89 },
+      price: { monthly: displayedMonthly('balanced', 'monthly'), yearly: displayedMonthly('balanced', 'yearly') },
       description: isAr ? 'للمستخدم الجاد' : 'For the dedicated user',
       features: isAr
         ? ['كل ميزات المجاني', 'المدرب الذكي AI', 'البحث الذكي AI', 'تحديات الادخار', 'ماسح الإيصالات', 'مؤشر الحياة الأسبوعي', 'أهداف غير محدودة', 'تصدير البيانات', 'تحليلات متقدمة']
@@ -40,8 +43,9 @@ export default function PricingPage() {
       highlight: true,
     },
     {
+      id: 'family' as const,
       name: isAr ? 'خطة العائلة' : 'Family Plan',
-      price: { monthly: 12.99, yearly: 9.09 },
+      price: { monthly: displayedMonthly('family', 'monthly'), yearly: displayedMonthly('family', 'yearly') },
       description: isAr ? 'لكل العائلة' : 'For the whole family',
       features: isAr
         ? ['كل ميزات المتوازنة', 'لوحة العائلة المشتركة', 'حتى 6 أفراد', 'ميزانية عائلية', 'أهداف مشتركة', 'تتبع الصلاة العائلي', 'دعم أولوية', 'تقارير عائلية']
@@ -71,11 +75,11 @@ export default function PricingPage() {
   const billingFaqs = [
     {
       q: isAr ? 'هل يمكنني تغيير خطتي لاحقاً؟' : 'Can I change my plan later?',
-      a: isAr ? 'نعم، يمكنك الترقية أو التخفيض في أي وقت من إعدادات الاشتراك.' : 'Yes, you can upgrade or downgrade at any time from your subscription settings.',
+      a: isAr ? 'خيارات التغيير تعتمد على المزوّد وتحتاج مراجعة الفوترة؛ لا نفترض رصيداً تناسبياً.' : 'Changes depend on provider support and billing review; no prorated credit is assumed.',
     },
     {
       q: isAr ? 'ما هي طرق الدفع المقبولة؟' : 'What payment methods are accepted?',
-      a: isAr ? 'نقبل بطاقات الائتمان والخصم عبر Lemon Squeezy و Paddle.' : 'We accept credit and debit cards via Lemon Squeezy and Paddle.',
+      a: isAr ? 'تظهر طرق الدفع المتاحة في Checkout بعد التحقق من إعدادات المزوّد.' : 'Available payment methods are shown at checkout after provider configuration is verified.',
     },
     {
       q: isAr ? 'هل هناك ضمان استرداد؟' : 'Is there a money-back guarantee?',
@@ -126,7 +130,7 @@ export default function PricingPage() {
           </div>
           {isYearly && (
             <span className="bg-[#D4A017]/20 text-[#D4A017] text-xs px-2 py-0.5 rounded-full font-medium">
-              {isAr ? 'وفر 30%' : 'Save 30%'}
+              {isAr ? 'دفع سنوي' : 'Billed yearly'}
             </span>
           )}
         </div>
@@ -151,7 +155,7 @@ export default function PricingPage() {
               <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
               <div className="mt-4 mb-5">
                 <span className="text-3xl font-bold text-foreground">
-                  ${isYearly ? plan.price.yearly : plan.price.monthly}
+                  ${(isYearly ? plan.price.yearly : plan.price.monthly).toFixed(2)}
                 </span>
                 {plan.price.monthly > 0 && (
                   <span className="text-muted-foreground text-sm">
@@ -159,6 +163,7 @@ export default function PricingPage() {
                   </span>
                 )}
               </div>
+              {plan.id !== 'free' && <p className="text-xs text-muted-foreground mb-3">{catalog.currency} {displayedTotal(plan.id, isYearly ? 'yearly' : 'monthly').toFixed(2)} / {isYearly ? (isAr ? 'سنة' : 'year') : (isAr ? 'شهر' : 'month')} · {isAr ? 'سعر إرشادي بانتظار تأكيد المزوّد؛ الضريبة قد تُضاف.' : 'Indicative; provider confirmation pending. Tax may apply.'}</p>}
               <ul className="space-y-2 mb-6">
                 {plan.features.map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">

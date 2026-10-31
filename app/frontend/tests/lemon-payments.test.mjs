@@ -4,11 +4,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { checkout, webhook, reconcile, configuration, sha256, synchronize, recoverDeliveries, reconcileBindings } from '../supabase/functions/_shared/lemonPayments.ts';
 
-const now = Date.now();
+const now = Date.parse('2026-10-31T12:00:00.000Z');
 const start = new Date(now - 86400000).toISOString();
 const end = new Date(now + 28 * 86400000).toISOString();
 const later = new Date(now + 58 * 86400000).toISOString();
-const c = { mode: 'test', apiKey: 'isolated-test-key', secret: 'isolated-test-secret', store: '1', origin: 'https://test.example', refundPolicy: 'review_keep_current', offers: { family_monthly: { tier: 'family', billing: 'monthly', variant: '2', product: '3' }, balanced_monthly: { tier:'balanced',billing:'monthly',variant:'4',product:'5' }, family_yearly:{tier:'family',billing:'yearly',variant:'6',product:'3'} } };
+const c = { checkoutEnabled: true, discountVerified: true, mode: 'test', apiKey: 'isolated-test-key', secret: 'isolated-test-secret', store: '1', origin: 'https://test.example', refundPolicy: 'review_keep_current', offers: { family_monthly: { tier: 'family', billing: 'monthly', variant: '2', product: '3' }, balanced_monthly: { tier:'balanced',billing:'monthly',variant:'4',product:'5' }, family_yearly:{tier:'family',billing:'yearly',variant:'6',product:'3'} } };
 const sub = (attrs = {}) => ({ type: 'subscriptions', id: '10', attributes: { test_mode: true, store_id: 1, customer_id: 6, product_id: 3, variant_id: 2, order_id: 20, status: 'active', created_at: start, updated_at: start, payment_processor:'stripe',first_subscription_item:{price_id:200},renews_at: end, ends_at: null, ...attrs } });
 const invoice = (attrs = {}, invoiceId = '30') => ({ type: 'subscription-invoices', id: invoiceId, attributes: { test_mode: true, store_id: 1, customer_id: 6, subscription_id: 10, billing_reason: 'initial', status: 'paid', total: 1299, refunded_amount: 0, created_at: start, updated_at: start, refunded: false, ...attrs } });
 const order = (attrs = {}) => ({ type: 'orders', id: '20', attributes: { test_mode: true, store_id: 1, customer_id: 6, status: 'paid', total: 1299, refunded_amount: 0, created_at: start, updated_at:start, refunded: false, ...attrs } });
@@ -71,6 +71,11 @@ test('checkout binds verified identity, server catalog and opaque nonce; no user
   const custom = f.payload().data.attributes.checkout_data.custom;
   assert.deepEqual(Object.keys(custom).sort(), ['app_id', 'intent']);
   assert.equal(await sha256(custom.intent), intent.p_hash);
+});
+test('an unused application trial never starts a second provider trial', async () => {
+  const f = fixture(); f.setState({revision:0,trial_used:false});
+  assert.equal((await checkout(checkoutRequest({offer:'balanced_monthly'}),c,f.d)).status,200);
+  assert.equal(f.payload().data.attributes.checkout_options.skip_trial,true);
 });
 
 test('checkout rejects identity/tier/status/variant/mode manipulation before any writes', async () => {

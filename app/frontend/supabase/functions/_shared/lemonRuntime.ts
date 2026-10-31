@@ -1,11 +1,13 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.106.0';
 import { checkout, configuration, webhook, type Mode } from './lemonPayments.ts';
+import { assertPaymentProject } from './paymentRuntimePolicy.ts';
 
 export function servePayments(kind: 'checkout' | 'webhook', mode: Mode) {
   Deno.serve(async (req: Request) => {
     try {
       const c = configuration(key => Deno.env.get(key), mode);
-      const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } });
+      const project = assertPaymentProject(mode, Deno.env.get('SUPABASE_URL'));
+      const client = createClient(project, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } });
       const dependencies = {
         rpc: async (name: string, args: Record<string, unknown>) => client.rpc(name, args),
         user: async (token: string) => {

@@ -140,8 +140,8 @@ function settingsDeletionFixture(status, code) {
     setShowDeleteDialog: value => events.push(['dialog', value]),
     setDeleteConfirmText: value => events.push(['confirm', value]),
     supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 'synthetic-token' } } }) } },
-    // A lexical fake, plus the network-deny preload, prevents the hardcoded
-    // production URL in the existing UI from ever producing a real HTTP request.
+    edgeFunctionUrl: name => 'http://127.0.0.1:1/functions/v1/' + name,
+    // A lexical fake plus the network-deny preload prohibits all real requests.
     fetch: async () => { events.push(['request']); return Response.json({ code,
       ...(code === 'account_deletion_unconfirmed' ? { error: 'Account deletion could not be confirmed. Contact support before retrying.' } : {}),
     }, { status }); },

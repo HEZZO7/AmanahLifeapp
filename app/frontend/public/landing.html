@@ -25,9 +25,9 @@
   "@type": "FAQPage",
   "mainEntity": [
     {"@type": "Question", "name": "What is AmanahLife?", "acceptedAnswer": {"@type": "Answer", "text": "AmanahLife is a personal life planning and daily log app that helps individuals and Muslim families track prayer times, Quran reading, habits, tasks, goals, and personal finances in one bilingual (Arabic/English) app, available on the web and Android."}},
-    {"@type": "Question", "name": "Is AmanahLife free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features starting at $6.99/month."}},
+    {"@type": "Question", "name": "Is AmanahLife free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features with indicative prices shown in the plan table."}},
     {"@type": "Question", "name": "How do I track my prayers with AmanahLife?", "acceptedAnswer": {"@type": "Answer", "text": "Open the Prayer Times screen to see today's five prayers calculated from your location, mark each as completed as you pray, and view your streak. AmanahLife also sends prayer-time reminders and shows Qibla direction using your device's compass."}},
-    {"@type": "Question", "name": "What's the difference between the Balanced Life and Family plans?", "acceptedAnswer": {"@type": "Answer", "text": "Balanced Life ($6.99/mo) is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan ($12.99/mo) includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning."}},
+    {"@type": "Question", "name": "What's the difference between the Balanced Life and Family plans?", "acceptedAnswer": {"@type": "Answer", "text": "Balanced Life is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning."}},
     {"@type": "Question", "name": "Can I try premium features before subscribing?", "acceptedAnswer": {"@type": "Answer", "text": "Yes! You can start with our free plan which includes core features. When you are ready to unlock AI coaching, receipt scanning, and advanced analytics, simply upgrade. You can cancel anytime with no questions asked."}},
     {"@type": "Question", "name": "Is my financial data secure?", "acceptedAnswer": {"@type": "Answer", "text": "Absolutely. We use bank-level AES-256 encryption for all data at rest and TLS 1.3 for data in transit. Your financial information is never shared with third parties. We are GDPR and CCPA compliant."}}
   ]
@@ -894,11 +894,9 @@ iframe[src*="atoms"],
     <div class="toggle-thumb"></div>
   </div>
   <span class="toggle-label" id="label-yearly" data-i18n="pricing_yearly">Yearly</span>
-  <span class="save-badge" id="saveBadge" data-i18n="pricing_save">Save 30%</span>
+  <span class="save-badge" id="saveBadge" data-i18n="pricing_save">Annual billing</span>
 </div>
-<div id="savings-banner" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:32px;background:rgba(201,151,42,0.08);border:1px solid rgba(201,151,42,0.3);border-radius:10px;padding:12px 20px;color:#C9972A;font-size:0.9rem;font-weight:600;animation:fadeInDown 0.3s ease;">
-  💰 <span data-i18n="savings_you_save">You save</span> $24<span data-i18n="savings_per_year">/year</span> <span data-i18n="savings_on_balanced">on Balanced</span> · $47<span data-i18n="savings_per_year">/year</span> <span data-i18n="savings_on_family">on Family</span>
-</div>
+<p class="price-note">أسعار إرشادية بانتظار تأكيد المزوّد. Indicative prices; provider confirmation pending.</p>
 <div class="pricing-cards reveal">
 <div class="pricing-card">
 <h3 data-i18n="plan_free_name">Free</h3>
@@ -922,16 +920,16 @@ iframe[src*="atoms"],
 <p style="font-size:0.82rem;color:var(--text-muted)" data-i18n="plan_balanced_tagline">For individuals serious about growth</p>
 <div class="price" id="balancedPrice">
 <div class="price-monthly">
-  <span class="price-amount">$6.99</span>
+  <span class="price-amount" data-catalog="balanced:monthly">—</span>
   <span class="price-period" data-i18n="price_per_month">/mo</span>
 </div>
 <div class="price-yearly" style="display:none">
   <div>
-    <span style="text-decoration:line-through;color:#9DB8B0;font-size:1rem">$6.99</span>
-    <span class="price-amount">$4.89</span>
+
+    <span class="price-amount" data-catalog="balanced:equivalent">—</span>
     <span class="price-period" data-i18n="price_per_month">/mo</span>
   </div>
-  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px"><span data-i18n="price_billed_prefix">billed</span> $58.69<span data-i18n="price_per_year">/yr</span></div>
+  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px"><span data-i18n="price_billed_prefix">billed</span> <span data-catalog="balanced:yearly">—</span><span data-i18n="price_per_year">/yr</span></div>
 </div>
 </div>
 <p class="price-note" id="balancedNote" data-i18n="plan_balanced_note">Billed monthly</p>
@@ -953,16 +951,16 @@ iframe[src*="atoms"],
 <p style="font-size:0.82rem;color:var(--text-muted)" data-i18n="plan_family_tagline">For families growing together</p>
 <div class="price" id="familyPrice">
 <div class="price-monthly">
-  <span class="price-amount">$12.99</span>
+  <span class="price-amount" data-catalog="family:monthly">—</span>
   <span class="price-period" data-i18n="price_per_month">/mo</span>
 </div>
 <div class="price-yearly" style="display:none">
   <div>
-    <span style="text-decoration:line-through;color:#9DB8B0;font-size:1rem">$12.99</span>
-    <span class="price-amount">$9.09</span>
+
+    <span class="price-amount" data-catalog="family:equivalent">—</span>
     <span class="price-period" data-i18n="price_per_month">/mo</span>
   </div>
-  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px"><span data-i18n="price_billed_prefix">billed</span> $109.09<span data-i18n="price_per_year">/yr</span></div>
+  <div style="font-size:0.8rem;color:#9DB8B0;margin-top:4px"><span data-i18n="price_billed_prefix">billed</span> <span data-catalog="family:yearly">—</span><span data-i18n="price_per_year">/yr</span></div>
 </div>
 </div>
 <p class="price-note" id="familyNote" data-i18n="plan_family_note">Billed monthly</p>
@@ -1023,15 +1021,15 @@ iframe[src*="atoms"],
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q1">Can I try premium features before subscribing?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a1">Yes! You can start with our free plan which includes core features. When you are ready to unlock AI coaching, receipt scanning, and advanced analytics, simply upgrade. You can cancel anytime with no questions asked.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q2">How does the Family Plan work?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a2">The Family Plan allows up to 6 family members to share one subscription. Each member gets their own private space plus access to shared family dashboards, budgets, goals, and accountability features. The plan owner manages invitations.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q3">Is my financial data secure?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a3">Absolutely. We use bank-level AES-256 encryption for all data at rest and TLS 1.3 for data in transit. Your financial information is never shared with third parties. We are GDPR and CCPA compliant.</p></div></div>
-<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q4">Can I switch between monthly and yearly billing?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a4">Yes, you can switch between billing cycles at any time from your account settings. When switching from monthly to yearly, you will receive a prorated credit. The yearly plan saves you approximately 30% compared to monthly billing.</p></div></div>
+<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q4">Can I switch between monthly and yearly billing?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a4">Billing changes depend on provider support and billing review; no prorated credit is assumed.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q5">What payment methods do you accept?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a5">We accept all major credit and debit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay through our secure payment processor Lemon Squeezy. All transactions are processed securely with PCI DSS compliance.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q6">How accurate are the prayer times?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a6">Our prayer times are sourced from the Aladhan API which uses established calculation methods (ISNA, MWL, Egyptian, Karachi, and more). Times are calculated based on your exact GPS coordinates for maximum accuracy.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q7">Can I export my data?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a7">Yes! You can export your financial data, goals, and activity history at any time from the Settings page. We support CSV and JSON formats. Your data belongs to you, and we make it easy to take it with you.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q8">What happens if I cancel my subscription?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a8">If you cancel, you will retain access to premium features until the end of your current billing period. After that, your account reverts to the free plan. All your data is preserved. You can resubscribe anytime to regain premium access.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q9">What is AmanahLife?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a9">AmanahLife is a personal life planning and daily log app that helps individuals and Muslim families track prayer times, Quran reading, habits, tasks, goals, and personal finances in one bilingual (Arabic/English) app, available on the web and Android.</p></div></div>
-<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q10">Is AmanahLife free?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a10">Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features starting at $6.99/month.</p></div></div>
+<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q10">Is AmanahLife free?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a10">Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features with indicative prices shown in the plan table.</p></div></div>
 <div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q11">How do I track my prayers with AmanahLife?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a11">Open the Prayer Times screen to see today's five prayers calculated from your location, mark each as completed as you pray, and view your streak. AmanahLife also sends prayer-time reminders and shows Qibla direction using your device's compass.</p></div></div>
-<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q12">What's the difference between the Balanced Life and Family plans?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a12">Balanced Life ($6.99/mo) is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan ($12.99/mo) includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning.</p></div></div>
+<div class="faq-item"><button class="faq-question" aria-expanded="false"><span data-i18n="faq_q12">What's the difference between the Balanced Life and Family plans?</span><span class="faq-arrow">&#9660;</span></button><div class="faq-answer"><p data-i18n="faq_a12">Balanced Life is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning.</p></div></div>
 </div>
 </div>
 </section>
@@ -1137,7 +1135,7 @@ iframe[src*="atoms"],
 <div class="mobile-sticky" id="mobileSticky">
 <div>
 <div class="sticky-text" data-i18n="sticky_text">Start Free Today</div>
-<div class="sticky-price" data-i18n="sticky_price">Premium from $4.89/mo</div>
+<div class="sticky-price" data-i18n="sticky_price">View current plans</div>
 </div>
 <a href="/login" target="_top" class="btn btn-primary btn-sm" data-i18n="sticky_cta">View Plans</a>
 </div>
@@ -1145,11 +1143,22 @@ iframe[src*="atoms"],
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
 <script>
-// ===== LEMON SQUEEZY CHECKOUT URLS =====
-const LS_BALANCED_MONTHLY = 'PASTE_URL_HERE';
-const LS_BALANCED_YEARLY = 'PASTE_URL_HERE';
-const LS_FAMILY_MONTHLY = 'PASTE_URL_HERE';
-const LS_FAMILY_YEARLY = 'PASTE_URL_HERE';
+// Checkout is created only after authentication in /subscription.
+
+fetch('/payment-catalog.json', { credentials: 'omit' }).then(function(response) {
+  if (!response.ok) throw new Error('Catalog unavailable');
+  return response.json();
+}).then(function(catalog) {
+  if (catalog.currency !== 'USD') return;
+  document.querySelectorAll('[data-catalog]').forEach(function(el) {
+    var key = el.getAttribute('data-catalog').split(':');
+    var offer = catalog.prices && catalog.prices[key[0]];
+    if (!offer) return;
+    var total = offer[key[1] === 'equivalent' ? 'yearly' : key[1]];
+    if (!Number.isSafeInteger(total) || total < 0) return;
+    el.textContent = '$' + (total / 100 / (key[1] === 'equivalent' ? 12 : 1)).toFixed(2);
+  });
+}).catch(function() { /* Leave unavailable prices blank. Never open a public buy-link. */ });
 
 // ===== STATE =====
 var isYearly = localStorage.getItem('pricing_yearly') === 'true';
@@ -1196,7 +1205,7 @@ var translations = {
     step_2_title:'Set Your Goals',step_2_desc:'Choose your focus areas \u2014 finances, spirituality, health, or all of the above. AI helps you plan.',
     step_3_title:'Track & Grow',step_3_desc:'Use daily tools, get AI insights, earn streaks, and watch your progress compound over time.',
     pricing_label:'Pricing',pricing_title:'Simple, Transparent Pricing',pricing_desc:'Start free, upgrade when you are ready. No hidden fees, cancel anytime.',
-    pricing_monthly:'Monthly',pricing_yearly:'Yearly',pricing_save:'Save 30%',
+    pricing_monthly:'Monthly',pricing_yearly:'Yearly',pricing_save:'Annual billing',
     savings_you_save:'You save',savings_per_year:'/year',savings_on_balanced:'on Balanced',savings_on_family:'on Family',
     price_per_month:'/mo',price_per_year:'/yr',price_billed_prefix:'billed',
     plan_free_name:'Free',plan_free_tagline:'Perfect for getting started',plan_free_period:' / forever',plan_free_note:'No credit card required',
@@ -1213,20 +1222,20 @@ var translations = {
     faq_q1:'Can I try premium features before subscribing?',faq_a1:'Yes! You can start with our free plan which includes core features. When you are ready to unlock AI coaching, receipt scanning, and advanced analytics, simply upgrade. You can cancel anytime with no questions asked.',
     faq_q2:'How does the Family Plan work?',faq_a2:'The Family Plan allows up to 6 family members to share one subscription. Each member gets their own private space plus access to shared family dashboards, budgets, goals, and accountability features.',
     faq_q3:'Is my financial data secure?',faq_a3:'Absolutely. We use bank-level AES-256 encryption for all data at rest and TLS 1.3 for data in transit. Your financial information is never shared with third parties. We are GDPR and CCPA compliant.',
-    faq_q4:'Can I switch between monthly and yearly billing?',faq_a4:'Yes, you can switch between billing cycles at any time from your account settings. The yearly plan saves you approximately 30% compared to monthly billing.',
+    faq_q4:'Can I switch between monthly and yearly billing?',faq_a4:'خيارات تغيير الفوترة تحتاج مراجعة المزوّد؛ لا نفترض رصيداً تناسبياً.',
     faq_q5:'What payment methods do you accept?',faq_a5:'We accept all major credit and debit cards, PayPal, and Apple Pay through our secure payment processor Lemon Squeezy with PCI DSS compliance.',
     faq_q6:'How accurate are the prayer times?',faq_a6:'Our prayer times are sourced from the Aladhan API using established calculation methods. Times are calculated based on your exact GPS coordinates for maximum accuracy.',
     faq_q7:'Can I export my data?',faq_a7:'Yes! You can export your financial data, goals, and activity history at any time from the Settings page in CSV and JSON formats.',
     faq_q8:'What happens if I cancel my subscription?',faq_a8:'You retain access to premium features until the end of your billing period. After that, your account reverts to the free plan. All your data is preserved.',
     faq_q9:'What is AmanahLife?',faq_a9:'AmanahLife is a personal life planning and daily log app that helps individuals and Muslim families track prayer times, Quran reading, habits, tasks, goals, and personal finances in one bilingual (Arabic/English) app, available on the web and Android.',
-    faq_q10:'Is AmanahLife free?',faq_a10:'Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features starting at $6.99/month.',
+    faq_q10:'Is AmanahLife free?',faq_a10:'Yes. The free plan includes prayer times, Qibla direction, Quran reader, dhikr counter, and basic planning tools at no cost. Paid plans (Balanced Life and Family Plan) unlock AI coaching, advanced analytics, receipt scanning, and family features with indicative prices shown in the plan table.',
     faq_q11:'How do I track my prayers with AmanahLife?',faq_a11:'Open the Prayer Times screen to see today’s five prayers calculated from your location, mark each as completed as you pray, and view your streak. AmanahLife also sends prayer-time reminders and shows Qibla direction using your device’s compass.',
-    faq_q12:'What’s the difference between the Balanced Life and Family plans?',faq_a12:'Balanced Life ($6.99/mo) is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan ($12.99/mo) includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning.',
+    faq_q12:'What’s the difference between the Balanced Life and Family plans?',faq_a12:'Balanced Life is for individuals and adds AI coaching, advanced analytics, and smart planning. Family Plan includes everything in Balanced Life plus support for up to 6 family members, a shared dashboard, and family budget planning.',
     stat_2:'Features',stat_3:'Currencies Supported',stat_4:'Uptime %',
     cta_title:'Ready to Transform Your Life?',cta_desc:'Join thousands who are already managing their lives with clarity, purpose, and peace of mind.',cta_button:'Start Your Free Journey',
     footer_desc:'Your complete smart life companion. Manage finances, track habits, plan goals, and grow spiritually \u2014 all in one app.',
     footer_product:'Product',footer_company:'Company',footer_support:'Support',footer_about:'About Us',footer_privacy:'Privacy Policy',footer_terms:'Terms of Service',footer_refund:'Refund Policy',footer_affiliate:'Affiliate Disclosure',footer_contact:'Contact Us',footer_help:'Help Center',footer_blog:'Blog',
-    sticky_text:'Start Free Today',sticky_price:'Premium from $4.89/mo',sticky_cta:'View Plans',
+    sticky_text:'Start Free Today',sticky_price:'View current plans',sticky_cta:'View Plans',
     toast_checkout_error:'Checkout not configured yet. Please try again later.',toast_checkout_fallback:'Opening checkout in new tab...',
     nav_about:'About',
     footer_copyright:'\u00A9 2026 AmanahLife, a product of LinkoraNet LLC. All rights reserved.',
@@ -1336,7 +1345,7 @@ var translations = {
     step_2_title:'\u062D\u062F\u062F \u0623\u0647\u062F\u0627\u0641\u0643',step_2_desc:'\u0627\u062E\u062A\u0631 \u0645\u062C\u0627\u0644\u0627\u062A \u062A\u0631\u0643\u064A\u0632\u0643.',
     step_3_title:'\u062A\u0627\u0628\u0639 \u0648\u0627\u0646\u0645\u064F',step_3_desc:'\u0627\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0623\u062F\u0648\u0627\u062A \u0627\u0644\u064A\u0648\u0645\u064A\u0629.',
     pricing_label:'\u0627\u0644\u0623\u0633\u0639\u0627\u0631',pricing_title:'\u0623\u0633\u0639\u0627\u0631 \u0628\u0633\u064A\u0637\u0629 \u0648\u0634\u0641\u0627\u0641\u0629',pricing_desc:'\u0627\u0628\u062F\u0623 \u0645\u062C\u0627\u0646\u0627\u064B\u060C \u062A\u0631\u0642\u0651 \u0639\u0646\u062F\u0645\u0627 \u062A\u0643\u0648\u0646 \u0645\u0633\u062A\u0639\u062F\u0627\u064B.',
-    pricing_monthly:'\u0634\u0647\u0631\u064A',pricing_yearly:'\u0633\u0646\u0648\u064A',pricing_save:'\u0648\u0641\u0651\u0631 30%',
+    pricing_monthly:'\u0634\u0647\u0631\u064A',pricing_yearly:'\u0633\u0646\u0648\u064A',pricing_save:'الدفع السنوي',
     savings_you_save:'\u062A\u0648\u0641\u0651\u0631',savings_per_year:'/\u0633\u0646\u0629',savings_on_balanced:'\u0641\u064A \u062E\u0637\u0629 \u0627\u0644\u062A\u0648\u0627\u0632\u0646',savings_on_family:'\u0641\u064A \u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629',
     price_per_month:'/\u0634\u0647\u0631',price_per_year:'/\u0633\u0646\u0629',price_billed_prefix:'\u064A\u064F\u062D\u0633\u064E\u0628 \u0628\u0642\u064A\u0645\u0629',
     plan_free_name:'\u0645\u062C\u0627\u0646\u064A',plan_free_tagline:'\u0645\u062B\u0627\u0644\u064A \u0644\u0644\u0628\u062F\u0627\u064A\u0629',plan_free_period:' / \u0644\u0644\u0623\u0628\u062F',plan_free_note:'\u0644\u0627 \u062D\u0627\u062C\u0629 \u0644\u0628\u0637\u0627\u0642\u0629 \u0627\u0626\u062A\u0645\u0627\u0646',
@@ -1352,19 +1361,19 @@ var translations = {
     faq_q1:'\u0647\u0644 \u064A\u0645\u0643\u0646\u0646\u064A \u062A\u062C\u0631\u0628\u0629 \u0627\u0644\u0645\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629\u061F',faq_a1:'\u0646\u0639\u0645! \u064A\u0645\u0643\u0646\u0643 \u0627\u0644\u0628\u062F\u0621 \u0628\u0627\u0644\u062E\u0637\u0629 \u0627\u0644\u0645\u062C\u0627\u0646\u064A\u0629 \u062B\u0645 \u0627\u0644\u062A\u0631\u0642\u064A\u0629 \u0639\u0646\u062F\u0645\u0627 \u062A\u0643\u0648\u0646 \u0645\u0633\u062A\u0639\u062F\u0627\u064B.',
     faq_q2:'\u0643\u064A\u0641 \u062A\u0639\u0645\u0644 \u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629\u061F',faq_a2:'\u062A\u0633\u0645\u062D \u0644\u0645\u0627 \u064A\u0635\u0644 \u0625\u0644\u0649 6 \u0623\u0641\u0631\u0627\u062F \u0628\u0645\u0634\u0627\u0631\u0643\u0629 \u0627\u0634\u062A\u0631\u0627\u0643 \u0648\u0627\u062D\u062F.',
     faq_q3:'\u0647\u0644 \u0628\u064A\u0627\u0646\u0627\u062A\u064A \u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u0622\u0645\u0646\u0629\u061F',faq_a3:'\u0628\u0627\u0644\u062A\u0623\u0643\u064A\u062F. \u0646\u0633\u062A\u062E\u062F\u0645 \u062A\u0634\u0641\u064A\u0631 AES-256 \u0648 TLS 1.3.',
-    faq_q4:'\u0647\u0644 \u064A\u0645\u0643\u0646\u0646\u064A \u0627\u0644\u062A\u0628\u062F\u064A\u0644 \u0628\u064A\u0646 \u0627\u0644\u0634\u0647\u0631\u064A \u0648\u0627\u0644\u0633\u0646\u0648\u064A\u061F',faq_a4:'\u0646\u0639\u0645\u060C \u064A\u0645\u0643\u0646\u0643 \u0627\u0644\u062A\u0628\u062F\u064A\u0644 \u0641\u064A \u0623\u064A \u0648\u0642\u062A.',
+    faq_q4:'\u0647\u0644 \u064A\u0645\u0643\u0646\u0646\u064A \u0627\u0644\u062A\u0628\u062F\u064A\u0644 \u0628\u064A\u0646 \u0627\u0644\u0634\u0647\u0631\u064A \u0648\u0627\u0644\u0633\u0646\u0648\u064A\u061F',faq_a4:'خيارات تغيير الفوترة تحتاج مراجعة المزوّد؛ لا نفترض رصيداً تناسبياً.',
     faq_q5:'\u0645\u0627 \u0637\u0631\u0642 \u0627\u0644\u062F\u0641\u0639 \u0627\u0644\u0645\u0642\u0628\u0648\u0644\u0629\u061F',faq_a5:'\u0646\u0642\u0628\u0644 \u062C\u0645\u064A\u0639 \u0627\u0644\u0628\u0637\u0627\u0642\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0648\u0628\u0627\u064A \u0628\u0627\u0644 \u0648\u0623\u0628\u0644 \u0628\u0627\u064A.',
     faq_q6:'\u0645\u0627 \u0645\u062F\u0649 \u062F\u0642\u0629 \u0645\u0648\u0627\u0642\u064A\u062A \u0627\u0644\u0635\u0644\u0627\u0629\u061F',faq_a6:'\u0645\u0646 \u0648\u0627\u062C\u0647\u0629 Aladhan API \u0628\u0637\u0631\u0642 \u062D\u0633\u0627\u0628 \u0645\u0639\u062A\u0645\u062F\u0629.',
     faq_q7:'\u0647\u0644 \u064A\u0645\u0643\u0646\u0646\u064A \u062A\u0635\u062F\u064A\u0631 \u0628\u064A\u0627\u0646\u0627\u062A\u064A\u061F',faq_a7:'\u0646\u0639\u0645! \u0646\u062F\u0639\u0645 CSV \u0648 JSON.',
     faq_q8:'\u0645\u0627\u0630\u0627 \u064A\u062D\u062F\u062B \u0625\u0630\u0627 \u0623\u0644\u063A\u064A\u062A\u061F',faq_a8:'\u062A\u062D\u062A\u0641\u0638 \u0628\u0627\u0644\u0648\u0635\u0648\u0644 \u062D\u062A\u0649 \u0646\u0647\u0627\u064A\u0629 \u0641\u062A\u0631\u0629 \u0627\u0644\u0641\u0648\u062A\u0631\u0629.',
     faq_q9:'\u0645\u0627 \u0647\u0648 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641\u061F',faq_a9:'\u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u062A\u0637\u0628\u064A\u0642 \u0644\u062A\u062E\u0637\u064A\u0637 \u0627\u0644\u062D\u064A\u0627\u0629 \u0648\u0627\u0644\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u064A\u0648\u0645\u064A \u064A\u0633\u0627\u0639\u062F \u0627\u0644\u0623\u0641\u0631\u0627\u062F \u0648\u0627\u0644\u0639\u0627\u0626\u0644\u0627\u062A \u0627\u0644\u0645\u0633\u0644\u0645\u0629 \u0639\u0644\u0649 \u062A\u062A\u0628\u0639 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0635\u0644\u0627\u0629 \u0648\u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0642\u0631\u0622\u0646 \u0648\u0627\u0644\u0639\u0627\u062F\u0627\u062A \u0648\u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0627\u0644\u0623\u0647\u062F\u0627\u0641 \u0648\u0627\u0644\u0634\u0624\u0648\u0646 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u0627\u0644\u0634\u062E\u0635\u064A\u0629 \u0641\u064A \u062A\u0637\u0628\u064A\u0642 \u0648\u0627\u062D\u062F \u062B\u0646\u0627\u0626\u064A \u0627\u0644\u0644\u063A\u0629\u060C \u0645\u062A\u0627\u062D \u0639\u0644\u0649 \u0627\u0644\u0648\u064A\u0628 \u0648\u0623\u0646\u062F\u0631\u0648\u064A\u062F.',
-    faq_q10:'\u0647\u0644 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0645\u062C\u0627\u0646\u064A\u061F',faq_a10:'\u0646\u0639\u0645. \u062A\u0634\u0645\u0644 \u0627\u0644\u062E\u0637\u0629 \u0627\u0644\u0645\u062C\u0627\u0646\u064A\u0629 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0635\u0644\u0627\u0629 \u0648\u0627\u062A\u062C\u0627\u0647 \u0627\u0644\u0642\u0628\u0644\u0629 \u0648\u0642\u0627\u0631\u0626 \u0627\u0644\u0642\u0631\u0622\u0646 \u0648\u0639\u062F\u0627\u062F \u0627\u0644\u0630\u0643\u0631 \u0648\u0623\u062F\u0648\u0627\u062A \u062A\u062E\u0637\u064A\u0637 \u0623\u0633\u0627\u0633\u064A\u0629 \u0645\u062C\u0627\u0646\u0627\u064B. \u0627\u0644\u062E\u0637\u0637 \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629 \u062A\u0641\u062A\u062D \u0627\u0644\u062A\u062F\u0631\u064A\u0628 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0642\u062F\u0645\u0629 \u0648\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0639\u0627\u0626\u0644\u0629 \u0628\u062F\u0621\u0627\u064B \u0645\u0646 6.99$ \u0634\u0647\u0631\u064A\u0627\u064B.',
+    faq_q10:'\u0647\u0644 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641 \u0645\u062C\u0627\u0646\u064A\u061F',faq_a10:'\u0646\u0639\u0645. \u062A\u0634\u0645\u0644 \u0627\u0644\u062E\u0637\u0629 \u0627\u0644\u0645\u062C\u0627\u0646\u064A\u0629 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0635\u0644\u0627\u0629 \u0648\u0627\u062A\u062C\u0627\u0647 \u0627\u0644\u0642\u0628\u0644\u0629 \u0648\u0642\u0627\u0631\u0626 \u0627\u0644\u0642\u0631\u0622\u0646 \u0648\u0639\u062F\u0627\u062F \u0627\u0644\u0630\u0643\u0631 \u0648\u0623\u062F\u0648\u0627\u062A \u062A\u062E\u0637\u064A\u0637 \u0623\u0633\u0627\u0633\u064A\u0629 \u0645\u062C\u0627\u0646\u0627\u064B. \u0627\u0644\u062E\u0637\u0637 \u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0629 \u062A\u0641\u062A\u062D \u0627\u0644\u062A\u062F\u0631\u064A\u0628 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0642\u062F\u0645\u0629 \u0648\u0645\u064A\u0632\u0627\u062A \u0627\u0644\u0639\u0627\u0626\u0644\u0629 \u0628\u062F\u0621\u0627\u064B \u0645\u0646 أسعار إرشادية موضحة في جدول الخطط.',
     faq_q11:'\u0643\u064A\u0641 \u0623\u062A\u062A\u0628\u0639 \u0635\u0644\u0648\u0627\u062A\u064A \u0645\u0639 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641\u061F',faq_a11:'\u0627\u0641\u062A\u062D \u0634\u0627\u0634\u0629 \u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0635\u0644\u0627\u0629 \u0644\u0631\u0624\u064A\u0629 \u0635\u0644\u0648\u0627\u062A \u0627\u0644\u064A\u0648\u0645 \u0627\u0644\u062E\u0645\u0633 \u0627\u0644\u0645\u062D\u0633\u0648\u0628\u0629 \u062D\u0633\u0628 \u0645\u0648\u0642\u0639\u0643\u060C \u0648\u0636\u0639 \u0639\u0644\u0627\u0645\u0629 \u0639\u0644\u0649 \u0643\u0644 \u0635\u0644\u0627\u0629 \u0639\u0646\u062F \u0623\u062F\u0627\u0626\u0647\u0627\u060C \u0648\u062A\u0627\u0628\u0639 \u0633\u0644\u0633\u0644\u062A\u0643 \u0627\u0644\u0645\u062A\u062A\u0627\u0644\u064A\u0629. \u064A\u0631\u0633\u0644 \u0627\u0644\u062A\u0637\u0628\u064A\u0642 \u0623\u064A\u0636\u0627\u064B \u062A\u0630\u0643\u064A\u0631\u0627\u062A \u0628\u0623\u0648\u0642\u0627\u062A \u0627\u0644\u0635\u0644\u0627\u0629 \u0648\u064A\u0639\u0631\u0636 \u0627\u062A\u062C\u0627\u0647 \u0627\u0644\u0642\u0628\u0644\u0629 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0628\u0648\u0635\u0644\u0629 \u062C\u0647\u0627\u0632\u0643.',
-    faq_q12:'\u0645\u0627 \u0627\u0644\u0641\u0631\u0642 \u0628\u064A\u0646 \u062E\u0637\u0629 \u0627\u0644\u062D\u064A\u0627\u0629 \u0627\u0644\u0645\u062A\u0648\u0627\u0632\u0646\u0629 \u0648\u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629\u061F',faq_a12:'\u062E\u0637\u0629 \u0627\u0644\u062D\u064A\u0627\u0629 \u0627\u0644\u0645\u062A\u0648\u0627\u0632\u0646\u0629 (6.99$ \u0634\u0647\u0631\u064A\u0627\u064B) \u0644\u0644\u0623\u0641\u0631\u0627\u062F \u0648\u062A\u0636\u064A\u0641 \u0627\u0644\u062A\u062F\u0631\u064A\u0628 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0642\u062F\u0645\u0629. \u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629 (12.99$ \u0634\u0647\u0631\u064A\u0627\u064B) \u062A\u0634\u0645\u0644 \u0643\u0644 \u0630\u0644\u0643 \u0628\u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u062F\u0639\u0645 \u062D\u062A\u0649 6 \u0623\u0641\u0631\u0627\u062F \u0648\u0644\u0648\u062D\u0629 \u0645\u0634\u062A\u0631\u0643\u0629 \u0648\u062A\u062E\u0637\u064A\u0637 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629.',
+    faq_q12:'\u0645\u0627 \u0627\u0644\u0641\u0631\u0642 \u0628\u064A\u0646 \u062E\u0637\u0629 \u0627\u0644\u062D\u064A\u0627\u0629 \u0627\u0644\u0645\u062A\u0648\u0627\u0632\u0646\u0629 \u0648\u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629\u061F',faq_a12:'\u062E\u0637\u0629 \u0627\u0644\u062D\u064A\u0627\u0629 \u0627\u0644\u0645\u062A\u0648\u0627\u0632\u0646\u0629  \u0644\u0644\u0623\u0641\u0631\u0627\u062F \u0648\u062A\u0636\u064A\u0641 \u0627\u0644\u062A\u062F\u0631\u064A\u0628 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u062A\u0642\u062F\u0645\u0629. \u062E\u0637\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629  \u062A\u0634\u0645\u0644 \u0643\u0644 \u0630\u0644\u0643 \u0628\u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u062F\u0639\u0645 \u062D\u062A\u0649 6 \u0623\u0641\u0631\u0627\u062F \u0648\u0644\u0648\u062D\u0629 \u0645\u0634\u062A\u0631\u0643\u0629 \u0648\u062A\u062E\u0637\u064A\u0637 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0639\u0627\u0626\u0644\u0629.',
     stat_2:'\u0645\u064A\u0632\u0629',stat_3:'\u0639\u0645\u0644\u0629 \u0645\u062F\u0639\u0648\u0645\u0629',stat_4:'% \u0648\u0642\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644',
     cta_title:'\u0645\u0633\u062A\u0639\u062F \u0644\u062A\u063A\u064A\u064A\u0631 \u062D\u064A\u0627\u062A\u0643\u061F',cta_desc:'\u0627\u0646\u0636\u0645 \u0644\u0644\u0622\u0644\u0627\u0641 \u0627\u0644\u0630\u064A\u0646 \u064A\u062F\u064A\u0631\u0648\u0646 \u062D\u064A\u0627\u062A\u0647\u0645 \u0628\u0648\u0636\u0648\u062D.',cta_button:'\u0627\u0628\u062F\u0623 \u0631\u062D\u0644\u062A\u0643 \u0627\u0644\u0645\u062C\u0627\u0646\u064A\u0629',
     footer_desc:'\u0631\u0641\u064A\u0642\u0643 \u0627\u0644\u0630\u0643\u064A \u0627\u0644\u0634\u0627\u0645\u0644.',footer_product:'\u0627\u0644\u0645\u0646\u062A\u062C',footer_company:'\u0627\u0644\u0634\u0631\u0643\u0629',footer_support:'\u0627\u0644\u062F\u0639\u0645',footer_about:'\u0639\u0646\u0651\u0627',footer_privacy:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629',footer_terms:'\u0634\u0631\u0648\u0637 \u0627\u0644\u062E\u062F\u0645\u0629',footer_refund:'\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u0627\u0633\u062A\u0631\u062F\u0627\u062F',footer_affiliate:'\u0625\u0641\u0635\u0627\u062D \u0627\u0644\u0623\u0641\u064A\u0644\u064A\u062A',footer_contact:'\u0627\u062A\u0635\u0644 \u0628\u0646\u0627',footer_help:'\u0645\u0631\u0643\u0632 \u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629',footer_blog:'\u0627\u0644\u0645\u062F\u0648\u0646\u0629',
-    sticky_text:'\u0627\u0628\u062F\u0623 \u0645\u062C\u0627\u0646\u0627\u064B \u0627\u0644\u064A\u0648\u0645',sticky_price:'\u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u0645\u0646 $4.89/\u0634\u0647\u0631',sticky_cta:'\u0639\u0631\u0636 \u0627\u0644\u062E\u0637\u0637',
+    sticky_text:'\u0627\u0628\u062F\u0623 \u0645\u062C\u0627\u0646\u0627\u064B \u0627\u0644\u064A\u0648\u0645',sticky_price:'عرض الخطط',sticky_cta:'\u0639\u0631\u0636 \u0627\u0644\u062E\u0637\u0637',
     toast_checkout_error:'\u0644\u0645 \u064A\u062A\u0645 \u062A\u0643\u0648\u064A\u0646 \u0627\u0644\u062F\u0641\u0639 \u0628\u0639\u062F.',toast_checkout_fallback:'\u062C\u0627\u0631\u064D \u0641\u062A\u062D \u0635\u0641\u062D\u0629 \u0627\u0644\u062F\u0641\u0639...',
     nav_about:'\u0639\u0646\u0651\u0627',
     footer_copyright:'\u00A9 2026 \u0623\u0645\u0627\u0646\u0629 \u0644\u0627\u064A\u0641\u060C \u0645\u0646\u062A\u062C \u062A\u0627\u0628\u0639 \u0644\u0634\u0631\u0643\u0629 LinkoraNet LLC. \u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0642 \u0645\u062D\u0641\u0648\u0638\u0629.',
@@ -1455,28 +1464,9 @@ function showToast(message, type) {
 
 // ===== CHECKOUT HANDLER =====
 function handleCheckout(plan) {
-  var url;
-  if (plan === 'balanced') {
-    url = isYearly ? LS_BALANCED_YEARLY : LS_BALANCED_MONTHLY;
-  } else {
-    url = isYearly ? LS_FAMILY_YEARLY : LS_FAMILY_MONTHLY;
-  }
-  if (!url || url === 'PASTE_URL_HERE') {
-    showToast(translations[currentLang].toast_checkout_error, 'error');
-    return;
-  }
-  var checkoutUrl = url + (url.indexOf('?') > -1 ? '&' : '?') + 'checkout[custom][source]=landing';
-  try {
-    if (window.LemonSqueezy && window.LemonSqueezy.Url && window.LemonSqueezy.Url.Open) {
-      window.LemonSqueezy.Url.Open(checkoutUrl);
-    } else {
-      showToast(translations[currentLang].toast_checkout_fallback, 'success');
-      window.open(checkoutUrl, '_blank');
-    }
-  } catch (err) {
-    showToast(translations[currentLang].toast_checkout_fallback, 'success');
-    window.open(checkoutUrl, '_blank');
-  }
+  if (plan !== 'balanced' && plan !== 'family') return;
+  // Navigation only. No provider URL, identity, token or entitlement in the browser.
+  window.top.location.href = '/subscription?offer=' + plan + '_' + (isYearly ? 'yearly' : 'monthly');
 }
 
 // ===== PRICING TOGGLE =====
@@ -1502,7 +1492,7 @@ function setToggle(yearly) {
   
   var balancedCta = document.getElementById('balanced-cta');
   if (balancedCta) {
-    balancedCta.textContent = yearly ? 'Subscribe & Save 30%' : 'Subscribe Now';
+    balancedCta.textContent = yearly ? 'View annual plan' : 'Subscribe Now';
   }
   
   var savingsBanner = document.getElementById('savings-banner');

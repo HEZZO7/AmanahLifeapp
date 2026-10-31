@@ -1,9 +1,11 @@
+import { edgeFunctionUrl } from './serviceEnvironment';
+import { displayedMonthly } from './paymentCatalog';
 // Currency conversion utilities for subscription pricing
 // Base prices are in USD
 
 export const BASE_PRICES = {
-  monthly: { balanced: 6.99, family: 12.99 },
-  yearly: { balanced: 4.99, family: 9.99 },
+  monthly: { balanced: displayedMonthly('balanced', 'monthly'), family: displayedMonthly('family', 'monthly') },
+  yearly: { balanced: displayedMonthly('balanced', 'yearly'), family: displayedMonthly('family', 'yearly') },
 };
 
 // Fallback exchange rates (hardcoded): how many units of currency = 1 USD
@@ -70,7 +72,7 @@ const WHOLE_NUMBER_CURRENCIES = new Set(['IQD', 'LBP', 'SYP', 'IDR', 'PKR', 'BDT
 // --- Live exchange rate fetching ---
 
 const EXCHANGE_RATE_ENDPOINT =
-  'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_exchange_rates';
+  edgeFunctionUrl('app_11941c8fec_exchange_rates');
 
 // Module-level client-side cache
 let cachedRates: Record<string, number> | null = null;

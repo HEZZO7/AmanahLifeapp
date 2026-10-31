@@ -1,0 +1,10 @@
+{
+  "currency": "USD",
+  "verification": "UNVERIFIED",
+  "prices": {
+    "free": { "monthly": 0, "yearly": 0 },
+    "balanced": { "monthly": 699, "yearly": 5869 },
+    "family": { "monthly": 1299, "yearly": 10909 }
+  },
+  "promotion": { "code": "AMANAH30", "percent": 30, "offer": "balanced_monthly", "duration": "first_month", "verified": false }
+}

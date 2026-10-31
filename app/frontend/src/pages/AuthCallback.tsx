@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { consumeAuthReturn, readAuthReturn } from '@/lib/authReturn';
 
 // A client-side navigate('/') here leaves the SPA's existing document/layout
 // state in place. On mobile browsers, the redirect chain through Google's
@@ -12,7 +13,8 @@ import { supabase } from '@/lib/supabase';
 // actual device viewport, so do that instead of a client-side route change
 // for this one post-auth transition.
 function goToDashboard() {
-  window.location.replace('/');
+  const destination = consumeAuthReturn(window.location.search, sessionStorage);
+  window.location.replace(destination);
 }
 
 export default function AuthCallback() {
@@ -75,7 +77,9 @@ export default function AuthCallback() {
   }, [navigate]);
 
   const handleRetry = () => {
-    navigate('/login', { replace: true });
+    const destination = readAuthReturn(window.location.search, sessionStorage);
+    const query = destination === '/subscription' ? '?next=%2Fsubscription' : '';
+    navigate('/login' + query, { replace: true });
   };
 
   if (error) {

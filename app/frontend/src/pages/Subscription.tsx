@@ -6,6 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase';
 import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
 import type { ExchangeRateResult } from '@/lib/currency';
+import { catalog, displayedMonthly, displayedTotal } from '@/lib/paymentCatalog';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import { LEMONSQUEEZY_CHECKOUT_ENDPOINT as CHECKOUT_ENDPOINT, createAppCheckout } from '@/lib/lemonSqueezyCheckout';
@@ -25,8 +26,8 @@ const PLANS = [
     id: 'balanced' as const,
     nameAr: 'الحياة المتوازنة',
     nameEn: 'Balanced Life',
-    monthlyPrice: 6.99,
-    yearlyPrice: 4.99,
+    monthlyPrice: displayedMonthly('balanced', 'monthly'),
+    yearlyPrice: displayedMonthly('balanced', 'yearly'),
     icon: '⭐',
     featuresAr: ['تذكيرات متقدمة', 'تتبع نمط الحياة', 'رؤى الذكاء الاصطناعي', 'التخطيط الذكي', 'المراجعات اليومية'],
     featuresEn: ['Advanced Reminders', 'Lifestyle Tracking', 'AI Insights', 'Smart Planning', 'Daily Reviews'],
@@ -35,8 +36,8 @@ const PLANS = [
     id: 'family' as const,
     nameAr: 'أمانة العائلة',
     nameEn: 'Family Plan',
-    monthlyPrice: 12.99,
-    yearlyPrice: 9.99,
+    monthlyPrice: displayedMonthly('family', 'monthly'),
+    yearlyPrice: displayedMonthly('family', 'yearly'),
     icon: '👑',
     featuresAr: ['جميع مميزات الحياة المتوازنة', 'مشاركة العائلة', 'لوحة مشتركة', 'خزنة المستندات'],
     featuresEn: ['All Balanced features', 'Family Sharing', 'Shared Dashboard', 'Document Vault'],
@@ -166,7 +167,7 @@ export default function Subscription() {
       );
 
       const data = await response.json();
-      if (data.url) {
+      if (response.ok && typeof data.url === 'string') {
         window.location.href = data.url;
       } else if (data.error === 'no_subscription' || data.error === 'Lemon Squeezy not configured') {
         setMessage({
@@ -399,7 +400,7 @@ export default function Subscription() {
                   billing === 'yearly' ? 'bg-primary text-white' : 'text-muted-foreground'
                 }`}
               >
-                {isAr ? 'سنوي (-20%)' : 'Yearly (-20%)'}
+                {isAr ? 'دفع سنوي' : 'Billed yearly'}
               </button>
             </div>
           </div>
@@ -439,6 +440,7 @@ export default function Subscription() {
                       )}
                     </div>
                   </div>
+                  {plan.id !== 'free' && <p className="text-xs text-muted-foreground mb-2">{catalog.currency} {displayedTotal(plan.id, billing).toFixed(2)} / {billing === 'yearly' ? (isAr ? 'سنة' : 'year') : (isAr ? 'شهر' : 'month')} · {isAr ? 'سعر إرشادي، بانتظار تأكيد المزوّد؛ الضريبة قد تُضاف.' : 'Indicative; provider confirmation pending. Tax may apply.'}</p>}
                   <ul className="space-y-1.5 mb-3">
                     {(isAr ? plan.featuresAr : plan.featuresEn).map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">

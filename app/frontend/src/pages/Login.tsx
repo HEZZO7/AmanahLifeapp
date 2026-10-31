@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import AppLogo from '@/components/AppLogo';
+import { consumeAuthReturn, readAuthReturn, rememberAuthReturn } from '@/lib/authReturn';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -22,6 +23,12 @@ export default function Login() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const authSearch = searchParams.toString();
+  const returnTo = readAuthReturn(authSearch, sessionStorage);
+  const finishLogin = () => {
+    navigate(consumeAuthReturn(authSearch, sessionStorage), { replace: true });
+  };
 
   const isAr = language === 'ar';
 
@@ -33,7 +40,7 @@ export default function Login() {
       toast.error(error.message);
     } else {
       toast.success('Welcome back!');
-      navigate('/');
+      finishLogin();
     }
     setLoading(false);
   };
@@ -41,17 +48,23 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    rememberAuthReturn(returnTo, sessionStorage);
     const { error } = await signUp(email, password);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success('Account created! Please check your email to verify.');
+      // When email confirmation is disabled, signUp can immediately establish a session.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) finishLogin();
     }
     setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    // Persist direct /login?next=/subscription visits before leaving for OAuth.
+    rememberAuthReturn(returnTo, sessionStorage);
     const { error } = await signInWithGoogle();
     if (error) {
       if (error.message.includes('provider') || error.message.includes('not enabled')) {

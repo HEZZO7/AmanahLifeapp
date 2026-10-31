@@ -1,9 +1,10 @@
+import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 const NOTIFICATION_STORAGE_KEY = 'amanah-savings-notifications';
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-const PUSH_NOTIFY_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_push_notify';
+const PUSH_NOTIFY_URL = edgeFunctionUrl('app_11941c8fec_push_notify');
 
 // Real background push for a milestone, on top of the direct in-tab
 // Notification() call below - this is the ONLY category (of the 4 brought
