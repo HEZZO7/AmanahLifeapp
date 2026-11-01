@@ -82,3 +82,16 @@ sudo/nsenter/setpriv أو initializeWorker. تنفيذ المجموعة يثبت
 `diagnostic/payment-phase3-schema-json-20261101` وapprove_disposable_run=true
 لتشغيل واحد جديد، لا إعادة محاولة التشغيل السابق. مصدر التطبيق يبقى SHA المذكور.
 لا main update أو نشر أو Lemon credentials مطلوبة. جميع بوابات الدفع تبقى مغلقة.
+
+## الإصدار المثبت والتحقق المستقل
+
+- الفرع: `diagnostic/payment-phase3-schema-json-20261101`، من workflow commit
+  `bc9cecaeaa9ec5f78fad66aaaf0aad7ffdc6a0d9`، بلا merge أو تعديل main.
+- `PACKAGE_SHA=f954d978a23bae5ae86bb55fc5455d37267a99e6`.
+- `SOURCE_SHA=7e7ee889c4f356ba1da1856a668ca6e32fc791dd`، لم يتغير.
+- فاحص Python المستقل: PASS على worktreeين مؤقتين نظيفتين ومثبتتين فعليًا
+  بـSHA المصدر والحزمة؛22 ملف مصدر و14 ملف حزمة و7 مراجع تاريخية وdependency pins.
+- actionlint: PASS للـworkflow والـdispatcher؛ gate الموافقة والـ21 نتيجة
+  والتنظيف المستقل وآليات العزل unchanged، باستثناء package/branch pins المذكورة.
+- لم نُشغّل Actions أو Supabase Native أو test/live provider API؛ تحتاج محاولة
+  Native جديدة موافقة المالك ولا يجوز نسبة21/21 إليها قبل تنفيذها الفعلي.

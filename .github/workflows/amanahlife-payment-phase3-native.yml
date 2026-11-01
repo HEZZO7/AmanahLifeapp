@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 55
     env:
       SOURCE_SHA: 7e7ee889c4f356ba1da1856a668ca6e32fc791dd
-      PACKAGE_SHA: db22d73389fc6151d3c42e4b09f12dc8e01f93d2
+      PACKAGE_SHA: f954d978a23bae5ae86bb55fc5455d37267a99e6
       AMANAHLIFE_009_APPROVAL: disposable-001-011-native-no-provider
       DO_NOT_TRACK: '1'
     steps:
@@ -47,7 +47,7 @@ jobs:
           test "$APPROVED" = true
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
           test "$GITHUB_REPOSITORY" = HEZZO7/AmanahLifeapp
-          test "$GITHUB_REF" = refs/heads/validation/payment-readiness-phase3-20261031
+          test "$GITHUB_REF" = refs/heads/diagnostic/payment-phase3-schema-json-20261101
           test "$GITHUB_RUN_ATTEMPT" = 1
           test "$RUNNER_ENVIRONMENT" = github-hosted
           test "$RUNNER_OS" = Linux
