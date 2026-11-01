@@ -352,6 +352,9 @@ const FIXTURE_STAGES=Object.freeze(['fixture_create_user','fixture_password_sign
   'fixture_session_token','fixture_verify_token','fixture_verified_identity','fixture_trial_rpc',
   'fixture_trial_result','fixture_seed_subscription','fixture_seed_personal_data']);
 export const NATIVE_CHECK_STAGES=Object.freeze({
+  schema_dependencies:['schema_fixture','schema_extension',
+    ...Array.from({length:11},(_,i)=>'schema_migration_'+String(i+1).padStart(3,'0')),
+    'schema_environment','schema_metadata','schema_customer_acl','schema_guard_acl','schema_notification_acl'],
   rollback_each_cleanup_phase:['install_fault','read_before','delete_status','witness_increment','account_rollback',
     'control_unchanged','auth_links_rollback','token_valid','token_identity','clear_fault'],
   failed_delete_preserves_trial:['fault_proof','trial_snapshot'],

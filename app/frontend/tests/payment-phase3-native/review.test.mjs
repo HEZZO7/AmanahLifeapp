@@ -6,8 +6,8 @@ import childProcess from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {requireOriginalAssertions,assertionCalls} from './assertion-preservation.mjs';
-import {SOURCE_COMMIT,CHECKS,MIGRATIONS,LEGACY_MIGRATIONS,SOURCE_FILES,APPROVAL,summarize,sha256,gitBlob} from './safety.mjs';
-import {verifySource,verifyPackage} from './local-runtime.mjs';
+import {SOURCE_COMMIT,CHECKS,MIGRATIONS,LEGACY_MIGRATIONS,SOURCE_FILES,APPROVAL,summarize,sha256,gitBlob,NATIVE_CHECK_STAGES} from './safety.mjs';
+import {verifySource,verifyPackage,runIsolatedWorker} from './local-runtime.mjs';
 import {execute,reserveSQL} from './integration.mjs';
 
 const methods=['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork'];
@@ -92,4 +92,25 @@ test('new checks preserve DNS, capabilities, no-new-privileges and credential pr
   assert.ok(runtime.includes('runtimeTemp,credentials:prepared.credentials'));
   assert.doesNotMatch(runtime,/sudo[^\n]*['"]-E['"]/);
   assert.match(guard,/127\.0\.0\.11/);
+});
+
+test('schema stage codes survive the real controller validator; unknown codes fail closed',()=>{
+  const workdir='/tmp/amanah-009-123-0123abcd';
+  const identity={uid:1000,gid:1000,groups:[1000],handle:workdir+'/kong-netns'};
+  const prepared={identity,runtimeTemp:'/tmp',source:'/tmp/source',credentials:{}};
+  const infra={phase:'schema_dependencies',category:'prerequisite_failed',exit:1};
+  for(const stage of [...NATIVE_CHECK_STAGES.schema_dependencies,'PRIVATE_SENTINEL']){
+    const row={id:'schema_dependencies',result:'failed',category:'assertion_failed',nativeStage:stage};
+    const report={...summarize([row],true,infra),observations:{}};
+    const probe={workdir,verifyIsolation:()=>({identity}),
+      launch:()=>({status:1,stdout:''}),readReport:()=>JSON.stringify(report)};
+    if(stage==='PRIVATE_SENTINEL')assert.throws(()=>runIsolatedWorker(prepared,'/tmp/package/integration.mjs',probe),
+      error=>error.workerStage==='controller_report_checks');
+    else{
+      const result=runIsolatedWorker(prepared,'/tmp/package/integration.mjs',probe);
+      assert.deepEqual(result.report.checks,[row]);assert.deepEqual(result.report.infrastructureFailure,infra);
+      assert.equal(result.report.missing.length,20);assert.equal(result.report.invalid,false);
+      assert.equal(result.report.result,'failed');assert.equal(result.status,1);
+    }
+  }
 });

@@ -126,3 +126,28 @@ separate reviewed application patch, not a silent rewrite of008 here.
 Lemon Test acceptance remains a separate owner-authorized exercise. No credentials
 or automated provider script is included. Native success alone never enables it
 or changes production/billing NO-GO.
+
+## Diagnostic revision after run41273911129
+
+The pinned db22d73 schema checks sent bare PostgreSQL boolean output (t/f) into
+JSON.parse. Seven added scalar query sites (including the final isolation check)
+now explicitly select to_json(...); local-runtime's strict JSON parser is unchanged.
+verifySchemaDependencies/verifyPhase3Schema are shared with the offline model,
+so all32 native metadata/permission queries cross a simulated psql text boundary
+using real PostgreSQL boolout and JSON type OIDs instead of JS boolean shortcuts.
+The21 groups,168 historical integration assertions, source/migrations, fixture,
+isolation and independent cleanup are preserved. Neither API errors nor an
+unexpected grant are converted into success.
+
+Initialization and schema checks expose only closed nativeStage codes for the
+original/extended fixture, each migration001..011, environment seed, metadata,
+customer ACL, trigger-function ACL and notification ACL. No SQL values, raw errors,
+filenames or credentials enter reports. Fault injection verifies each boundary;
+real unwanted grants, missing privileges and malformed boolean results still fail.
+
+This is a reproduced harness defect, not proof of the exact hosted exception.
+GitHub artifact access was denied by this environment; the supplied summary lacks
+a stack/stage code before the catch. A failed fatal schema check itself explains
+the subsequent prerequisite_failed; it does not establish a namespace/startup
+failure. A newly approved native run is needed to establish the hosted outcome.
+No workflow was dispatched and no native/GoTrue/provider service was run here.

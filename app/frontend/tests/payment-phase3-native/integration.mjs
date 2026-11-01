@@ -14,6 +14,7 @@ const manifest=JSON.parse(fs.readFileSync(new URL('./source-manifest.json',impor
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
 const sub='public.app_11941c8fec_subscriptions',prefix='app_11941c8fec_';
 const q=id=>"'"+uuid(id)+"'";
+export const CHECKOUT_DISABLED_SQL="select to_json(coalesce(bool_and(mode='test' and not checkouts_enabled),false)) from public."+prefix+"payment_environment;";
 const results=[],observations={};let phase='preflight',cleanupPassed=false,workingDirectory;
 const assertSQLState=(error,expected)=>{throwIfDatabaseInfrastructure(error);assert.equal(error?.code,expected);};
 const emit=value=>process.stdout.write(JSON.stringify(value)+'\n');
@@ -140,6 +141,42 @@ function verifyMetadata(m){
   assert.ok(m.columns.some(x=>x[0]==='trial_used'&&x[2]===true&&x[3]==='false'));
 }
 
+// Shared by native execution and the PostgreSQL-WASM regression. Queries must
+// return JSON text, not PostgreSQL boolout's t/f. The strict parser is unchanged.
+export async function verifySchemaDependencies(source,{runSQL=sql,query=jsonSQL}={}){
+  const at=(stage,operation)=>nativeStage('schema_dependencies',stage,operation);
+  await at('schema_fixture',()=>runSQL(read('./fixture.sql')));
+  await at('schema_extension',()=>runSQL(read('./phase3-schema.sql')));
+  for(const [index,file]of manifest.migrationOrder.entries())await at('schema_migration_'+String(index+1).padStart(3,'0'),
+    ()=>runSQL(fs.readFileSync(path.join(source,file),'utf8')));
+  await at('schema_environment',()=>runSQL("insert into public."+prefix+"payment_environment(singleton,mode) values(true,'test');"));
+  await verifyPhase3Schema(query);
+}
+
+export async function verifyPhase3Schema(query=jsonSQL){
+  const at=(stage,operation)=>nativeStage('schema_dependencies',stage,operation);
+  // These extend, never replace, the original 009 metadata/ACL assertions.
+  await at('schema_metadata',async()=>{
+    const extra=await query("select jsonb_build_object('checkoutDisabled',(select not checkouts_enabled from public."+prefix+"payment_environment),"+
+      "'aiRpc',has_function_privilege('authenticated','public."+prefix+"ai_entitled()','EXECUTE'),"+
+      "'privateRls',(select relrowsecurity from pg_class where oid='public."+prefix+"payment_customer_owners'::regclass),"+
+      "'retainedFk',(select count(*)=1 from pg_constraint where conrelid='public."+prefix+"payment_customer_owners'::regclass and contype='f' and confrelid='auth.users'::regclass and confdeltype='a'));");
+    for(const value of Object.values(extra))assert.equal(value,true);
+  });
+  for(const role of ['anon','authenticated','service_role']) {
+    for(const privilege of ['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) {
+      await at('schema_customer_acl',async()=>assert.equal(await query("select to_json(has_table_privilege('"+role+"','public."+prefix+"payment_customer_owners','"+privilege+"'));"),false));
+    }
+    for(const fn of ['guard_checkout_reservation','guard_customer_owner'])await at('schema_guard_acl',async()=>assert.equal(await query("select to_json(has_function_privilege('"+role+"','public."+prefix+fn+"()','EXECUTE'));"),false));
+  }
+  await at('schema_notification_acl',async()=>{
+    assert.equal(await query("select to_json(has_table_privilege('authenticated','public."+prefix+"notification_preferences','DELETE'));"),false);
+    assert.equal(await query("select to_json(has_column_privilege('authenticated','public."+prefix+"notification_preferences','last_suhoor_sent_date','UPDATE'));"),false);
+    assert.equal(await query("select to_json(has_column_privilege('authenticated','public."+prefix+"notification_preferences','bill_reminders','UPDATE'));"),true);
+    assert.equal(await query("select to_json(has_table_privilege('authenticated','public."+prefix+"push_subscriptions','SELECT'));"),false);
+  });
+}
+
 async function exercise(source,credentials){
   notifyWorkerStage('worker_client_setup');
   const originalFetch=globalThis.fetch,originalDeno=globalThis.Deno;
@@ -158,28 +195,7 @@ async function exercise(source,credentials){
     notifyWorkerStage('worker_migration_order');
     assert.deepEqual(migrationFiles.map(f=>f.match(/00([1-9])_/)[1]),['1','2','3','4','5','8','9']);
     notifyWorkerStage(null);
-    await check('schema_dependencies',()=>{
-      sql(read('./fixture.sql'));
-      sql(read('./phase3-schema.sql'));
-      for(const file of fullMigrationFiles)sql(fs.readFileSync(path.join(source,file),'utf8'));
-      sql("insert into public."+prefix+"payment_environment(singleton,mode) values(true,'test');");
-      // These extend, never replace, the original 009 metadata/ACL assertions.
-      const extra=jsonSQL("select jsonb_build_object('checkoutDisabled',(select not checkouts_enabled from public."+prefix+"payment_environment),"+
-        "'aiRpc',has_function_privilege('authenticated','public."+prefix+"ai_entitled()','EXECUTE'),"+
-        "'privateRls',(select relrowsecurity from pg_class where oid='public."+prefix+"payment_customer_owners'::regclass),"+
-        "'retainedFk',(select count(*)=1 from pg_constraint where conrelid='public."+prefix+"payment_customer_owners'::regclass and contype='f' and confrelid='auth.users'::regclass and confdeltype='a'));");
-      for(const value of Object.values(extra))assert.equal(value,true);
-      for(const role of ['anon','authenticated','service_role']) {
-        for(const privilege of ['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) {
-          assert.equal(jsonSQL("select has_table_privilege('"+role+"','public."+prefix+"payment_customer_owners','"+privilege+"');"),false);
-        }
-        for(const fn of ['guard_checkout_reservation','guard_customer_owner'])assert.equal(jsonSQL("select has_function_privilege('"+role+"','public."+prefix+fn+"()','EXECUTE');"),false);
-      }
-      assert.equal(jsonSQL("select has_table_privilege('authenticated','public."+prefix+"notification_preferences','DELETE');"),false);
-      assert.equal(jsonSQL("select has_column_privilege('authenticated','public."+prefix+"notification_preferences','last_suhoor_sent_date','UPDATE');"),false);
-      assert.equal(jsonSQL("select has_column_privilege('authenticated','public."+prefix+"notification_preferences','bill_reminders','UPDATE');"),true);
-      assert.equal(jsonSQL("select has_table_privilege('authenticated','public."+prefix+"push_subscriptions','SELECT');"),false);
-    },true);
+    await check('schema_dependencies',()=>verifySchemaDependencies(source),true);
     async function rpc(client,name,args,observe=()=>{}){
       const deadline=Date.now()+8000;
       while(true){const r=await client.rpc(prefix+name,args);observe(r);throwIfDatabaseInfrastructure(r.error);if(r.error?.code!=='PGRST202')return r;if(Date.now()>deadline)throw new Failure('rpc_unavailable');await new Promise(r=>setTimeout(r,100));}
@@ -511,7 +527,7 @@ async function exercise(source,credentials){
       assert.ok(billingBefore);assert.deepEqual(billingRows(A.id),billingBefore);
       assert.deepEqual(accountRows(A.id),baselineA);assert.deepEqual(accountRows(B.id),baselineB);
       assert.ok(guard.state.attempted>0);assert.equal(guard.state.rejected,0);
-      assert.equal(jsonSQL("select coalesce(bool_and(mode='test' and not checkouts_enabled),false) from public."+prefix+"payment_environment;"),true);
+      assert.equal(jsonSQL(CHECKOUT_DISABLED_SQL),true);
       observations.localRequests=guard.state.attempted;observations.rejectedRequests=guard.state.rejected;
     });
   }finally{globalThis.fetch=originalFetch;if(originalDeno===undefined)delete globalThis.Deno;else globalThis.Deno=originalDeno;}
