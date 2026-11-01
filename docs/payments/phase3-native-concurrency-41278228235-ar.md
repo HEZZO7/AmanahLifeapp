@@ -107,3 +107,14 @@ worker أو تطابق صور Supabase أو العملاء الحقيقيين. �
 يبقى الإنتاج والفوترة NO-GO حتى21/21 جديدة وقبول Lemon Squeezy Test المنفصل،
 ومعالجة عوائق الإشعارات/BackupRestore وretention UX وجرد legacy/production schema
 الموثقة في تقارير Phase3 السابقة.
+
+## النسخة المصححة والتحقق المستقل
+
+- `PACKAGE_SHA=2bc848ff3751d4668c3ef2024d9f15348b392540`.
+- `SOURCE_SHA=7e7ee889c4f356ba1da1856a668ca6e32fc791dd`، دون تغيير.
+- PASS للفاحص المستقل من نسختين worktree نظيفتين مثبتتين بـSHA فعليين:
+  22 source files و14 package files و7 historical references وملف regression
+  إضافي واحد، مع hashes وGit blob comparison وdependency pins.
+- actionlint PASS للـworkflow والـdispatcher. التعديل التشغيلي فيه PACKAGE_SHA
+  وGITHUB_REF guard فقط؛ شروط runner/approval/cleanup/verdict unchanged.
+- لم نُجرِ dispatch، ولا توجد نتائج Native جديدة لهذه الحزمة بعد.
