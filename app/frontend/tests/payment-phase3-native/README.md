@@ -151,3 +151,37 @@ a stack/stage code before the catch. A failed fatal schema check itself explains
 the subsequent prerequisite_failed; it does not establish a namespace/startup
 failure. A newly approved native run is needed to establish the hosted outcome.
 No workflow was dispatched and no native/GoTrue/provider service was run here.
+
+## Race-session context repair after run41278228235
+
+Independent Session connections formerly passed only PG_OPTIONS (timeouts), while
+control SQL also passed amanahlife.local_test=approved and security_fixture=isolated.
+reserveSQL's first DO guard rejects the missing context with P0001. With
+ON_ERROR_STOP, psql exits3: checkout-first fails immediately, and deletion-first's
+reservation exits before the FK lock that waitForBlock requires. No application
+migration change or lock/time-limit adjustment is needed.
+
+SQL_FIXTURE_OPTIONS now shares the existing control settings with owned race
+sessions. This is local fixture context, not provider/Checkout authorization;
+no application migration reads these GUCs. The reserveSQL guard and transactional
+false/true/false instrumentation are unchanged. The entire integration.mjs and
+all21 native group bodies are byte-identical to packagef954d97.
+
+Standalone real-PostgreSQL regressions (NOT the native/GoTrue suite):
+
+```sh
+AMANAHLIFE_TEST_PG_BIN=/absolute/local/postgresql/17/bin \
+node --import ./app/frontend/tests/deny-network.mjs --test ci/payment-phase3/races-postgres.test.mjs
+```
+
+Run from the repository root as a non-root user, with trusted PostgreSQL17
+initdb/pg_ctl/postgres/psql binaries. The test refuses missing binaries, creates
+only a fresh private0700 cluster/socket, rejects TCP and inherited PG credentials,
+loads the unchanged fixture and001–011, and uses independent psql processes.
+Auth SQL is an explicitly synthetic local schema; no GoTrue is mocked or claimed
+as exercised. Tests cover the two old failures, both commit/rollback outcomes,
+paid-projection locking, ownership/trial/retention, and independent removal of
+owned processes/socket/data/private logs. No arbitrary sleeps, mutation retries,
+provider API, hosted credentials or kernel namespace workaround is introduced.
+The extra regression file is independently hashed in manifest.regressionFiles
+and verified against its immutable package Git blob before hosted execution.

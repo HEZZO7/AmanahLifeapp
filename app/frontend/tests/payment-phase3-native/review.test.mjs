@@ -6,8 +6,8 @@ import childProcess from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {requireOriginalAssertions,assertionCalls} from './assertion-preservation.mjs';
-import {SOURCE_COMMIT,CHECKS,MIGRATIONS,LEGACY_MIGRATIONS,SOURCE_FILES,APPROVAL,summarize,sha256,gitBlob,NATIVE_CHECK_STAGES} from './safety.mjs';
-import {verifySource,verifyPackage,runIsolatedWorker} from './local-runtime.mjs';
+import {SOURCE_COMMIT,CHECKS,MIGRATIONS,LEGACY_MIGRATIONS,SOURCE_FILES,APPROVAL,summarize,sha256,gitBlob,NATIVE_CHECK_STAGES,PG_OPTIONS,PG_LIMITS} from './safety.mjs';
+import {verifySource,verifyPackage,runIsolatedWorker,SQL_FIXTURE_OPTIONS} from './local-runtime.mjs';
 import {execute,reserveSQL} from './integration.mjs';
 
 const methods=['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork'];
@@ -113,4 +113,20 @@ test('schema stage codes survive the real controller validator; unknown codes fa
       assert.equal(result.report.result,'failed');assert.equal(result.status,1);
     }
   }
+});
+
+test('control and independent race sessions use identical approved fixture context and unchanged time limits',()=>{
+  assert.ok(SQL_FIXTURE_OPTIONS.startsWith(PG_OPTIONS+' '));
+  const options=Object.fromEntries([...SQL_FIXTURE_OPTIONS.matchAll(/-c ([a-z_.]+)=([a-z0-9]+)/g)].map(match=>[match[1],match[2]]));
+  assert.deepEqual(options,{
+    statement_timeout:String(PG_LIMITS.statement),lock_timeout:String(PG_LIMITS.lock),
+    idle_in_transaction_session_timeout:String(PG_LIMITS.idle),
+    'amanahlife.local_test':'approved','amanahlife.security_fixture':'isolated',
+  });
+  assert.equal((read('local-runtime.mjs').match(/'PGOPTIONS='\+SQL_FIXTURE_OPTIONS/g)||[]).length,2);
+  assert.doesNotMatch(read('local-runtime.mjs'),/'PGOPTIONS='\+PG_OPTIONS/);
+});
+test('standalone real PostgreSQL race regression is included in the independent checksum manifest',()=>{
+  assert.deepEqual(Object.keys(manifest.regressionFiles),['ci/payment-phase3/races-postgres.test.mjs']);
+  for(const [name,hash]of Object.entries(manifest.regressionFiles))assert.equal(sha256(fs.readFileSync(path.join(root,name))),hash);
 });

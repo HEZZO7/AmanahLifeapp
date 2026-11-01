@@ -12,6 +12,8 @@ import {SOURCE_COMMIT,SOURCE_FILES,MIGRATIONS,LEGACY_MIGRATIONS,NODE_VERSION,CLI
 export {Failure} from './safety.mjs';
 import {installIsolation,verifyIsolation,removeIsolation,assertNoHostRules,validateIsolation,verifyNamespaceHandle,isolationRules} from './isolation.mjs';
 const childEnv={PATH:process.env.PATH,LANG:'C.UTF-8',DO_NOT_TRACK:'1',CI:'true',DOCKER_HOST:'unix:///var/run/docker.sock'};
+// Owned control and race connections must satisfy the SAME fixture prerequisites.
+export const SQL_FIXTURE_OPTIONS=PG_OPTIONS+' -c amanahlife.local_test=approved -c amanahlife.security_fixture=isolated';
 let root,project,cli,acquired=false;
 export function command(exe,args,input,timeout=30000,execute=spawnSync){
   const r=execute(exe,args,{env:childEnv,input,encoding:'utf8',timeout,maxBuffer:32*1024*1024});
@@ -25,7 +27,7 @@ export function command(exe,args,input,timeout=30000,execute=spawnSync){
 }
 export function sql(text,run=command){
   assert.ok(project&&root);
-  return run('docker',['exec','-i','-e','PGAPPNAME='+sessionPrefix(project)+'control','-e','PGOPTIONS='+PG_OPTIONS+' -c amanahlife.local_test=approved -c amanahlife.security_fixture=isolated',
+  return run('docker',['exec','-i','-e','PGAPPNAME='+sessionPrefix(project)+'control','-e','PGOPTIONS='+SQL_FIXTURE_OPTIONS,
     'supabase_db_'+project,'psql','-X','-U','postgres','-d','postgres','-qAt','-v','ON_ERROR_STOP=1'],text);
 }
 export function jsonSQL(text,run=command){return JSON.parse(sql(text,run));}
@@ -512,7 +514,7 @@ export class Session {
   constructor(name){
     assert.ok(/^[a-z0-9-]+$/.test(name));this.name=sessionPrefix(project)+randomBytes(6).toString('hex');
     this.buffer='';this.output='';this.errorText='';this.serial=0;this.pending=null;
-    this.child=spawn('docker',['exec','-i','-e','PGAPPNAME='+this.name,'-e','PGOPTIONS='+PG_OPTIONS,'supabase_db_'+project,
+    this.child=spawn('docker',['exec','-i','-e','PGAPPNAME='+this.name,'-e','PGOPTIONS='+SQL_FIXTURE_OPTIONS,'supabase_db_'+project,
       'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate'],
       {env:childEnv,stdio:['pipe','pipe','pipe']});
     this.closed=new Promise(resolve=>{

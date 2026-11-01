@@ -12,6 +12,7 @@ import sys
 SOURCE = '7e7ee889c4f356ba1da1856a668ca6e32fc791dd'
 HISTORICAL = '9baaa89718e51638d97dfd3f8030e50424c5f28c'
 DIRECTORY = 'app/frontend/tests/payment-phase3-native'
+REGRESSION_FILES = {'ci/payment-phase3/races-postgres.test.mjs'}
 PACKAGE_FILES = {'README.md', 'assertion-preservation.mjs', 'fixture.sql', 'integration.mjs',
                  'isolation.mjs', 'local-runtime.mjs', 'metadata.sql', 'package-lock.json',
                  'package.json', 'phase3-schema.sql', 'review.test.mjs', 'safety.mjs',
@@ -67,6 +68,7 @@ def main():
         assert manifest['sourceCommit'] == SOURCE and manifest['historicalPackage'] == HISTORICAL
         assert len(manifest['files']) == 22 and set(manifest['packageFiles']) == PACKAGE_FILES
         assert len(manifest['historicalFiles']) == 7
+        assert set(manifest['regressionFiles']) == REGRESSION_FILES
         assert len(manifest['migrationOrder']) == 11 and len(manifest['legacyMigrationOrder']) == 7
         assert [int(re.search(r'(\d{3})_[^/]+$', p)[1]) for p in manifest['migrationOrder']] == list(range(1, 12))
         stage = 'source_hashes'
@@ -79,6 +81,10 @@ def main():
         for name, expected in manifest['packageFiles'].items():
             data = checked_hash(checked_path(package, DIRECTORY + '/' + name), expected)
             assert data == git(package, 'show', args.package_sha + ':' + DIRECTORY + '/' + name)
+        stage = 'regression_hashes'
+        for name, expected in manifest['regressionFiles'].items():
+            data = checked_hash(checked_path(package, name), expected)
+            assert data == git(package, 'show', args.package_sha + ':' + name)
         stage = 'historical_assertions'
         for name, expected in manifest['historicalFiles'].items():
             data = checked_hash(checked_path(package, name), expected['sha256'], expected['gitBlob'])

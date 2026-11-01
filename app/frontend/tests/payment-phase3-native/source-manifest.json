@@ -114,17 +114,17 @@
     "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql"
   ],
   "packageFiles": {
-    "README.md": "7df825f9a8e381e491939dd9fef12dbdf50a6cb08b8ee1289ca441753e2ad4ca",
+    "README.md": "e58df544f69ea1e5d3fc815e5aec28d80a3fdbbfdceac4b747cbda00c307643c",
     "assertion-preservation.mjs": "2617967e7956e6b39c1bf94eceb30cb78569826aafa22c5d6b18877854fd175d",
     "fixture.sql": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721",
     "integration.mjs": "4744bbe0da01b31de87a99f3cd69eec1520833e662c6a6c079f850f0c06b44fe",
     "isolation.mjs": "3394aad4cf6db3fffb16438b2cf674edb2b2e800d2e92b79121cbe8308f448db",
-    "local-runtime.mjs": "63215ead0a49ca6fa68dfa07d49345a1095be996512b587893652e8f3ae6ec25",
+    "local-runtime.mjs": "4e0de4b67988488f692624a57d81605ecf53f800c879232f6f6d6ed568ad26f5",
     "metadata.sql": "c0e94ba3ff7b23af9ac57eb78d64d1d4f5ccb1dc2001bc1fcbdc1817d221eb9a",
     "package-lock.json": "1d7f4ed8ff781967a284c8cd49e2d359d9ef415c4446fae823c66049fbe6471c",
     "package.json": "689d9ee7bc6ab782a63f17cf0a40d81a690fd48e124fb07bd1b15db35e1080f9",
     "phase3-schema.sql": "e0fdd7de95db4ba23821ccbc05837c9bb163b6911d3f519ff3ed27e95b75c1d9",
-    "review.test.mjs": "b27e629a17c1a92aa5b3cf5bc7bb5b36619308fd0423115e1001d83069b65eda",
+    "review.test.mjs": "6247c18a8248e1d9cd7fa7019fd4be9ece2c01d91524180f8e604ad3acee379b",
     "safety.mjs": "41a1c356216f37e36ee1179905df73b808b43bda9beb1a2c3277a0de420b0480",
     "schema.test.mjs": "d0c6572eff92fee88ac1647da078cb2e4faa09ebdafe4fdc860cde79b5ae9e7f",
     "sql-statements.mjs": "f1c8133b8eac51789fd0f201639c9172f66f82b05e6c4ca7ad616eca5c47ba47"
@@ -158,5 +158,8 @@
       "gitBlob": "cebb02cb957a426e19b698985fe197511bd14cc2",
       "sha256": "850defc64088c3a91658c1995174860502009bb5023f3aafc9fd4627116ca295"
     }
+  },
+  "regressionFiles": {
+    "ci/payment-phase3/races-postgres.test.mjs": "12d5897f59ef858039cc1c68bb2dfda9c238c48e9ee5b76bdefcf5cdedaf8e76"
   }
 }
