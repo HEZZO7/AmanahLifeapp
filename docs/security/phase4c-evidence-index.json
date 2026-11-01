@@ -1,0 +1,492 @@
+{
+  "formatVersion": 1,
+  "baseCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+  "observedAt": "2026-11-01T18:44:37.623Z",
+  "evidenceScope": "source_and_local_diagnostics_only",
+  "hostedCatalogSnapshot": null,
+  "knownSchemaFacts": [],
+  "unknownHostedObjects": [
+    "public.app_11941c8fec_bill_reminders_sync",
+    "public.app_11941c8fec_goal_reminders_sync",
+    "public.app_11941c8fec_email_digest"
+  ],
+  "sourceFacts": {
+    "tableContracts": {
+      "path": "app/frontend/src/lib/reminderSync.ts",
+      "gitBlob": "cd167a5ef644993a29171ee967af6022dabca9f9",
+      "sha256": "21445217072aaef3fcae7cd746771942fc39069ef96c6f996cd3c7b2a64f2d32"
+    },
+    "emailContract": {
+      "path": "app/frontend/supabase/functions/app_11941c8fec_weekly_digest/index.ts",
+      "gitBlob": "7c9f613aa2e65a607383fe01fdfd8cd7c912536c",
+      "sha256": "bd851f6c4fa97e0d9866e2dbfcf188fce6231377b5214d94e161f750ddf736d4"
+    },
+    "atomicDeletion": {
+      "path": "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql",
+      "gitBlob": "92ccd2f53336912655455f00be2aabc36c4fdf70",
+      "sha256": "55694b2759bfe6d6c8f0a652a98a381dd90f005954b16ccf3e673a68d0219718"
+    },
+    "cleanupScope": [
+      "subscriptions",
+      "search_history",
+      "email_digest",
+      "notification_preferences",
+      "push_subscriptions"
+    ],
+    "reminderMirrorsAbsentFromCleanup": true,
+    "nativeFixture": {
+      "path": "app/frontend/tests/subscription-009-local/fixture.sql",
+      "gitBlob": "1a739d35226e456b94eb957f03d9ca90be69419c",
+      "sha256": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721"
+    },
+    "nativeFixtureModel": "synthetic id/user_id/marker cleanup dependencies; not hosted DDL",
+    "pgliteFixture": {
+      "path": "app/frontend/tests/payment-phase2-db/run.test.mjs",
+      "gitBlob": "27cf877dce0e0a76af11b2731cfbf88a30b52ec1",
+      "sha256": "8187495dc2efbae5dc933cefc24d8d6bd3d5329d2f107a0727ceef8346e505af"
+    },
+    "pgliteEmailModel": "synthetic user_id uuid only; not hosted DDL"
+  },
+  "dependencyLocks": [
+    {
+      "name": "pglite",
+      "path": "app/frontend/tests/payment-phase2-db/package-lock.json",
+      "gitBlob": "da9dc8e436894f5fbf61a67fc4f64dccd83c6e03",
+      "sha256": "50c7667bb51d88b946b2e67386c53549414725566ae5206487eea9f42fd86b5e",
+      "version": "0.3.14",
+      "packages": [
+        {
+          "path": "node_modules/@electric-sql/pglite",
+          "version": "0.3.14",
+          "resolved": "https://registry.npmjs.org/@electric-sql/pglite/-/pglite-0.3.14.tgz",
+          "integrity": "sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q=="
+        }
+      ],
+      "installation": "BLOCKED",
+      "onlineInstallExit": 1,
+      "onlineFailure": "EPERM_connect_to_required_proxy",
+      "artifactRestored": false
+    },
+    {
+      "name": "nativeSdk",
+      "path": "app/frontend/tests/subscription-009-local/package-lock.json",
+      "gitBlob": "beb9313895c7a555fc32b00c6d85a83996a989bf",
+      "sha256": "1c256eb7885c127bc679f6b0e381098591ac894d9321e5a4f7a6ef6ec8e43221",
+      "version": "2.110.0",
+      "packages": [
+        {
+          "path": "node_modules/@supabase/supabase-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.110.0.tgz",
+          "integrity": "sha512-8yI84VJiEVW4zxZpLUmxXmjzQ7O2St9X/ymzlBETDHTURPWG3LmvbSiibq+7dqAJmyoUfxZnSfXeM4HCM8s4XQ=="
+        },
+        {
+          "path": "node_modules/@supabase/storage-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/storage-js/-/storage-js-2.110.0.tgz",
+          "integrity": "sha512-71+gU3HrhiylAhftY6FmO5PPdcsScnVcS766CVD+vTYK9qTDLbrx8FhgBYbqGm3iV/wkTfzrNJfjGsMeFRkJRQ=="
+        },
+        {
+          "path": "node_modules/tslib",
+          "version": "2.8.1",
+          "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
+          "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
+        },
+        {
+          "path": "node_modules/iceberg-js",
+          "version": "0.8.1",
+          "resolved": "https://registry.npmjs.org/iceberg-js/-/iceberg-js-0.8.1.tgz",
+          "integrity": "sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA=="
+        },
+        {
+          "path": "node_modules/@supabase/realtime-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/realtime-js/-/realtime-js-2.110.0.tgz",
+          "integrity": "sha512-Wn2AWpneZuDFTkp/65tqctvoh+3JvyTjMam8sTMqVWy5BgkU8zAvFwilPYPPPhkINeKF8NAJKP7FclJ2iGCUMw=="
+        },
+        {
+          "path": "node_modules/@supabase/phoenix",
+          "version": "0.4.4",
+          "resolved": "https://registry.npmjs.org/@supabase/phoenix/-/phoenix-0.4.4.tgz",
+          "integrity": "sha512-Gt0pqoXuIqX/8dvG0OKp/wMCobXNH3klNbUPBNyOfN0YA1IswrM3HyWFMOPk1Jy+BRaIyDPcFx4jLBwHNmlyfQ=="
+        },
+        {
+          "path": "node_modules/@supabase/postgrest-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-2.110.0.tgz",
+          "integrity": "sha512-ZbC1QZL3jcvBUfVKjJbgRM27G4Mg3Zzqdm44m5pJafe1e52Cli793EOnwQucomBAGEUDd03Nzaf7XV3ji/XexQ=="
+        },
+        {
+          "path": "node_modules/@supabase/functions-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.110.0.tgz",
+          "integrity": "sha512-Fde5wlY8ZZy+9yqrWlQHo8MacSyUBArBEtN2boB4thJQigPnQD/cc61qZN0n3I1L0gwhWtHYwIMnOBKxSvF6Hw=="
+        },
+        {
+          "path": "node_modules/@supabase/auth-js",
+          "version": "2.110.0",
+          "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.110.0.tgz",
+          "integrity": "sha512-Mi288WCTp6wxMFCOu/UgzgHEXODjdl2uVTLqK11eanzGZaldU3RyP8Am+ZbNuVzFP+5+iOvppxzv7N5Ym84xTg=="
+        }
+      ],
+      "installation": "BLOCKED",
+      "onlineInstallExit": 1,
+      "onlineFailure": "EPERM_connect_to_required_proxy",
+      "artifactRestored": false
+    }
+  ],
+  "localResults": {
+    "sourceTests": {
+      "files": 20,
+      "tests": 438,
+      "pass": 438,
+      "fail": 0,
+      "skipped": 0
+    },
+    "typeScript": "PASS",
+    "eslint": "PASS",
+    "build": "PASS",
+    "sql": "BLOCKED_NO_STATEMENTS_EXECUTED",
+    "catalogCollector": "PREPARED_STATIC_CHECK_ONLY_NOT_EXECUTED",
+    "nativeReview": {
+      "tests": 135,
+      "pass": 134,
+      "fail": 1,
+      "skipped": 0,
+      "status": "BLOCKED",
+      "failure": "ERR_MODULE_NOT_FOUND_pinned_Supabase_SDK",
+      "nativeServicesExecuted": false,
+      "packageSourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427"
+    },
+    "sqlRunner": {
+      "exitCode": 1,
+      "harnessTests": 1,
+      "harnessPass": 0,
+      "harnessFail": 1,
+      "reason": "ERR_MODULE_NOT_FOUND_before_SQL",
+      "sqlStatementsExecuted": 0,
+      "sqlAssertionsExecuted": 0
+    },
+    "standardSourceCommand": {
+      "command": "npm --prefix app/frontend run test:payments",
+      "files": 20,
+      "pass": 20,
+      "fail": 0,
+      "skipped": 0,
+      "note": "Node parent reports files; separate per-file TAP totals 438 cases"
+    }
+  },
+  "nativeScope": {
+    "originalGroups": [
+      "schema_dependencies",
+      "real_auth_jwt",
+      "migration_idempotency_metadata",
+      "untrusted_denials",
+      "service_role_history_denial",
+      "successful_auth_deletion",
+      "rollback_each_cleanup_phase",
+      "failed_delete_preserves_trial",
+      "failed_delete_cannot_restart_trial",
+      "checkout_wins_race",
+      "deletion_wins_race",
+      "trial_races_deletion",
+      "simultaneous_auth_deletions",
+      "billing_history_retention",
+      "family_member_privacy",
+      "family_owner_deletion",
+      "after_delete_null_control",
+      "unreviewed_trigger_readiness",
+      "before_delete_null_preserves_trial",
+      "before_delete_null_cannot_restart_trial",
+      "isolation_and_billing_preservation"
+    ],
+    "originalProfileMigrations": [
+      "app/frontend/supabase/migrations/202610140001_subscription_authority.sql",
+      "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql",
+      "app/frontend/supabase/migrations/202610150003_family_authority.sql",
+      "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql",
+      "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql",
+      "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql",
+      "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql"
+    ],
+    "requiredFullMigrationOrder": [
+      "202610140001_subscription_authority.sql",
+      "202610140002_family_helper_execution.sql",
+      "202610150003_family_authority.sql",
+      "202610150004_trusted_lemon_payments.sql",
+      "202610150005_subscription_lifecycle.sql",
+      "202610160006_ai_entitlement.sql",
+      "202610180007_notification_table_authority.sql",
+      "202610210008_account_deletion_safety.sql",
+      "202610210009_atomic_account_deletion.sql",
+      "202610310010_payment_checkout_lock.sql",
+      "202610310011_payment_customer_ownership.sql"
+    ],
+    "originalIndex6MustBe009": true,
+    "fullFixtureComplete": false,
+    "reason": "actual related-table definitions and locked dependencies unavailable; preserve rather than weaken original assertions",
+    "reviewFindings": [
+      "Original migration regex accepts single-digit migrations only",
+      "schema_dependencies applies migrationFiles.slice(0,6)",
+      "migration_idempotency_metadata pins migrationFiles[6] to009 and repeats it twice",
+      "Marker-only preference fixture lacks007 required columns and unique user identity",
+      "Original metadata asserts five selected Auth FKs; add separate checks for011 customer ownership and reminder dependencies rather than delete assertions",
+      "Actual reminder FK/actions and Auth trigger topology are unknown; no invented CASCADE"
+    ]
+  },
+  "phase4bPinnedIntegrity": {
+    "status": "PASS",
+    "sourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427",
+    "inputs": 79,
+    "profileScope": "legacy_7_migration_profile_plus_pinned_supplement_inputs"
+  },
+  "checks": {
+    "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+    "schemaEvidence": {
+      "status": "BLOCKED",
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "reason": "no_verified_target_catalog_or_DDL"
+    },
+    "lockedDependencies": {
+      "status": "BLOCKED",
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "reason": "EPERM"
+    },
+    "sourceRegressions": {
+      "status": "PASS",
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "files": 20,
+      "tests": 438,
+      "pass": 438,
+      "fail": 0,
+      "skipped": 0
+    },
+    "sqlRegressions": {
+      "status": "BLOCKED",
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "reason": "import_failure_before_SQL"
+    },
+    "nativePackageReview": {
+      "tests": 135,
+      "pass": 134,
+      "fail": 1,
+      "skipped": 0,
+      "status": "BLOCKED",
+      "failure": "ERR_MODULE_NOT_FOUND_pinned_Supabase_SDK",
+      "nativeServicesExecuted": false,
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "packageSourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427"
+    },
+    "packageIntegrity": {
+      "status": "PASS",
+      "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
+      "scope": "unchanged_4B_profile_only",
+      "inputs": 79
+    },
+    "nativeFixture": {
+      "status": "BLOCKED",
+      "migrations": [
+        "202610140001_subscription_authority.sql",
+        "202610140002_family_helper_execution.sql",
+        "202610150003_family_authority.sql",
+        "202610150004_trusted_lemon_payments.sql",
+        "202610150005_subscription_lifecycle.sql",
+        "202610210008_account_deletion_safety.sql",
+        "202610210009_atomic_account_deletion.sql"
+      ],
+      "repeat009": 2,
+      "originalGroups": [
+        "schema_dependencies",
+        "real_auth_jwt",
+        "migration_idempotency_metadata",
+        "untrusted_denials",
+        "service_role_history_denial",
+        "successful_auth_deletion",
+        "rollback_each_cleanup_phase",
+        "failed_delete_preserves_trial",
+        "failed_delete_cannot_restart_trial",
+        "checkout_wins_race",
+        "deletion_wins_race",
+        "trial_races_deletion",
+        "simultaneous_auth_deletions",
+        "billing_history_retention",
+        "family_member_privacy",
+        "family_owner_deletion",
+        "after_delete_null_control",
+        "unreviewed_trigger_readiness",
+        "before_delete_null_preserves_trial",
+        "before_delete_null_cannot_restart_trial",
+        "isolation_and_billing_preservation"
+      ],
+      "guards": {
+        "immutableSource": true,
+        "ownership": true,
+        "cleanup": true,
+        "namespaceIsolation": true,
+        "noEgress": true,
+        "noProviderCalls": true
+      },
+      "relatedReminderDeletion": "BLOCKED_UNKNOWN_FK_AND_TRIGGERS",
+      "notificationAuthorization": "BLOCKED_NO_SQL_EXECUTION",
+      "guardEvidenceScope": "preserved_source_controls_only_not_runtime_validation"
+    }
+  },
+  "catalogAnalysis": {
+    "status": "BLOCKED",
+    "facts": [],
+    "gaps": [
+      "complete_catalog_snapshot_missing"
+    ],
+    "findings": [],
+    "restExposureVerified": false,
+    "productionReady": false
+  },
+  "readiness": {
+    "status": "BLOCKED",
+    "blockers": [
+      "schemaEvidence:not_verified",
+      "lockedDependencies:not_verified",
+      "sqlRegressions:not_verified",
+      "sqlRegressions:incomplete_results",
+      "nativePackageReview:not_verified",
+      "nativePackageReview:incomplete_results",
+      "native_fixture_all_001_011_not_verified",
+      "related_row_deletion_and_authorization_not_verified"
+    ],
+    "recommendHostedNativeValidation": false,
+    "dispatchAuthorized": false,
+    "productionReady": false,
+    "liveBillingReady": false
+  },
+  "migrationDecision": {
+    "status": "WITHHELD",
+    "reason": "no demonstrated current target-table authorization defect from verified schema; do not infer it from unrelated 007 fixtures"
+  },
+  "productionReady": false,
+  "liveBillingReady": false,
+  "historicalSources": [
+    {
+      "path": "docs/production-permissions-audit-ar.md",
+      "commit": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+      "gitBlob": "6579e437e58b418f0123036422e51b00fa92b6ec",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/f29d8df16e434e8cd064968e4b832e9c8f84e2fb/docs/production-permissions-audit-ar.md",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/production-permissions-evidence-readonly.sql",
+      "commit": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+      "gitBlob": "56cedeb611bd992ea50adb996cd85f0ad650b42c",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/f29d8df16e434e8cd064968e4b832e9c8f84e2fb/docs/production-permissions-evidence-readonly.sql",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/supabase-remaining-readonly.sql",
+      "commit": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+      "gitBlob": "77fba3ce2eda56a634289f9b05a27b45b6e5e993",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/f29d8df16e434e8cd064968e4b832e9c8f84e2fb/docs/supabase-remaining-readonly.sql",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/notification-preferences-readonly.sql",
+      "commit": "f29d8df16e434e8cd064968e4b832e9c8f84e2fb",
+      "gitBlob": "5778891d606536919153b6cecb8bbc8d47556107",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/f29d8df16e434e8cd064968e4b832e9c8f84e2fb/docs/notification-preferences-readonly.sql",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/production-permissions-remediation-ar.md",
+      "commit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+      "gitBlob": "1d15e17d96de6e5956f30384671306b536c4c41d",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/e6dd3fc5e014ea0539df8da12a6ee84582b302b9/docs/production-permissions-remediation-ar.md",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/notification-preferences-security.md",
+      "commit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+      "gitBlob": "b29fe50162cdf2157ee196eda4b72e0378c61a45",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/e6dd3fc5e014ea0539df8da12a6ee84582b302b9/docs/notification-preferences-security.md",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/subscription-security-csv-review.md",
+      "commit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+      "gitBlob": "f05ab98a435ee3a31b3bd7d86245842e46d0a995",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/e6dd3fc5e014ea0539df8da12a6ee84582b302b9/docs/subscription-security-csv-review.md",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    },
+    {
+      "path": "docs/notification-007-validation-ar.md",
+      "commit": "e6dd3fc5e014ea0539df8da12a6ee84582b302b9",
+      "gitBlob": "c0fb68171b8065a3d903d9b238c4ed08d4a17619",
+      "url": "https://github.com/HEZZO7/AmanahLifeapp/blob/e6dd3fc5e014ea0539df8da12a6ee84582b302b9/docs/notification-007-validation-ar.md",
+      "classification": "historical_preparation_or_narrative_not_verified_target_catalog"
+    }
+  ],
+  "schemaAudit": [
+    {
+      "table": "public.app_11941c8fec_bill_reminders_sync",
+      "creationDDLAtBase": "NOT_FOUND",
+      "hostedGrants": "UNKNOWN",
+      "hostedRls": "UNKNOWN",
+      "hostedForeignKeys": "UNKNOWN",
+      "hostedTriggers": "UNKNOWN",
+      "applicationRequiredFields": [
+        "id",
+        "user_id",
+        "local_id",
+        "name",
+        "due_date",
+        "is_paid",
+        "due_date_sent_at",
+        "day_before_sent_at"
+      ],
+      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+    },
+    {
+      "table": "public.app_11941c8fec_goal_reminders_sync",
+      "creationDDLAtBase": "NOT_FOUND",
+      "hostedGrants": "UNKNOWN",
+      "hostedRls": "UNKNOWN",
+      "hostedForeignKeys": "UNKNOWN",
+      "hostedTriggers": "UNKNOWN",
+      "applicationRequiredFields": [
+        "id",
+        "user_id",
+        "local_id",
+        "title",
+        "target_date",
+        "status",
+        "target_date_sent_at",
+        "three_day_sent_at"
+      ],
+      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+    },
+    {
+      "table": "public.app_11941c8fec_email_digest",
+      "creationDDLAtBase": "NOT_FOUND",
+      "hostedGrants": "UNKNOWN",
+      "hostedRls": "UNKNOWN",
+      "hostedForeignKeys": "UNKNOWN",
+      "hostedTriggers": "UNKNOWN",
+      "applicationRequiredFields": [
+        "user_id",
+        "enabled",
+        "savings_data",
+        "last_sent_at"
+      ],
+      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+    }
+  ],
+  "networkDiagnosis": {
+    "shell": "EPERM_connect_to_inherited_required_proxy_port_8080",
+    "proxyServiceAvailability": "UNDETERMINED_FROM_SANDBOX",
+    "staleGitConfiguration": "NOT_DEMONSTRATED",
+    "githubConnector": "AVAILABLE",
+    "controlsBypassed": false,
+    "systemNetworkModified": false
+  }
+}
