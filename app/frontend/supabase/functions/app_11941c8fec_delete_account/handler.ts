@@ -18,7 +18,7 @@ const reply = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers });
 const blocked = () => reply(409, {
   code: 'billing_review_required',
-  error: 'Account not deleted. Open /subscription to manage or cancel renewal, then contact support@amanahlife.com for billing-record retention review. No cancellation has been performed; paid access is unchanged.',
+  error: 'Account not deleted. Open /subscription to manage or cancel renewal, then contact support@amanahlife.com for billing-record retention review. Cancellation or expiry does not erase billing history or guarantee deletion. No cancellation has been performed; paid access is unchanged.',
   manage_path: '/subscription',
 });
 const unavailable = () => reply(503, {

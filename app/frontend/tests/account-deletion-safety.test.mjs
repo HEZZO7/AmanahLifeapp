@@ -123,7 +123,7 @@ test('runtime adapter authenticates, requires 009 and performs hard Auth delete 
   assert.equal(/\.from\(|\.delete\(|console\.|fetch\(|req\.json/.test(source),false);
 });
 
-function settingsDeletionFixture(status, code) {
+function settingsDeletionFixture(status, code, isAr = false) {
   const source = readFileSync(new URL('../src/pages/Settings.tsx', import.meta.url), 'utf8');
   const first = source.indexOf('const handleDeleteAccount = async () => {');
   const last = source.indexOf('\n\n  const exportFinanceCSV =', first);
@@ -131,7 +131,7 @@ function settingsDeletionFixture(status, code) {
   const factoryBody = source.slice(first, last).replace('const handleDeleteAccount = ', 'return ');
   const events = []; let action;
   const deps = {
-    deleteConfirmText: 'DELETE', isAr: false,
+    deleteConfirmText: 'DELETE', isAr,
     toast: {
       error: (message, options) => { events.push(['error', message]); action = options?.action; },
       success: () => events.push(['success']),
@@ -177,3 +177,12 @@ test('actual Settings unconfirmed deletion preserves local state without claimin
   assert.match(f.events.find(e=>e[0]==='error')[1],/could not be confirmed/);
   assert.doesNotMatch(f.events.find(e=>e[0]==='error')[1],/Account not deleted/);
 });
+for (const [status, code] of [[409, 'billing_review_required'], [503, 'billing_verification_unavailable']]) {
+  test('actual Arabic Settings refusal preserves local state and offers subscription management: ' + status, async () => {
+    const f = settingsDeletionFixture(status, code, true); await f.run();
+    assert.equal(f.events.some(e => ['success', 'clear', 'signout'].includes(e[0])), false);
+    assert.match(f.events.find(e => e[0] === 'error')[1], /لم يُحذف الحساب ولم يُلغَ الاشتراك/);
+    assert.equal(f.action().label, 'إدارة الاشتراك');
+    f.action().onClick(); assert.deepEqual(f.events.at(-1), ['navigate', '/subscription']);
+  });
+}

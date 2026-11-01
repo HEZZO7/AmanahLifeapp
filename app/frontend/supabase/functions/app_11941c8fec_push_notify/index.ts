@@ -1,15 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3';
+import { NOTIFICATION_FLAGS, preferencePatch, publicPreferences } from '../_shared/notificationPreferences.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Cache-Control': 'no-store',
 };
 
 Deno.serve(async (req: Request) => {
   const requestId = crypto.randomUUID();
-  console.log(JSON.stringify({ requestId, method: req.method, url: req.url }));
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -29,6 +30,7 @@ Deno.serve(async (req: Request) => {
   let body: any;
   try {
     body = await req.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Invalid request');
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
       status: 400,
@@ -49,7 +51,10 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const token = authHeader.replace('Bearer ', '');
+      const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+      if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -77,7 +82,7 @@ Deno.serve(async (req: Request) => {
         }, { onConflict: 'user_id,endpoint' });
 
       if (upsertError) {
-        console.error(JSON.stringify({ requestId, error: upsertError }));
+        console.error(JSON.stringify({ requestId, action: 'write_failed' }));
         return new Response(JSON.stringify({ error: 'Failed to save subscription' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -85,7 +90,7 @@ Deno.serve(async (req: Request) => {
       }
 
       // Also create default notification preferences if not exists
-      await supabase
+      const { error: preferencesError } = await supabase
         .from('app_11941c8fec_notification_preferences')
         .upsert({
           user_id: user.id,
@@ -96,7 +101,14 @@ Deno.serve(async (req: Request) => {
           savings_reminders: true,
           general_activity: true,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'user_id', ignoreDuplicates: true });
+
+      if (preferencesError) {
+        return new Response(JSON.stringify({ error: 'Failed to initialize preferences' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -114,7 +126,10 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const token = authHeader.replace('Bearer ', '');
+      const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+      if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -124,18 +139,25 @@ Deno.serve(async (req: Request) => {
       }
 
       const { endpoint } = body;
+      let deletionError;
       if (endpoint) {
-        await supabase
+        const result = await supabase
           .from('app_11941c8fec_push_subscriptions')
           .delete()
           .eq('user_id', user.id)
           .eq('endpoint', endpoint);
+        deletionError = result.error;
       } else {
-        await supabase
+        const result = await supabase
           .from('app_11941c8fec_push_subscriptions')
           .delete()
           .eq('user_id', user.id);
+        deletionError = result.error;
       }
+
+      if (deletionError) return new Response(JSON.stringify({ error: 'Failed to remove subscription' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -153,7 +175,10 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const token = authHeader.replace('Bearer ', '');
+      const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+      if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -162,9 +187,9 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const { preferences } = body;
+      const preferences = preferencePatch(body.preferences);
       if (!preferences) {
-        return new Response(JSON.stringify({ error: 'Missing preferences' }), {
+        return new Response(JSON.stringify({ error: 'Invalid notification preferences' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -173,13 +198,13 @@ Deno.serve(async (req: Request) => {
       const { error: upsertError } = await supabase
         .from('app_11941c8fec_notification_preferences')
         .upsert({
-          user_id: user.id,
           ...preferences,
+          user_id: user.id,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
 
       if (upsertError) {
-        console.error(JSON.stringify({ requestId, error: upsertError }));
+        console.error(JSON.stringify({ requestId, action: 'write_failed' }));
         return new Response(JSON.stringify({ error: 'Failed to update preferences' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -202,7 +227,10 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const token = authHeader.replace('Bearer ', '');
+      const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+      if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -213,26 +241,19 @@ Deno.serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from('app_11941c8fec_notification_preferences')
-        .select('*')
+        .select(NOTIFICATION_FLAGS.join(','))
         .eq('user_id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error(JSON.stringify({ requestId, error }));
+        console.error(JSON.stringify({ requestId, action: 'read_failed' }));
         return new Response(JSON.stringify({ error: 'Failed to get preferences' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const preferences = data || {
-        prayer_reminders: true,
-        bill_reminders: true,
-        habit_reminders: true,
-        fasting_reminders: true,
-        savings_reminders: true,
-        general_activity: true,
-      };
+      const preferences = publicPreferences(data);
 
       return new Response(JSON.stringify({ preferences }), {
         status: 200,
@@ -273,7 +294,10 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        const token = authHeader.replace('Bearer ', '');
+        const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+        if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
         if (authError || !user || user.id !== user_id) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -283,16 +307,22 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Check user preferences for this notification type
-      const prefColumn = `${notification_type}_reminders` === 'general_activity_reminders' 
-        ? 'general_activity' 
-        : `${notification_type}`;
+      // The scheduler/client use short names. Resolve only known preference
+      // columns; never pass an arbitrary client selection to the privileged SDK.
+      const prefColumn = NOTIFICATION_FLAGS.find(flag => flag === notification_type || flag === `${notification_type}_reminders`);
+      if (!prefColumn) return new Response(JSON.stringify({ error: 'Invalid notification type' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       
-      const { data: prefs } = await supabase
+      const { data: prefs, error: preferenceError } = await supabase
         .from('app_11941c8fec_notification_preferences')
         .select(prefColumn)
         .eq('user_id', user_id)
         .single();
+
+      if (preferenceError && preferenceError.code !== 'PGRST116') return new Response(JSON.stringify({ error: 'Notification preferences unavailable' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
 
       // If user has disabled this type, skip
       if (prefs && prefs[prefColumn] === false) {
@@ -308,7 +338,10 @@ Deno.serve(async (req: Request) => {
         .select('*')
         .eq('user_id', user_id);
 
-      if (subError || !subscriptions || subscriptions.length === 0) {
+      if (subError) return new Response(JSON.stringify({ error: 'Push subscriptions unavailable' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      if (!subscriptions || subscriptions.length === 0) {
         return new Response(JSON.stringify({ success: true, sent: 0, reason: 'No subscriptions found' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -364,7 +397,7 @@ Deno.serve(async (req: Request) => {
               .delete()
               .eq('id', sub.id);
           } else {
-            console.error(JSON.stringify({ requestId, action: 'send_error', endpoint: sub.endpoint, statusCode: err?.statusCode, message: err?.message }));
+            console.error(JSON.stringify({ requestId, action: 'send_error', statusCode: err?.statusCode }));
           }
         }
       }
@@ -381,7 +414,7 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (err) {
-    console.error(JSON.stringify({ requestId, error: err }));
+    console.error(JSON.stringify({ requestId, action: 'request_failed' }));
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

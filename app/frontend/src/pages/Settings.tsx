@@ -437,8 +437,12 @@ export default function Settings() {
           <h3 className="text-sm text-red-400 mb-3">{isAr ? 'منطقة الخطر' : 'Danger Zone'}</h3>
           <p className="text-xs text-muted-foreground mb-3">
             {isAr
-              ? 'حذف حسابك نهائي ولا يمكن التراجع عنه. سيتم حذف جميع بياناتك.'
-              : 'Deleting your account is permanent and cannot be undone. All your data will be removed.'}
+              ? 'حذف الحساب نهائي عند نجاحه. وجود سجل فوترة أو حجز دفع يمنع الحذف التلقائي ويتطلب مراجعة الدعم للاحتفاظ بالسجلات. إلغاء التجديد أو انتهاء الاشتراك لا يزيل هذا القيد، وطلب الحذف لا يُلغي الاشتراك.'
+              : 'Successful account deletion is permanent. Billing history or a payment reservation blocks automatic deletion and requires a support retention review. Cancelling renewal or expiry does not remove this restriction. Requesting deletion does not cancel a subscription.'}
+          </p>
+          <p className="text-xs mb-3 flex flex-wrap gap-3">
+            <a className="text-primary underline" href="/subscription">{isAr ? 'إدارة الاشتراك' : 'Manage subscription'}</a>
+            <a className="text-primary underline" href="mailto:support@amanahlife.com">{isAr ? 'طلب مراجعة الحذف والاحتفاظ بالسجلات' : 'Request deletion and retention review'}</a>
           </p>
           <button
             onClick={() => setShowDeleteDialog(true)}
@@ -470,8 +474,8 @@ export default function Settings() {
             </DialogTitle>
             <DialogDescription>
               {isAr
-                ? 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف حسابك وجميع بياناتك نهائياً.'
-                : 'This action cannot be undone. Your account and all associated data will be permanently deleted.'}
+                ? 'عند الموافقة ونجاح الحذف، تُحذف بيانات الحساب ضمن النطاق المدعوم وتُمسح بيانات هذا المتصفح. سجلات الفوترة وحجوزات الدفع تمنع الحذف التلقائي حتى مراجعة الدعم، حتى بعد الإلغاء أو الانتهاء. لا يُلغى الاشتراك بهذا الطلب.'
+                : 'If allowed and completed, deletion removes the supported account data and clears this browser’s local data. Billing history and payment reservations block automatic deletion pending support review, even after cancellation or expiry. This request does not cancel a subscription.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

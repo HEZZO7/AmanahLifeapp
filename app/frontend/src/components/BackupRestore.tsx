@@ -4,45 +4,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
+import { exportPortableData, restorePortableData, isPortableLocalKey } from '@/lib/notificationBackup';
+import { backupClient } from '@/lib/backupClient';
 
 const APP_VERSION = '2.0.0';
-
-// Tables that contain user data
-const USER_TABLES = [
-  'app_11941c8fec_push_subscriptions',
-  'app_11941c8fec_notification_preferences',
-  'app_11941c8fec_email_digest',
-  'app_11941c8fec_search_history',
-  'app_11941c8fec_subscriptions',
-];
-
-// Local storage keys to backup
-const LOCAL_STORAGE_KEYS = [
-  'amanah-settings',
-  'amanah-tasks',
-  'amanah-goals',
-  'amanah-transactions',
-  'amanah-habits',
-  'amanah-planner',
-  'amanah-wellness',
-  'amanah-daily-routine',
-  'amanah-fasting',
-  'amanah-adhkar-progress',
-  'amanah-bills',
-  'amanah-family-budget',
-  'amanah-savings-challenges',
-];
-
-// DELIBERATELY NOT SWEPT: excused-period data (src/lib/excusedPeriods.ts -
-// keys 'excused_periods', 'excused_qada_fasts_made_up',
-// 'excused_qada_prayers_made_up', 'excused_disclaimer_seen'). This is
-// sensitive (menstruation/nifas/illness/travel exemption history) and is
-// device-local-only by explicit design (Phase C, 2026-08-02) - it must
-// never appear in a backup export or be restorable to a different
-// device/account. Do not add an 'excused_' entry to LOCAL_STORAGE_KEYS or
-// the dynamic-prefix sweep below without an explicit, separate
-// privacy-design approval - this exclusion is intentional, not an
-// oversight.
 
 export default function BackupRestore() {
   const { user } = useAuth();
@@ -60,50 +25,15 @@ export default function BackupRestore() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      if (!session || session.user.id !== user.id) throw new Error('Not authenticated');
 
-      // Collect data from Supabase tables
-      const supabaseData: Record<string, unknown[]> = {};
-      for (const table of USER_TABLES) {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*')
-          .eq('user_id', user.id);
-        if (!error && data) {
-          supabaseData[table] = data;
-        }
-      }
-
-      // Collect local storage data
+      const supabaseData = await exportPortableData(backupClient, user.id);
       const localData: Record<string, unknown> = {};
-      for (const key of LOCAL_STORAGE_KEYS) {
+      for (const key of Object.keys(localStorage).filter(isPortableLocalKey)) {
         const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            localData[key] = JSON.parse(value);
-          } catch {
-            localData[key] = value;
-          }
-        }
-      }
-
-      // Also backup prayer completion data and dhikr
-      const allKeys = Object.keys(localStorage);
-      const dynamicKeys = allKeys.filter(k => 
-        k.startsWith('prayer_completed_') || 
-        k.startsWith('dhikr_') ||
-        k.startsWith('amanah-')
-      );
-      for (const key of dynamicKeys) {
-        if (!localData[key]) {
-          const value = localStorage.getItem(key);
-          if (value) {
-            try {
-              localData[key] = JSON.parse(value);
-            } catch {
-              localData[key] = value;
-            }
-          }
+        if (value !== null) {
+          try { localData[key] = JSON.parse(value); }
+          catch { localData[key] = value; }
         }
       }
 
@@ -129,8 +59,8 @@ export default function BackupRestore() {
       URL.revokeObjectURL(url);
 
       toast.success(isAr ? 'تم تصدير البيانات بنجاح!' : 'Data exported successfully!');
-    } catch (error) {
-      console.error('Export failed:', error);
+    } catch {
+      console.error('Backup export failed');
       toast.error(isAr ? 'فشل تصدير البيانات' : 'Failed to export data');
     }
 
@@ -141,8 +71,8 @@ export default function BackupRestore() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.json')) {
-      toast.error(isAr ? 'يرجى اختيار ملف JSON' : 'Please select a JSON file');
+    if (!file.name.toLowerCase().endsWith('.json') || file.size > 10 * 1024 * 1024) {
+      toast.error(isAr ? 'يرجى اختيار ملف JSON لا يتجاوز 10 ميغابايت' : 'Please select a JSON file up to 10 MB');
       return;
     }
 
@@ -158,55 +88,19 @@ export default function BackupRestore() {
     setShowConfirm(false);
 
     try {
-      const text = await pendingFile.text();
-      const backup = JSON.parse(text);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.id !== user.id) throw new Error('Not authenticated');
+      const result = await restorePortableData(backupClient, user.id, JSON.parse(await pendingFile.text()), localStorage);
+      toast.success(isAr ? 'تمت استعادة البيانات المدعومة. يرجى تحديث الصفحة.' : 'Supported data restored. Please refresh the page.');
+      if (result.ignored) toast.warning(isAr
+        ? 'تم تجاوز بيانات غير قابلة للنقل. أعد تفعيل إشعارات الجهاز من الإعدادات؛ الاشتراك والفوترة لا يُستعادان من النسخ الاحتياطية.'
+        : 'Nonportable data was skipped. Enable device notifications again in Settings; subscriptions and billing cannot be restored from backups.');
 
-      // Validate backup structure
-      if (!backup.metadata || !backup.metadata.version) {
-        throw new Error('Invalid backup file format');
-      }
-
-      // Restore local storage data
-      if (backup.localData) {
-        for (const [key, value] of Object.entries(backup.localData)) {
-          localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-        }
-      }
-
-      // Restore Supabase data
-      if (backup.supabaseData) {
-        for (const [table, rows] of Object.entries(backup.supabaseData)) {
-          if (!Array.isArray(rows) || rows.length === 0) continue;
-
-          // Delete existing data for this user
-          await supabase.from(table).delete().eq('user_id', user.id);
-
-          // Insert backup data (update user_id to current user)
-          const updatedRows = rows.map((row: Record<string, unknown>) => ({
-            ...row,
-            user_id: user.id,
-          }));
-
-          // Remove id field to let DB generate new ones
-          const cleanRows = updatedRows.map((row: Record<string, unknown>) => {
-            const copy = { ...row };
-            delete copy.id;
-            return copy;
-          });
-          
-          if (cleanRows.length > 0) {
-            await supabase.from(table).insert(cleanRows);
-          }
-        }
-      }
-
-      toast.success(isAr ? 'تم استيراد البيانات بنجاح! يرجى تحديث الصفحة.' : 'Data imported successfully! Please refresh the page.');
-      
       // Refresh after short delay
       setTimeout(() => window.location.reload(), 1500);
-    } catch (error) {
-      console.error('Import failed:', error);
-      toast.error(isAr ? 'فشل استيراد البيانات. تأكد من صحة الملف.' : 'Failed to import data. Please check the file.');
+    } catch {
+      console.error('Backup import failed');
+      toast.error(isAr ? 'لم تكتمل الاستعادة. قد تكون بعض البيانات تغيّرت؛ راجعها قبل إعادة المحاولة.' : 'Restore did not complete. Some data may have changed; review it before retrying.');
     }
 
     setImporting(false);
@@ -219,11 +113,16 @@ export default function BackupRestore() {
         {isAr ? '💾 النسخ الاحتياطي والاستعادة' : '💾 Backup & Restore'}
       </h3>
 
+      <p className="text-xs text-muted-foreground mb-3">
+        {isAr
+          ? 'تُنقل البيانات الشخصية المدعومة وتفضيلات الإشعارات فقط. لا تُنقل مفاتيح إشعارات الجهاز أو الاشتراكات أو سجلات الفوترة أو بيانات الأعذار الحساسة. أعد تفعيل إشعارات الجهاز من الإعدادات.'
+          : 'Backups transfer supported personal data and notification preferences. Device push keys, subscriptions, billing records and sensitive excused-period data are excluded. Enable device notifications again in Settings.'}
+      </p>
       <div className="space-y-2">
         {/* Export */}
         <button
           onClick={handleExport}
-          disabled={exporting}
+          disabled={exporting || importing}
           className="w-full bg-background border border-border rounded-xl px-4 py-3 flex items-center gap-3 hover:border-primary transition-all disabled:opacity-50"
         >
           <Download className="w-4 h-4 text-primary flex-shrink-0" />
@@ -256,7 +155,7 @@ export default function BackupRestore() {
             type="file"
             accept=".json"
             onChange={handleFileSelect}
-            disabled={importing}
+            disabled={importing || exporting}
             className="hidden"
           />
         </label>
@@ -274,8 +173,8 @@ export default function BackupRestore() {
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               {isAr
-                ? 'سيتم استبدال بياناتك الحالية بالبيانات من الملف. هل تريد المتابعة؟'
-                : 'This will replace your current data with data from the file. Continue?'}
+                ? 'سيتم تحديث التفضيلات والبيانات المحلية المدعومة واستبدال سجل البحث الموجود في الملف. قد تُطبّق بعض التغييرات قبل حدوث خطأ. هل تريد المتابعة؟'
+                : 'This updates supported preferences and local data, and replaces search history included in the file. Some changes may apply before an error. Continue?'}
             </p>
             <div className="flex gap-2">
               <button
