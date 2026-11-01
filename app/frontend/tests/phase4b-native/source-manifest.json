@@ -1,0 +1,398 @@
+{
+  "repository": "HEZZO7/AmanahLifeapp",
+  "repositoryId": 1272912875,
+  "sourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427",
+  "sourceTree": "684872f47e47c6da14412ebec3297d014eed159e",
+  "parentSource": "b7a3e169517507f7413a38c3831cd5b21f7d2502",
+  "mode": "preparation-only",
+  "productionReady": false,
+  "files": {
+    "app/frontend/package-lock.json": {
+      "gitBlob": "86ae302fde69db3ac01acfe7dcc990ad8f0bd1d1",
+      "sha256": "7355eec1b6796aaf71efe7170eb7e22f51f32312b8c46c678f02e62532785e0b"
+    },
+    "app/frontend/package.json": {
+      "gitBlob": "ca9aab18bee0d08838c50e478b0bf77f1bb364d4",
+      "sha256": "18da7826bedf1c6a67c29b17155733ab1dd90db42273e8daaa91b8b79db603f7"
+    },
+    "app/frontend/src/components/EmailDigestToggle.tsx": {
+      "gitBlob": "6f5e5a6636611c864854259aaa2db2ed15129c13",
+      "sha256": "8f7cc762f0f949b1362f65d6c6f510bdf83baad0cc2b2a3a44603b64e08941e1"
+    },
+    "app/frontend/src/components/NotificationSettings.tsx": {
+      "gitBlob": "5425790287410937981c98bdf3f6665e35fdfdf7",
+      "sha256": "c146d5d02ffe9221841f7861141013282aae093357d529bf4b26e24121e520de"
+    },
+    "app/frontend/src/contexts/AuthContext.tsx": {
+      "gitBlob": "1cc0d40e55c087a50e8077bc50f4eed360f93fb7",
+      "sha256": "cae01229f747dd6c16b6e533d85ba9d4eeef4f90abc10c6a11d7cce0d019902a"
+    },
+    "app/frontend/src/hooks/useNotifications.ts": {
+      "gitBlob": "9b06b4d2967ec6b92b7fe9b4c700d9d24769369f",
+      "sha256": "4f279c7dc7fa073b0cc29b0eaad1c0024feee56b3c92e1d365e8454699e09d08"
+    },
+    "app/frontend/src/hooks/useSavingsNotifications.ts": {
+      "gitBlob": "75c48923482b0fa2a989de76bfbe7e554d06845a",
+      "sha256": "ac65bffd29189a79d901743cabff2abf81166fca0339cb1ff99430e221bc7ccb"
+    },
+    "app/frontend/src/lib/backupClient.ts": {
+      "gitBlob": "908674ea5f462df7f6c1d0ab0943b95202d933ce",
+      "sha256": "220a1a871e61809b16b3b1e9be6c8b15a856d05c88f35cda03a4af2a71508c17"
+    },
+    "app/frontend/src/lib/devicePush.ts": {
+      "gitBlob": "6a71e7de0097828c2a0e183ca50fc488a64b99f6",
+      "sha256": "da4ed7fc5a0819e3be11d31c42b3496b802ee0cb30688efc7ad1e9d1f3a4e395"
+    },
+    "app/frontend/src/lib/notificationBackup.ts": {
+      "gitBlob": "1722b9b95dfdc59d05369c43185784f442a6088e",
+      "sha256": "55683d680c940700f1966fe88cff7cd634f8927c53bfcade8afe440f9981cca7"
+    },
+    "app/frontend/src/lib/notificationPreferenceClient.ts": {
+      "gitBlob": "25c1b3de5c3ede160eaf6f4525e0312c71efe820",
+      "sha256": "c176272c23abb0fb58461245ca645e3dd5eb1199bc34a9c87672d034e9c1096b"
+    },
+    "app/frontend/src/lib/reminderSync.ts": {
+      "gitBlob": "cd167a5ef644993a29171ee967af6022dabca9f9",
+      "sha256": "21445217072aaef3fcae7cd746771942fc39069ef96c6f996cd3c7b2a64f2d32"
+    },
+    "app/frontend/src/lib/serviceEnvironment.ts": {
+      "gitBlob": "eb958b4249899bbbf17bdf9124e7d2dadca2d3bf",
+      "sha256": "39bce90e3798cc018f1b09008648ae03c57424b72e09f4636e62795d3071a34d"
+    },
+    "app/frontend/src/lib/supabase.ts": {
+      "gitBlob": "83e757d6be6079e1882f70cbcef24ba4082fcf47",
+      "sha256": "4ac69df2154ea7a1577ed94b0cb6396817b64e831f7357a411bcf1e0b81d0049"
+    },
+    "app/frontend/src/pages/BillReminders.tsx": {
+      "gitBlob": "00856a8a1bebe4e34218e2cbd81d4a7d4e16a7d6",
+      "sha256": "bc2d88e7fa400134a35dcd159a9ecb156488ac40da9a2b57a593b1dde033ae4b"
+    },
+    "app/frontend/src/pages/Goals.tsx": {
+      "gitBlob": "5dbd70d8584f9542b5918f8e5fa01302095ecfcd",
+      "sha256": "8e9fa7b3bc484052249e8a39c142fd02798bf1e056e95af49e4c1c7182460fa4"
+    },
+    "app/frontend/src/pages/PrayerTimes.tsx": {
+      "gitBlob": "a464246e92e2ddc721e65f206ed43aebd320ef6e",
+      "sha256": "77263e777f4af425963eb083fe8441cf5cbb1f61196ee43a1190d86f50ef3407"
+    },
+    "app/frontend/supabase/functions/_shared/digestSecurity.ts": {
+      "gitBlob": "3d818c393f4ef3d30213699f2ee36721a1b2f047",
+      "sha256": "62d77ead41752b793a8cd6818bb2eea168b46dcc00f4e1f3fd8e688124faa4a6"
+    },
+    "app/frontend/supabase/functions/_shared/notificationPreferences.ts": {
+      "gitBlob": "c2f556f16d003f45d2f6c89a6c27e40db7140427",
+      "sha256": "20520615a70aa70fabd3a500d2db91ac0023cf66f6839938d4b1778189c68a34"
+    },
+    "app/frontend/supabase/functions/_shared/pushSecurity.ts": {
+      "gitBlob": "dcec16cd5281c9cc1a4b7e4c77480f1958243f4e",
+      "sha256": "709a828cc12b197336237fb74dc0f16357f35b06d0ebf370f507c142ca1107d6"
+    },
+    "app/frontend/supabase/functions/app_11941c8fec_delete_account/handler.ts": {
+      "gitBlob": "7bf876df3167e2bb5e97931a2a2414d8f7e01ecd",
+      "sha256": "c1bc2930a09b5f46a7c80ee09c0032cb530bac7c9d8e920a6e9cbdc7301ee181"
+    },
+    "app/frontend/supabase/functions/app_11941c8fec_delete_account/index.ts": {
+      "gitBlob": "03f59d98b2ae433e6ed0364cc286ca8802fbb860",
+      "sha256": "3b8df6ea5cb85ce7fcedb466f026ac923e6299b4f4617afdf66e87e9ee09aa1f"
+    },
+    "app/frontend/supabase/functions/app_11941c8fec_push_notify/index.ts": {
+      "gitBlob": "cda4cb6beb6587718204f83a4dd24dec5ac5cc93",
+      "sha256": "e99b1ec5e1745ad49117b38d84b76f4b19f8b061d0ac3d8f13e2a1f04f816c10"
+    },
+    "app/frontend/supabase/functions/app_11941c8fec_push_scheduler/index.ts": {
+      "gitBlob": "97ad9eeff59a4b5979d18c2a35629d88ac1a6c8f",
+      "sha256": "96092766afbd95564106db57709bb30c85948d9d2585c44583b99bf2d3bc67d6"
+    },
+    "app/frontend/supabase/functions/app_11941c8fec_weekly_digest/index.ts": {
+      "gitBlob": "7c9f613aa2e65a607383fe01fdfd8cd7c912536c",
+      "sha256": "bd851f6c4fa97e0d9866e2dbfcf188fce6231377b5214d94e161f750ddf736d4"
+    },
+    "app/frontend/supabase/migrations/202610140001_subscription_authority.sql": {
+      "gitBlob": "860a4bc638676b5ebcb04712f503cb6f0aa89095",
+      "sha256": "d919c9e9c08c7b5767118d2ca8184e88e9816e7b20a3134965fd4082d1a6515f"
+    },
+    "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql": {
+      "gitBlob": "1e9b84b6854986a31e46f16b5a662a0ae5b84a11",
+      "sha256": "ec3922b95c55020fb8a40ec6386b881639307118e5d9479dd8e499d301d4992e"
+    },
+    "app/frontend/supabase/migrations/202610150003_family_authority.sql": {
+      "gitBlob": "2246b9ed39f3c7d6480f76057c49b46518f281f2",
+      "sha256": "0c3fa6240093d2038637749bd570a439b58541f12d071cd4b3df9c406a808af7"
+    },
+    "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql": {
+      "gitBlob": "98b079b7565a7517a135beca92706b739e4f5543",
+      "sha256": "7b99dd849bfa66723c1350d73b9bf34236d625171c58e3785f27f4161d19bd97"
+    },
+    "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql": {
+      "gitBlob": "59e37ef8c8596471bd98f5e1825c1fe46fc1f055",
+      "sha256": "bc98e6ce77c10f86255420df4a09657a35cd2b0e133d867a3a0c4d0e19241d06"
+    },
+    "app/frontend/supabase/migrations/202610160006_ai_entitlement.sql": {
+      "gitBlob": "7e8a3b8381d6cf53fa0b78ede23715509524124c",
+      "sha256": "c968cb79bd5e56c23cc985486977fe601175a62aaede77c6acaaf0902f9e4056"
+    },
+    "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql": {
+      "gitBlob": "6bb7c00a7db3e607894d5d2d2ba24fbb2e3e4ece",
+      "sha256": "d82c9ec53d32ccdc1a5edff927671aaccd34925626934992f762f066d46cb3db"
+    },
+    "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql": {
+      "gitBlob": "1dd1534d3a3d7eb4e8356e770d4f0d34639da26c",
+      "sha256": "213235342d8c43c0140ded742e301e1f7be8bd66607f9ee28b4536601286ed6c"
+    },
+    "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql": {
+      "gitBlob": "92ccd2f53336912655455f00be2aabc36c4fdf70",
+      "sha256": "55694b2759bfe6d6c8f0a652a98a381dd90f005954b16ccf3e673a68d0219718"
+    },
+    "app/frontend/supabase/migrations/202610310010_payment_checkout_lock.sql": {
+      "gitBlob": "6474e95a2522011125be2264f4930818abb18c29",
+      "sha256": "c40aeb3c72779762069c178bd2ced8d30d7c14bd743b77063368e7bf45556358"
+    },
+    "app/frontend/supabase/migrations/202610310011_payment_customer_ownership.sql": {
+      "gitBlob": "e8e6ea06199aa8fd5cfd81d55040d70135e06592",
+      "sha256": "478e8ca5a49ad4a536fbb3412d26159984b6f755bcca8dac249df4213100a8de"
+    },
+    "app/frontend/tests/account-deletion-atomic-regression.sql": {
+      "gitBlob": "60e205656cebcfc2030a70384c5a2e86b6cdd33b",
+      "sha256": "3cec11283ecd898e76e47d8e30bc04f27eba75ab18ac661ea2c8cef6f84e890c"
+    },
+    "app/frontend/tests/account-deletion-atomic.test.mjs": {
+      "gitBlob": "cce9e9bc3c7ad6f9719344a0a2674fb5874e2433",
+      "sha256": "f80d597715622858d04c76af38f9d44ca0d16e71357c61082966df06802c8b3f"
+    },
+    "app/frontend/tests/account-deletion-cancellation.test.mjs": {
+      "gitBlob": "1e0337b88a9d21bfb85ad6a7919dc397b6797ba8",
+      "sha256": "9c7e7b46a144c60a93cc01350c4ffb271c16a4a96aa3da2d33369bd7a5b2a5eb"
+    },
+    "app/frontend/tests/account-deletion-safety.test.mjs": {
+      "gitBlob": "e5de087ad60cac31596202d9359b204eced52b05",
+      "sha256": "f04fd8d711e0e520a7efdb49bedbce042a65d0d3a0f56ee4fc1db5e8f444c00c"
+    },
+    "app/frontend/tests/ai-access.test.mjs": {
+      "gitBlob": "c7762c736475dce3aa6f78a7b84fbd8fcf125245",
+      "sha256": "691bcbb7955d911bb3f3fefde06441aa149d8d82163200d659ddeebe578de73c"
+    },
+    "app/frontend/tests/auth-return.test.mjs": {
+      "gitBlob": "05d34b22ec7e0f3318277427e42a0417e0f9d181",
+      "sha256": "7301694ceb38deafd25b79b10c74678ef47fffc754d6f47d812dc195562b23c6"
+    },
+    "app/frontend/tests/backup-client.test.mjs": {
+      "gitBlob": "f317f20dca81ba19c3cfa6526324814691cd02a5",
+      "sha256": "f9ad040dc070b2b0c2b0345415ccfd0dfb58711c93007e6573d4341a39ec0bec"
+    },
+    "app/frontend/tests/deletion-retention-ui.test.mjs": {
+      "gitBlob": "260ba80e62b501e042bae009ba7426ef6bcb0ad8",
+      "sha256": "a4cfa4faeb5a97032fd93597ff68e56679e866047a3e89d146d405bddccf0a00"
+    },
+    "app/frontend/tests/deny-network.mjs": {
+      "gitBlob": "90de67090e4c1f6e8be215706a55e419c64b0dc5",
+      "sha256": "f98571ddcba60f9eb5eb2dead312ac4dec56060f2acf41b9953871d4a7c942a7"
+    },
+    "app/frontend/tests/device-push-security.test.mjs": {
+      "gitBlob": "85712e42cf4cf3395908ce479e2da6f8360d6478",
+      "sha256": "aca2b4c2499c00ee024ecaee193242c40e8abd1b14806c646c8778d0bf935760"
+    },
+    "app/frontend/tests/digest-security.test.mjs": {
+      "gitBlob": "6d0c718f6c2e994b2c678c1f854959bb46c873fb",
+      "sha256": "b33fdb0e324b4292b35da2f84b870e7a0af5dec420903d233f3c1ce118656c36"
+    },
+    "app/frontend/tests/family-entitlement.test.mjs": {
+      "gitBlob": "7f5a791c92f812a757f4706077080f0bc3fa8b5e",
+      "sha256": "10786d3b70c0011e70aeb543a3a19424a0f3adcf7a73d6c9b93d0c549222e007"
+    },
+    "app/frontend/tests/family-helper-fixture.sql": {
+      "gitBlob": "863ed95ed80f4eb151b33a04d6b698cbd118e5f7",
+      "sha256": "7e3de7f178ae5bcfaac25a40c82cce0eea792090c032802bc530e74f65cbc12f"
+    },
+    "app/frontend/tests/lemon-payments.test.mjs": {
+      "gitBlob": "7d5b3b790c760baa942c60e7849fea46a2cc13aa",
+      "sha256": "1d6a501c93e14ef525e8037f19b6f27f84ac55c9fab7b5a9e05136448635f378"
+    },
+    "app/frontend/tests/native-preparation-security.test.mjs": {
+      "gitBlob": "85318b43fd5c96eacfe9deafcc5e651e24dd5f95",
+      "sha256": "2882f50eda917d08c99fb7dd397f247fa370e963c51606271cfbc30adbd3e690"
+    },
+    "app/frontend/tests/notification-backup.test.mjs": {
+      "gitBlob": "45a53e87bf436262a98a8136f3a33fa5d914f151",
+      "sha256": "8e3a948616acdb391cca76ff0d71b96591ae1e7994a489ee403442d9906a2882"
+    },
+    "app/frontend/tests/notification-client-security.test.mjs": {
+      "gitBlob": "7c9fe5c9cc06155801a6bb5f20b04d58a860d994",
+      "sha256": "0ef92eddea573661dd47f716a3b6fd6fc1204ebb8d9650e34d374ab2c02b88ae"
+    },
+    "app/frontend/tests/payment-phase2-db/README.md": {
+      "gitBlob": "1ccb4a4ca558446a8e8febea53692f48bbbac219",
+      "sha256": "d6960c54155bb11df16c4cc7fcddac6ceb39163e8fffd2a0cb35e0ed5aef68f5"
+    },
+    "app/frontend/tests/payment-phase2-db/notification-fixture.sql": {
+      "gitBlob": "feac97d8b67f4e0b88b719f0d0c1fbe3e0a08ab0",
+      "sha256": "f57c111ed4f3c2bb736f6b93e350546f992dafca04d323a4485ba2a2ab6d45bf"
+    },
+    "app/frontend/tests/payment-phase2-db/notification-security-regression.sql": {
+      "gitBlob": "644867cb74157fad9cbcb0dbcebaa0dfb6bbd5e7",
+      "sha256": "a128c48dee507adcc5b46653296105bfdd08b2e9cbb8725aae8acf6ca5b624b8"
+    },
+    "app/frontend/tests/payment-phase2-db/package-lock.json": {
+      "gitBlob": "da9dc8e436894f5fbf61a67fc4f64dccd83c6e03",
+      "sha256": "50c7667bb51d88b946b2e67386c53549414725566ae5206487eea9f42fd86b5e"
+    },
+    "app/frontend/tests/payment-phase2-db/package.json": {
+      "gitBlob": "907c915c7781068aa2876a2c477053ee77d2b186",
+      "sha256": "55d609d1ff555c9c1dd8a733c6b2d7ebfe36864f84d8f7fb35f27fff4e65f6a7"
+    },
+    "app/frontend/tests/payment-phase2-db/run.test.mjs": {
+      "gitBlob": "27cf877dce0e0a76af11b2731cfbf88a30b52ec1",
+      "sha256": "8187495dc2efbae5dc933cefc24d8d6bd3d5329d2f107a0727ceef8346e505af"
+    },
+    "app/frontend/tests/payment-phase2-db/sql-statements.mjs": {
+      "gitBlob": "1b622fd382497018437ab9c7e94d3b1ad7f052b6",
+      "sha256": "f1c8133b8eac51789fd0f201639c9172f66f82b05e6c4ca7ad616eca5c47ba47"
+    },
+    "app/frontend/tests/payment-phase2.test.mjs": {
+      "gitBlob": "447d055e2a6db56da769eea0d57f8230b5bbce0a",
+      "sha256": "12b064813780820b17d12549fc4bf2759ccf346e2c545cc24693443747b9e2b0"
+    },
+    "app/frontend/tests/payment-ui-security.test.mjs": {
+      "gitBlob": "2a737d4df8fd7c95fec25f32bbebe9310f13abf9",
+      "sha256": "3007e7bfffd4444c97addd381fd018141d369acf0c0303f5e5ae5debd55a5d30"
+    },
+    "app/frontend/tests/phase4b-native/README.md": {
+      "gitBlob": "20808bb0dde5c038cfb787c42728236b91257532",
+      "sha256": "dcf9f08317363a0e879c8df82e1b5560af31f03ad3552446a6d4c7a92b9858d7"
+    },
+    "app/frontend/tests/phase4b-native/prepare.mjs": {
+      "gitBlob": "73890ea911faa904b4cd70855114ad8d774b3f1b",
+      "sha256": "d70657f249de4414cf986815bcdc3589bdb2513a87f5ca2a7248de097c29dbfd"
+    },
+    "app/frontend/tests/push-notify-security.test.mjs": {
+      "gitBlob": "ae55f0dc3a19aca70d1a916ba2b0d4ae09a2334b",
+      "sha256": "52b8129eaff520c8ef3d29a17f63bf548461b510a5fbdf5cadc4e8f9b7b21234"
+    },
+    "app/frontend/tests/push-scheduler-security.test.mjs": {
+      "gitBlob": "45f78420bcbd2dcb25bc37cc325f21cf05d33c40",
+      "sha256": "678f8913b4fd012c9859f620c992a950fe9990b0ad096d480e23707f1ab3529d"
+    },
+    "app/frontend/tests/subscription-009-local/README.md": {
+      "gitBlob": "42bb4641a9bd5e95973da44ab7b8d44c2d40e4e2",
+      "sha256": "6b96769798e4d7abbe04f79d93b40aa28dfdee26932e1885b23d84d30a43670f"
+    },
+    "app/frontend/tests/subscription-009-local/fixture.sql": {
+      "gitBlob": "1a739d35226e456b94eb957f03d9ca90be69419c",
+      "sha256": "52a1d094b1c6da9bdb488c140d5e7d0108ba680de2b08cd35fc5d7dc4328b721"
+    },
+    "app/frontend/tests/subscription-009-local/integration.mjs": {
+      "gitBlob": "bf3ea193735239e1239293727016cf03e0ce0b90",
+      "sha256": "151bda835e5b5bf56b96b9d577ab84146c6ed279d34c8777d73b244bd6f43a37"
+    },
+    "app/frontend/tests/subscription-009-local/isolation.mjs": {
+      "gitBlob": "dd92ca9ce4095dd9c69b4ebd8f77ed3cbc3c5563",
+      "sha256": "3394aad4cf6db3fffb16438b2cf674edb2b2e800d2e92b79121cbe8308f448db"
+    },
+    "app/frontend/tests/subscription-009-local/local-runtime.mjs": {
+      "gitBlob": "5397985e01452c3dba86aec5c2335cf7dd0f54fa",
+      "sha256": "b57548f030cc993e424af70f4e2877b659d51dca4b633e299f65de40b8f78499"
+    },
+    "app/frontend/tests/subscription-009-local/metadata.sql": {
+      "gitBlob": "299e95ec21d2d5719009bcd9f034aa7e3e09a911",
+      "sha256": "c0e94ba3ff7b23af9ac57eb78d64d1d4f5ccb1dc2001bc1fcbdc1817d221eb9a"
+    },
+    "app/frontend/tests/subscription-009-local/package-lock.json": {
+      "gitBlob": "beb9313895c7a555fc32b00c6d85a83996a989bf",
+      "sha256": "1c256eb7885c127bc679f6b0e381098591ac894d9321e5a4f7a6ef6ec8e43221"
+    },
+    "app/frontend/tests/subscription-009-local/package.json": {
+      "gitBlob": "85c92b9da29e06ce2e78b0371bdce7e157c9fae8",
+      "sha256": "5ba58dfc7e3faa74cc053aa1ed6f87b5781b39888f617bc5efacebd5c2e3fbb5"
+    },
+    "app/frontend/tests/subscription-009-local/review.test.mjs": {
+      "gitBlob": "cebb02cb957a426e19b698985fe197511bd14cc2",
+      "sha256": "850defc64088c3a91658c1995174860502009bb5023f3aafc9fd4627116ca295"
+    },
+    "app/frontend/tests/subscription-009-local/safety.mjs": {
+      "gitBlob": "7d63c4e71189874e187e207c8cc530753dea71ff",
+      "sha256": "11d8d7a4fbeb0ea279ca9004ba7778c1f4434ac887d1f7ab6e2831322706b5e2"
+    },
+    "app/frontend/tests/subscription-009-local/source-manifest.json": {
+      "gitBlob": "9317fe5df8a8a33d400b650b215b0a090af7aa55",
+      "sha256": "58cadc85edc5a1369b0b2ac79fbc3cfc531ce399fccfe04b161d0b890ede7a39"
+    },
+    "app/frontend/tests/subscription-security-fixture.sql": {
+      "gitBlob": "9ae1f36035c238a9741c0f98af9aa43b88641a83",
+      "sha256": "8fa96bf2a5f35f1d47dc0e2212a1b5b6d5bea2483edab40d981b5999529bc0d3"
+    },
+    "app/frontend/tests/webhook-signature.test.mjs": {
+      "gitBlob": "d10b58dac636c113390d3edb7ce4acd24936b220",
+      "sha256": "5396e90e81b3b483acd041869b220dadf2d9e7151012a4f0020973ea877af08b"
+    }
+  },
+  "notificationInputs": [
+    "app/frontend/tests/payment-phase2-db/notification-fixture.sql",
+    "app/frontend/tests/payment-phase2-db/notification-security-regression.sql",
+    "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql"
+  ],
+  "requiredValidation": {
+    "productionReady": false,
+    "actionsDispatchRequiresSeparateApproval": true,
+    "noHostedMigrations": true,
+    "noLemonSqueezyCalls": true,
+    "noRealSMTPOrWebPush": true,
+    "profiles": [
+      {
+        "id": "rebased-original-native-21",
+        "status": "NOT_RUN",
+        "assertionGroups": 21,
+        "migrationOrder": [
+          "app/frontend/supabase/migrations/202610140001_subscription_authority.sql",
+          "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql",
+          "app/frontend/supabase/migrations/202610150003_family_authority.sql",
+          "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql",
+          "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql",
+          "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql",
+          "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql"
+        ],
+        "repeat009": 2,
+        "requiredIsolation": "unchanged original controller/worker/namespace/egress/cleanup guards"
+      },
+      {
+        "id": "full-schema-notification-http",
+        "status": "FIXTURE_AND_HTTP_HARNESS_REVIEW_REQUIRED",
+        "migrationOrder": [
+          "app/frontend/supabase/migrations/202610140001_subscription_authority.sql",
+          "app/frontend/supabase/migrations/202610140002_family_helper_execution.sql",
+          "app/frontend/supabase/migrations/202610150003_family_authority.sql",
+          "app/frontend/supabase/migrations/202610150004_trusted_lemon_payments.sql",
+          "app/frontend/supabase/migrations/202610150005_subscription_lifecycle.sql",
+          "app/frontend/supabase/migrations/202610160006_ai_entitlement.sql",
+          "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql",
+          "app/frontend/supabase/migrations/202610210008_account_deletion_safety.sql",
+          "app/frontend/supabase/migrations/202610210009_atomic_account_deletion.sql",
+          "app/frontend/supabase/migrations/202610310010_payment_checkout_lock.sql",
+          "app/frontend/supabase/migrations/202610310011_payment_customer_ownership.sql"
+        ],
+        "repeat009": 2,
+        "requiredCases": [
+          "native GoTrue JWT users A/B",
+          "007 own SELECT/INSERT/UPDATE without identity UPDATE",
+          "cross-account SELECT/INSERT/UPDATE denial",
+          "protected marker/timestamp and push credential denial",
+          "late triggers/FK retention/deletion with bill/goal/email rows",
+          "preserve original 21 groups and metadata assertions"
+        ]
+      },
+      {
+        "id": "notification-adapters-and-browser",
+        "status": "NOT_RUN",
+        "requiredCases": [
+          "Deno adapters with offline push/SMTP transport doubles and enforced no-egress",
+          "failed save and failed revocation in Arabic/English",
+          "account switch and stale async response",
+          "allowed browser push vendors and legacy registration rejection"
+        ]
+      }
+    ],
+    "remainingBlockers": [
+      "PGlite 0.3.14 installation denied by local proxy EPERM",
+      "reviewed ACL/FK/trigger evidence for bill/goal mirrors and email_digest is absent",
+      "full-schema native fixture/HTTP extension is not implemented by this preparation package"
+    ]
+  }
+}
