@@ -82,6 +82,9 @@ export default function NotificationSettings() {
     updatePreferences,
     sendLocalNotification,
     subscribeToPush,
+    saving,
+    preferenceError,
+    preferencesReady,
   } = useNotifications();
 
   const isAr = language === 'ar';
@@ -89,8 +92,11 @@ export default function NotificationSettings() {
   const handleEnableNotifications = async () => {
     const granted = await requestPermission();
     if (granted) {
+      if (!await subscribeToPush()) {
+        toast.error(isAr ? 'سُمح بالإشعارات، لكن تسجيل الجهاز لم يكتمل. حاول مجدداً.' : 'Browser permission was granted, but device registration failed. Please retry.');
+        return;
+      }
       toast.success(isAr ? 'تم تفعيل الإشعارات بنجاح!' : 'Notifications enabled successfully!');
-      subscribeToPush();
       setTimeout(() => {
         sendLocalNotification(
           isAr ? 'مرحباً!' : 'Welcome!',
@@ -193,6 +199,9 @@ export default function NotificationSettings() {
           General Activity stays disabled below since it has no real
           content to gate on either platform yet. */}
       <div className="space-y-3">
+        {preferenceError && <p role="alert" className="text-xs text-red-400">{isAr
+          ? 'تعذر تحميل تفضيلات الإشعارات. أعد تحميل الصفحة قبل تغييرها.'
+          : 'Notification preferences could not be loaded. Reload before changing them.'}</p>}
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
           {isAr ? 'أنواع الإشعارات' : 'Notification Types'}
         </p>
@@ -212,7 +221,14 @@ export default function NotificationSettings() {
                 </div>
               </div>
               <button
-                onClick={() => updatePreferences({ [type.key]: !enabled })}
+                disabled={saving || preferenceError || !preferencesReady}
+                aria-pressed={enabled}
+                aria-label={isAr ? type.labelAr : type.labelEn}
+                onClick={async () => {
+                  if (!await updatePreferences({ [type.key]: !enabled })) toast.error(isAr
+                    ? 'لم تُحفظ تفضيلات الإشعارات. حاول مجدداً.'
+                    : 'Notification preferences were not saved. Please retry.');
+                }}
                 className={`w-10 h-5 rounded-full relative flex-shrink-0 ml-2 transition-all ${
                   enabled ? 'bg-primary' : 'bg-muted'
                 }`}

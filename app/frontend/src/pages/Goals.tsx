@@ -1,7 +1,8 @@
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { syncReminderMirror } from '@/lib/reminderSync';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 
@@ -18,19 +19,11 @@ interface Goal {
 // Same lean scheduling-mirror pattern as BillReminders.tsx's
 // syncBillsToSupabase - goals stay localStorage-first, only target_date/
 // status are mirrored for the server-side reminder sweep to read.
-async function syncGoalsToSupabase(goals: Goal[], userId: string | undefined) {
+async function syncGoalsToSupabase(rows: Goal[], userId: string | undefined) {
   if (!userId) return;
-  try {
-    await supabase.from('app_11941c8fec_goal_reminders_sync').delete().eq('user_id', userId);
-    // target_date is NOT NULL server-side - a goal created without one
-    // (newGoal.targetDate defaults to '') simply has nothing to sweep for.
-    const withDates = goals.filter((g) => g.targetDate);
-    if (withDates.length > 0) {
-      await supabase.from('app_11941c8fec_goal_reminders_sync').insert(
-        withDates.map((g) => ({ user_id: userId, local_id: g.id, title: g.title, target_date: g.targetDate, status: g.status }))
-      );
-    }
-  } catch { /* best-effort mirror - localStorage remains the source of truth for the UI */ }
+  if (!await syncReminderMirror('goal', rows, userId)) toast.error(
+    'لم تكتمل مزامنة التذكيرات؛ البيانات المحلية محفوظة. / Reminder sync failed; local data is preserved.'
+  );
 }
 
 const CATEGORY_ICONS: Record<string, string> = {

@@ -1,7 +1,8 @@
+import { toast } from 'sonner';
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { syncReminderMirror } from '@/lib/reminderSync';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import BottomNav from '@/components/BottomNav';
@@ -30,16 +31,11 @@ const STORAGE_KEY = 'amanah-bills';
 // philosophy Android's own scheduler already uses. Best-effort: local
 // storage remains the real source of truth for the UI regardless of
 // whether this sync call succeeds.
-async function syncBillsToSupabase(bills: Bill[], userId: string | undefined) {
+async function syncBillsToSupabase(rows: Bill[], userId: string | undefined) {
   if (!userId) return;
-  try {
-    await supabase.from('app_11941c8fec_bill_reminders_sync').delete().eq('user_id', userId);
-    if (bills.length > 0) {
-      await supabase.from('app_11941c8fec_bill_reminders_sync').insert(
-        bills.map((b) => ({ user_id: userId, local_id: b.id, name: b.name, due_date: b.dueDate, is_paid: b.isPaid }))
-      );
-    }
-  } catch { /* best-effort mirror, see comment above */ }
+  if (!await syncReminderMirror('bill', rows, userId)) toast.error(
+    'لم تكتمل مزامنة التذكيرات؛ البيانات المحلية محفوظة. / Reminder sync failed; local data is preserved.'
+  );
 }
 
 export default function BillReminders() {

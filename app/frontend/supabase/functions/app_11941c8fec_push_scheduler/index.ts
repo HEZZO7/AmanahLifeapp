@@ -93,16 +93,23 @@ async function sendPush(
   notification_type: string,
   title: string,
   body: string
-): Promise<void> {
-  try {
-    await fetch(`${supabaseUrl}/functions/v1/app_11941c8fec_push_notify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Internal-Push-Secret': internalSecret },
-      body: JSON.stringify({ action: 'send_notification', user_id, notification_type, title, body }),
-    });
-  } catch (err) {
-    console.error(JSON.stringify({ action: 'scheduler_send_error', user_id, notification_type, error: (err as Error)?.message }));
-  }
+): Promise<boolean> {
+  const response = await fetch(`${supabaseUrl}/functions/v1/app_11941c8fec_push_notify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Internal-Push-Secret': internalSecret },
+    body: JSON.stringify({ action: 'send_notification', user_id, notification_type, title, body }),
+  });
+  if (!response.ok) throw new Error('Push delivery failed');
+  const result = await response.json();
+  if (result.success !== true) throw new Error('Push delivery unconfirmed');
+  return typeof result.sent === 'number' && result.sent > 0;
+}
+
+// SDK errors are values, not rejected promises. Every read/write must check them.
+async function checked<T>(operation: PromiseLike<{ data: T; error: unknown }>): Promise<T> {
+  const result = await operation;
+  if (result.error) throw new Error('Notification storage unavailable');
+  return result.data;
 }
 
 Deno.serve(async (req: Request) => {
@@ -111,6 +118,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });
 
   const internalSecret = req.headers.get('X-Internal-Push-Secret');
   const expectedSecret = Deno.env.get('INTERNAL_PUSH_SECRET');
@@ -125,119 +134,130 @@ Deno.serve(async (req: Request) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const nowUtc = new Date();
-  const stats = { billsChecked: 0, billsSent: 0, goalsChecked: 0, goalsSent: 0, fastingChecked: 0, fastingSent: 0 };
+  try {
+    const nowUtc = new Date();
+    const stats = { billsChecked: 0, billsSent: 0, goalsChecked: 0, goalsSent: 0, fastingChecked: 0, fastingSent: 0 };
 
-  const { data: prefsRows } = await supabase.from('app_11941c8fec_notification_preferences').select('*');
-  const prefsByUser = new Map<string, any>((prefsRows || []).map((p: any) => [p.user_id, p]));
+    const prefsRows = await checked(supabase.from('app_11941c8fec_notification_preferences').select('user_id,bill_reminders,habit_reminders,fasting_reminders,timezone,language,prayer_calc_method,prayer_location_mode,prayer_manual_city,last_suhoor_sent_date,last_iftar_sent_date'));
+    const prefsByUser = new Map<string, any>((prefsRows || []).map((p: any) => [p.user_id, p]));
 
-  // --- Bill sweep: 9am local on due_date, and 9am local the day before ---
-  const { data: bills } = await supabase
-    .from('app_11941c8fec_bill_reminders_sync')
-    .select('*')
-    .eq('is_paid', false);
+    // --- Bill sweep: 9am local on due_date, and 9am local the day before ---
+    const bills = await checked(supabase
+      .from('app_11941c8fec_bill_reminders_sync')
+      .select('id,user_id,name,due_date,is_paid,due_date_sent_at,day_before_sent_at')
+      .eq('is_paid', false));
 
-  for (const bill of bills || []) {
-    const pref = prefsByUser.get(bill.user_id);
-    if (!pref || pref.bill_reminders === false) continue;
-    const { dateStr: todayLocal, hour } = getLocalParts(nowUtc, pref.timezone || 'UTC');
-    if (hour !== 9) continue;
-    stats.billsChecked++;
+    for (const bill of bills || []) {
+      const pref = prefsByUser.get(bill.user_id);
+      if (!pref || pref.bill_reminders === false) continue;
+      const { dateStr: todayLocal, hour } = getLocalParts(nowUtc, pref.timezone || 'UTC');
+      if (hour !== 9) continue;
+      stats.billsChecked++;
 
-    const isAr = pref.language === 'ar';
-    if (bill.due_date === todayLocal && !bill.due_date_sent_at) {
-      await sendPush(supabaseUrl, expectedSecret, bill.user_id, 'bill', isAr ? '💰 فاتورة مستحقة اليوم' : '💰 Bill due today',
-        isAr ? `${bill.name} مستحقة الدفع اليوم` : `${bill.name} is due today`);
-      await supabase.from('app_11941c8fec_bill_reminders_sync').update({ due_date_sent_at: nowUtc.toISOString() }).eq('id', bill.id);
-      stats.billsSent++;
-    }
-    const { dateStr: tomorrowLocal } = getLocalParts(addDays(nowUtc, 1), pref.timezone || 'UTC');
-    if (bill.due_date === tomorrowLocal && !bill.day_before_sent_at) {
-      await sendPush(supabaseUrl, expectedSecret, bill.user_id, 'bill', isAr ? '💰 فاتورة مستحقة غداً' : '💰 Bill due tomorrow',
-        isAr ? `${bill.name} مستحقة الدفع غداً` : `${bill.name} is due tomorrow`);
-      await supabase.from('app_11941c8fec_bill_reminders_sync').update({ day_before_sent_at: nowUtc.toISOString() }).eq('id', bill.id);
-      stats.billsSent++;
-    }
-  }
-
-  // --- Goal sweep: 10am local on target_date, and 10am local 3 days before ---
-  const { data: goals } = await supabase
-    .from('app_11941c8fec_goal_reminders_sync')
-    .select('*')
-    .eq('status', 'Active');
-
-  for (const goal of goals || []) {
-    const pref = prefsByUser.get(goal.user_id);
-    if (!pref || pref.habit_reminders === false) continue;
-    const { dateStr: todayLocal, hour } = getLocalParts(nowUtc, pref.timezone || 'UTC');
-    if (hour !== 10) continue;
-    stats.goalsChecked++;
-
-    const isAr = pref.language === 'ar';
-    if (goal.target_date === todayLocal && !goal.target_date_sent_at) {
-      await sendPush(supabaseUrl, expectedSecret, goal.user_id, 'habit', isAr ? '🎯 الهدف مستحق اليوم' : '🎯 Goal target reached today',
-        isAr ? `اليوم هو الموعد المستهدف لـ "${goal.title}"` : `Today is the target date for "${goal.title}"`);
-      await supabase.from('app_11941c8fec_goal_reminders_sync').update({ target_date_sent_at: nowUtc.toISOString() }).eq('id', goal.id);
-      stats.goalsSent++;
-    }
-    const { dateStr: threeDaysLocal } = getLocalParts(addDays(nowUtc, 3), pref.timezone || 'UTC');
-    if (goal.target_date === threeDaysLocal && !goal.three_day_sent_at) {
-      await sendPush(supabaseUrl, expectedSecret, goal.user_id, 'habit', isAr ? '🎯 اقترب موعد الهدف' : '🎯 Goal target in 3 days',
-        isAr ? `باقي 3 أيام على "${goal.title}"` : `3 days left for "${goal.title}"`);
-      await supabase.from('app_11941c8fec_goal_reminders_sync').update({ three_day_sent_at: nowUtc.toISOString() }).eq('id', goal.id);
-      stats.goalsSent++;
-    }
-  }
-
-  // --- Fasting sweep: real Fajr-30min (Suhoor) / Maghrib (Iftar), local
-  // calendar date's Hijri month must be Ramadan. Falls back to Mecca when
-  // no manual city was ever synced - same fallback both platforms already
-  // use elsewhere. Only manual-city location is server-reachable (GPS/
-  // last-known have no server equivalent - see PROJECT.md). ---
-  for (const [user_id, pref] of prefsByUser) {
-    if (!pref || pref.fasting_reminders === false) continue;
-    stats.fastingChecked++;
-
-    const { dateStr: todayLocal } = getLocalParts(nowUtc, pref.timezone || 'UTC');
-    const todayLocalDate = new Date(`${todayLocal}T12:00:00Z`); // midday avoids any date-boundary edge case in isRamadan's own Gregorian->JD math
-    if (!isRamadan(todayLocalDate)) continue;
-
-    let latitude = MECCA.latitude;
-    let longitude = MECCA.longitude;
-    if (pref.prayer_location_mode === 'manual' && pref.prayer_manual_city) {
-      const city = pref.prayer_manual_city as { lat?: number; lon?: number };
-      if (typeof city.lat === 'number' && typeof city.lon === 'number') {
-        latitude = city.lat;
-        longitude = city.lon;
+      const isAr = pref.language === 'ar';
+      if (bill.due_date === todayLocal && !bill.due_date_sent_at) {
+        if (await sendPush(supabaseUrl, expectedSecret, bill.user_id, 'bill', isAr ? '💰 فاتورة مستحقة اليوم' : '💰 Bill due today',
+          isAr ? `${bill.name} مستحقة الدفع اليوم` : `${bill.name} is due today`)) {
+          await checked(supabase.from('app_11941c8fec_bill_reminders_sync').update({ due_date_sent_at: nowUtc.toISOString() }).eq('id', bill.id).eq('user_id', bill.user_id));
+          stats.billsSent++;
+        }
+      }
+      const { dateStr: tomorrowLocal } = getLocalParts(addDays(nowUtc, 1), pref.timezone || 'UTC');
+      if (bill.due_date === tomorrowLocal && !bill.day_before_sent_at) {
+        if (await sendPush(supabaseUrl, expectedSecret, bill.user_id, 'bill', isAr ? '💰 فاتورة مستحقة غداً' : '💰 Bill due tomorrow',
+          isAr ? `${bill.name} مستحقة الدفع غداً` : `${bill.name} is due tomorrow`)) {
+          await checked(supabase.from('app_11941c8fec_bill_reminders_sync').update({ day_before_sent_at: nowUtc.toISOString() }).eq('id', bill.id).eq('user_id', bill.user_id));
+          stats.billsSent++;
+        }
       }
     }
-    const methodKey = pref.prayer_calc_method && (CalculationMethod as any)[pref.prayer_calc_method] ? pref.prayer_calc_method : 'UmmAlQura';
-    const params = (CalculationMethod as any)[methodKey]();
-    const times = new PrayerTimes(new Coordinates(latitude, longitude), todayLocalDate, params);
-    const suhoorTrigger = new Date(times.fajr.getTime() - SUHOOR_MINUTES_BEFORE_FAJR * 60000);
-    const iftarTrigger = times.maghrib;
-    const isAr = pref.language === 'ar';
 
-    const justPassed = (trigger: Date) => nowUtc.getTime() >= trigger.getTime() && nowUtc.getTime() - trigger.getTime() < 3600000;
+    // --- Goal sweep: 10am local on target_date, and 10am local 3 days before ---
+    const goals = await checked(supabase
+      .from('app_11941c8fec_goal_reminders_sync')
+      .select('id,user_id,title,target_date,status,target_date_sent_at,three_day_sent_at')
+      .eq('status', 'Active'));
 
-    if (pref.last_suhoor_sent_date !== todayLocal && justPassed(suhoorTrigger)) {
-      await sendPush(supabaseUrl, expectedSecret, user_id, 'fasting', isAr ? '🌙 السحور' : '🌙 Suhoor',
-        isAr ? `${SUHOOR_MINUTES_BEFORE_FAJR} دقيقة حتى الفجر` : `${SUHOOR_MINUTES_BEFORE_FAJR} minutes until Fajr`);
-      await supabase.from('app_11941c8fec_notification_preferences').update({ last_suhoor_sent_date: todayLocal }).eq('user_id', user_id);
-      stats.fastingSent++;
+    for (const goal of goals || []) {
+      const pref = prefsByUser.get(goal.user_id);
+      if (!pref || pref.habit_reminders === false) continue;
+      const { dateStr: todayLocal, hour } = getLocalParts(nowUtc, pref.timezone || 'UTC');
+      if (hour !== 10) continue;
+      stats.goalsChecked++;
+
+      const isAr = pref.language === 'ar';
+      if (goal.target_date === todayLocal && !goal.target_date_sent_at) {
+        if (await sendPush(supabaseUrl, expectedSecret, goal.user_id, 'habit', isAr ? '🎯 الهدف مستحق اليوم' : '🎯 Goal target reached today',
+          isAr ? `اليوم هو الموعد المستهدف لـ "${goal.title}"` : `Today is the target date for "${goal.title}"`)) {
+          await checked(supabase.from('app_11941c8fec_goal_reminders_sync').update({ target_date_sent_at: nowUtc.toISOString() }).eq('id', goal.id).eq('user_id', goal.user_id));
+          stats.goalsSent++;
+        }
+      }
+      const { dateStr: threeDaysLocal } = getLocalParts(addDays(nowUtc, 3), pref.timezone || 'UTC');
+      if (goal.target_date === threeDaysLocal && !goal.three_day_sent_at) {
+        if (await sendPush(supabaseUrl, expectedSecret, goal.user_id, 'habit', isAr ? '🎯 اقترب موعد الهدف' : '🎯 Goal target in 3 days',
+          isAr ? `باقي 3 أيام على "${goal.title}"` : `3 days left for "${goal.title}"`)) {
+          await checked(supabase.from('app_11941c8fec_goal_reminders_sync').update({ three_day_sent_at: nowUtc.toISOString() }).eq('id', goal.id).eq('user_id', goal.user_id));
+          stats.goalsSent++;
+        }
+      }
     }
-    if (pref.last_iftar_sent_date !== todayLocal && justPassed(iftarTrigger)) {
-      await sendPush(supabaseUrl, expectedSecret, user_id, 'fasting', isAr ? '🌇 الإفطار' : '🌇 Iftar',
-        isAr ? 'حان وقت الإفطار' : 'It\'s time for Iftar');
-      await supabase.from('app_11941c8fec_notification_preferences').update({ last_iftar_sent_date: todayLocal }).eq('user_id', user_id);
-      stats.fastingSent++;
+
+    // --- Fasting sweep: real Fajr-30min (Suhoor) / Maghrib (Iftar), local
+    // calendar date's Hijri month must be Ramadan. Falls back to Mecca when
+    // no manual city was ever synced - same fallback both platforms already
+    // use elsewhere. Only manual-city location is server-reachable (GPS/
+    // last-known have no server equivalent - see PROJECT.md). ---
+    for (const [user_id, pref] of prefsByUser) {
+      if (!pref || pref.fasting_reminders === false) continue;
+      stats.fastingChecked++;
+
+      const { dateStr: todayLocal } = getLocalParts(nowUtc, pref.timezone || 'UTC');
+      const todayLocalDate = new Date(`${todayLocal}T12:00:00Z`); // midday avoids any date-boundary edge case in isRamadan's own Gregorian->JD math
+      if (!isRamadan(todayLocalDate)) continue;
+
+      let latitude = MECCA.latitude;
+      let longitude = MECCA.longitude;
+      if (pref.prayer_location_mode === 'manual' && pref.prayer_manual_city) {
+        const city = pref.prayer_manual_city as { lat?: number; lon?: number };
+        if (typeof city.lat === 'number' && Number.isFinite(city.lat) && Math.abs(city.lat) <= 90 && typeof city.lon === 'number' && Number.isFinite(city.lon) && Math.abs(city.lon) <= 180) {
+          latitude = city.lat;
+          longitude = city.lon;
+        }
+      }
+      const methodKey = pref.prayer_calc_method && Object.prototype.hasOwnProperty.call(CalculationMethod, pref.prayer_calc_method) ? pref.prayer_calc_method : 'UmmAlQura';
+      const params = (CalculationMethod as any)[methodKey]();
+      const times = new PrayerTimes(new Coordinates(latitude, longitude), todayLocalDate, params);
+      const suhoorTrigger = new Date(times.fajr.getTime() - SUHOOR_MINUTES_BEFORE_FAJR * 60000);
+      const iftarTrigger = times.maghrib;
+      const isAr = pref.language === 'ar';
+
+      const justPassed = (trigger: Date) => nowUtc.getTime() >= trigger.getTime() && nowUtc.getTime() - trigger.getTime() < 3600000;
+
+      if (pref.last_suhoor_sent_date !== todayLocal && justPassed(suhoorTrigger)) {
+        if (await sendPush(supabaseUrl, expectedSecret, user_id, 'fasting', isAr ? '🌙 السحور' : '🌙 Suhoor',
+          isAr ? `${SUHOOR_MINUTES_BEFORE_FAJR} دقيقة حتى الفجر` : `${SUHOOR_MINUTES_BEFORE_FAJR} minutes until Fajr`)) {
+          await checked(supabase.from('app_11941c8fec_notification_preferences').update({ last_suhoor_sent_date: todayLocal }).eq('user_id', user_id));
+          stats.fastingSent++;
+        }
+      }
+      if (pref.last_iftar_sent_date !== todayLocal && justPassed(iftarTrigger)) {
+        if (await sendPush(supabaseUrl, expectedSecret, user_id, 'fasting', isAr ? '🌇 الإفطار' : '🌇 Iftar',
+          isAr ? 'حان وقت الإفطار' : 'It\'s time for Iftar')) {
+          await checked(supabase.from('app_11941c8fec_notification_preferences').update({ last_iftar_sent_date: todayLocal }).eq('user_id', user_id));
+          stats.fastingSent++;
+        }
+      }
     }
+
+    console.log(JSON.stringify({ requestId, ...stats }));
+
+    return new Response(JSON.stringify({ success: true, ...stats }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch {
+    console.error(JSON.stringify({ requestId, action: 'scheduler_failed' }));
+    return new Response(JSON.stringify({ error: 'Reminder sweep did not complete; delivery may be partial' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-
-  console.log(JSON.stringify({ requestId, ...stats }));
-
-  return new Response(JSON.stringify({ success: true, ...stats }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
 });

@@ -13,6 +13,11 @@ export function preferencePatch(value: unknown): Partial<Record<Flag, boolean>> 
   return Object.fromEntries(entries);
 }
 
-export function publicPreferences(value: Record<string, unknown> | null): Record<Flag, boolean> {
-  return Object.fromEntries(NOTIFICATION_FLAGS.map(key => [key, value?.[key] !== false])) as Record<Flag, boolean>;
+export function preferenceDisabled(value: unknown, flag: Flag): boolean {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) &&
+    Object.getOwnPropertyDescriptor(value, flag)?.value === false;
+}
+
+export function publicPreferences(value: unknown): Record<Flag, boolean> {
+  return Object.fromEntries(NOTIFICATION_FLAGS.map(key => [key, !preferenceDisabled(value, key)])) as Record<Flag, boolean>;
 }

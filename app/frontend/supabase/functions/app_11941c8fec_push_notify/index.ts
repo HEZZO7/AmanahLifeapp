@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3';
-import { NOTIFICATION_FLAGS, preferencePatch, publicPreferences } from '../_shared/notificationPreferences.ts';
+import { NOTIFICATION_FLAGS, preferencePatch, publicPreferences, preferenceDisabled } from '../_shared/notificationPreferences.ts';
+import { safePushEndpoint, validPushSubscription, safeNotificationPath } from '../_shared/pushSecurity.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +65,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const { subscription } = body;
-      if (!subscription || !subscription.endpoint || !subscription.keys) {
+      if (!validPushSubscription(subscription)) {
         return new Response(JSON.stringify({ error: 'Invalid subscription data' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -139,6 +140,9 @@ Deno.serve(async (req: Request) => {
       }
 
       const { endpoint } = body;
+      if (endpoint !== undefined && !safePushEndpoint(endpoint)) return new Response(JSON.stringify({ error: 'Invalid subscription endpoint' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
       let deletionError;
       if (endpoint) {
         const result = await supabase
@@ -265,7 +269,10 @@ Deno.serve(async (req: Request) => {
     if (action === 'send_notification') {
       const { user_id, notification_type, title, body: notifBody, icon, url } = body;
 
-      if (!user_id || !notification_type || !title || !notifBody) {
+      if (typeof user_id !== 'string' || !user_id || user_id.length > 256 ||
+          typeof notification_type !== 'string' || typeof title !== 'string' || !title || title.length > 180 ||
+          typeof notifBody !== 'string' || !notifBody || notifBody.length > 2000 ||
+          (url !== undefined && !safeNotificationPath(url)) || (icon !== undefined && !safeNotificationPath(icon))) {
         return new Response(JSON.stringify({ error: 'Missing required fields: user_id, notification_type, title, body' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -325,7 +332,7 @@ Deno.serve(async (req: Request) => {
       });
 
       // If user has disabled this type, skip
-      if (prefs && prefs[prefColumn] === false) {
+      if (preferenceDisabled(prefs, prefColumn)) {
         return new Response(JSON.stringify({ success: true, skipped: true, reason: 'User disabled this notification type' }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -335,7 +342,7 @@ Deno.serve(async (req: Request) => {
       // Get user's push subscriptions
       const { data: subscriptions, error: subError } = await supabase
         .from('app_11941c8fec_push_subscriptions')
-        .select('*')
+        .select('id,endpoint,p256dh,auth_key')
         .eq('user_id', user_id);
 
       if (subError) return new Response(JSON.stringify({ error: 'Push subscriptions unavailable' }), {
@@ -364,8 +371,8 @@ Deno.serve(async (req: Request) => {
 
       if (!vapidPublicKey || !vapidPrivateKey) {
         console.warn(JSON.stringify({ requestId, warning: 'VAPID keys not configured' }));
-        return new Response(JSON.stringify({ success: true, sent: 0, reason: 'VAPID keys not configured' }), {
-          status: 200,
+        return new Response(JSON.stringify({ error: 'Push delivery unavailable', sent: 0 }), {
+          status: 503,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -381,7 +388,12 @@ Deno.serve(async (req: Request) => {
       });
 
       let sent = 0;
+      let failed = 0;
       for (const sub of subscriptions) {
+        if (!validPushSubscription({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } })) {
+          failed++;
+          continue;
+        }
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
@@ -392,18 +404,21 @@ Deno.serve(async (req: Request) => {
         } catch (err: any) {
           if (err?.statusCode === 404 || err?.statusCode === 410) {
             // Subscription expired or the browser unregistered it - remove it.
-            await supabase
+            const { error: cleanupError } = await supabase
               .from('app_11941c8fec_push_subscriptions')
               .delete()
+              .eq('user_id', user_id)
               .eq('id', sub.id);
+            if (cleanupError) failed++;
           } else {
-            console.error(JSON.stringify({ requestId, action: 'send_error', statusCode: err?.statusCode }));
+            failed++;
+            console.error(JSON.stringify({ requestId, action: 'send_error' }));
           }
         }
       }
 
-      return new Response(JSON.stringify({ success: true, sent }), {
-        status: 200,
+      return new Response(JSON.stringify({ success: failed === 0, sent, failed }), {
+        status: failed ? 502 : 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

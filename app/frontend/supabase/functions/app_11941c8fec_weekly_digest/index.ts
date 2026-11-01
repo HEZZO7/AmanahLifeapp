@@ -2,14 +2,19 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import nodemailer from 'npm:nodemailer';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { digestData, escapeDigestHTML } from '../_shared/digestSecurity.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Cache-Control': 'no-store',
 };
 
 function generateDigestEmail(savingsData: any): string {
-  const challenges = savingsData?.challenges || [];
+  const validated = digestData(savingsData);
+  if (!validated) throw new Error('Invalid digest data');
+  const challenges = validated.challenges;
   const totalSaved = challenges.reduce((sum: number, c: any) => sum + (c.savedAmount || 0), 0);
   const activeChallenges = challenges.length;
 
@@ -19,7 +24,7 @@ function generateDigestEmail(savingsData: any): string {
     const milestonesReached = c.completedMilestones?.length || 0;
     challengeRows += `
       <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${c.icon || '💰'} ${c.name}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeDigestHTML(c.icon || '💰')} ${escapeDigestHTML(c.name)}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${progress}%</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">$${c.savedAmount} / $${c.targetAmount}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${milestonesReached}/4</td>
@@ -103,10 +108,13 @@ serve(async (req: Request) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders });
+
   try {
     let body: any;
     try {
       body = await req.json();
+      if (!body || typeof body !== 'object' || Array.isArray(body)) throw Error('Invalid request');
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
         status: 400,
@@ -118,7 +126,7 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (action === 'subscribe') {
+    if (action === 'subscribe' || action === 'get_preferences') {
       // User subscribes/updates their digest preferences
       const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
@@ -129,7 +137,8 @@ serve(async (req: Request) => {
       }
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const token = authHeader.replace('Bearer ', '');
+      const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+      if (!token) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
       if (authError || !user) {
@@ -139,40 +148,49 @@ serve(async (req: Request) => {
         });
       }
 
+      if (action === 'get_preferences') {
+        const { data, error } = await supabase.from('app_11941c8fec_email_digest').select('enabled').eq('user_id', user.id).single();
+        if (error && error.code !== 'PGRST116') return new Response(JSON.stringify({ error: 'Digest preferences unavailable' }), { status: 503, headers: corsHeaders });
+        return new Response(JSON.stringify({ enabled: data?.enabled === true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       const { savings_data, enabled } = body;
+      const safeData = digestData(savings_data);
+      if (typeof enabled !== 'boolean' || !safeData) return new Response(JSON.stringify({ error: 'Invalid digest preferences' }), { status: 400, headers: corsHeaders });
       const { error: upsertError } = await supabase
         .from('app_11941c8fec_email_digest')
         .upsert({
           user_id: user.id,
-          enabled: enabled !== undefined ? enabled : true,
-          savings_data: savings_data || null,
+          enabled,
+          savings_data: safeData,
         }, { onConflict: 'user_id' });
 
       if (upsertError) {
-        console.error(`[${requestId}] Upsert error:`, upsertError);
+        console.error(JSON.stringify({ requestId, action: 'digest_write_failed' }));
         return new Response(JSON.stringify({ error: 'Failed to update preferences' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      console.log(`[${requestId}] User ${user.id} digest preference updated`);
+
       return new Response(JSON.stringify({ success: true, message: 'Digest preferences updated' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
     } else if (action === 'send_digests') {
+      const expected = Deno.env.get('INTERNAL_DIGEST_SECRET');
+      if (!expected || req.headers.get('X-Internal-Digest-Secret') !== expected) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
       // Send digests to all enabled subscribers
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       const { data: subscribers, error: fetchError } = await supabase
         .from('app_11941c8fec_email_digest')
-        .select('*')
+        .select('user_id,savings_data')
         .eq('enabled', true);
 
       if (fetchError) {
-        console.error(`[${requestId}] Fetch subscribers error:`, fetchError);
+        console.error(JSON.stringify({ requestId, action: 'digest_read_failed' }));
         return new Response(JSON.stringify({ error: 'Failed to fetch subscribers' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -217,7 +235,7 @@ serve(async (req: Request) => {
           // Get user email
           const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(subscriber.user_id);
           if (userError || !user?.email) {
-            console.error(`[${requestId}] Could not get email for user ${subscriber.user_id}`);
+            console.error(JSON.stringify({ requestId, action: 'digest_identity_failed' }));
             failCount++;
             continue;
           }
@@ -232,21 +250,22 @@ serve(async (req: Request) => {
           });
 
           // Update last_sent_at
-          await supabase
+          const { error: markerError } = await supabase
             .from('app_11941c8fec_email_digest')
             .update({ last_sent_at: new Date().toISOString() })
             .eq('user_id', subscriber.user_id);
+          if (markerError) throw new Error('Digest marker failed');
 
           sentCount++;
-          console.log(`[${requestId}] Sent digest to ${user.email}`);
-        } catch (emailErr) {
-          console.error(`[${requestId}] Failed to send to user ${subscriber.user_id}:`, emailErr);
+
+        } catch {
+          console.error(JSON.stringify({ requestId, action: 'digest_delivery_failed' }));
           failCount++;
         }
       }
 
-      return new Response(JSON.stringify({ success: true, sent: sentCount, failed: failCount }), {
-        status: 200,
+      return new Response(JSON.stringify({ success: failCount === 0, sent: sentCount, failed: failCount }), {
+        status: failCount ? 502 : 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
@@ -256,8 +275,8 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-  } catch (err) {
-    console.error(`[${requestId}] Unexpected error:`, err);
+  } catch {
+    console.error(JSON.stringify({ requestId, action: 'digest_request_failed' }));
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

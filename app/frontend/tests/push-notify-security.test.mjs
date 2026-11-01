@@ -3,6 +3,8 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 
+const fixtureEndpoint = 'https://fcm.googleapis.com/fcm/send/fixture';
+const fixtureKeys = { p256dh: Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 1)]).toString('base64url'), auth: Buffer.alloc(16, 2).toString('base64url') };
 const entry = new URL('../supabase/functions/app_11941c8fec_push_notify/index.ts', import.meta.url).href;
 const previous = { Deno: globalThis.Deno, client: globalThis.__pushFixtureClient };
 let handler, active;
@@ -86,7 +88,7 @@ for (const authorization of ['', 'Basic own-token', 'Bearer forged', 'Bearer own
 }
 test('re-registering a device does not re-enable disabled preferences or reset scheduler markers', async () => {
   const f = fixture(), before = structuredClone(f.stored);
-  const r = await handler(request({ action: 'subscribe', subscription: { endpoint: 'https://push.invalid/device', keys: { p256dh: 'fixture-key', auth: 'fixture-auth' } } }));
+  const r = await handler(request({ action: 'subscribe', subscription: { endpoint: fixtureEndpoint, keys: fixtureKeys } }));
   assert.equal(r.status, 200); assert.deepEqual(f.stored, before);
   assert.equal(f.calls.filter(c => c[0] === 'upsert')[1][3].ignoreDuplicates, true);
 });
@@ -107,12 +109,12 @@ test('a client cannot send a notification to another account', async () => {
 });
 test('subscribe cannot replace authenticated ownership with nested or top-level user_id', async () => {
   const f = fixture(); const r = await handler(request({ action: 'subscribe', user_id: 'victim', subscription: {
-    user_id: 'victim', endpoint: 'https://push.invalid/device', keys: { p256dh: 'fixture-key', auth: 'fixture-auth' },
+    user_id: 'victim', endpoint: fixtureEndpoint, keys: fixtureKeys,
   } }));
   assert.equal(r.status, 200);
   for (const c of f.calls.filter(c => c[0] === 'upsert')) assert.equal(c[2].user_id, 'own-user');
 });
-for (const endpoint of [undefined, 'https://push.invalid/device']) {
+for (const endpoint of [undefined, fixtureEndpoint]) {
   test('unsubscribe scopes removal to authenticated ownership, endpoint=' + endpoint, async () => {
     const f = fixture(); const r = await handler(request({ action: 'unsubscribe', user_id: 'victim', endpoint }));
     assert.equal(r.status, 200); assert.ok(f.calls.some(c => c[0] === 'eq' && c[1] === 'user_id' && c[2] === 'own-user'));
@@ -158,5 +160,24 @@ for (const body of [null, [], 'invalid']) {
   test('malformed request root fails without a database write: ' + JSON.stringify(body), async () => {
     const f = fixture(); assert.equal((await handler(request(body))).status, 400);
     assert.equal(f.calls.some(c => c[0] === 'upsert'), false);
+  });
+}
+for (const endpoint of ['http://127.0.0.1/private', 'https://127.0.0.1/private', 'https://fcm.googleapis.com.attacker.invalid/token',
+  'https://user:password@fcm.googleapis.com/token', 'https://fcm.googleapis.com:8443/token', 'https://unreviewed.invalid/token']) {
+  test('privileged subscription writer rejects untrusted endpoint: ' + endpoint.replace(/user:password@/, '[redacted]@'), async () => {
+    const f = fixture(); const r = await handler(request({ action: 'subscribe', subscription: { endpoint, keys: fixtureKeys } }));
+    assert.equal(r.status, 400); assert.equal(f.calls.some(c => c[0] === 'upsert'), false);
+  });
+}
+for (const keys of [null, [], {}, { p256dh: 'invalid', auth: 'invalid' }, { ...fixtureKeys, auth: 123 }]) {
+  test('malformed push keys are rejected without storage: ' + JSON.stringify(keys), async () => {
+    const f = fixture(); const r = await handler(request({ action: 'subscribe', subscription: { endpoint: fixtureEndpoint, keys } }));
+    assert.equal(r.status, 400); assert.equal(f.calls.some(c => c[0] === 'upsert'), false);
+  });
+}
+for (const extra of [{ title: {} }, { body: [] }, { url: 'https://phishing.invalid' }, { url: '//phishing.invalid' }, { icon: 'https://tracking.invalid/pixel' }]) {
+  test('malformed content and external navigation cannot enter push delivery: ' + JSON.stringify(extra), async () => {
+    const f = fixture(); const r = await handler(request({ action: 'send_notification', user_id: 'own-user', notification_type: 'bill', title: 'Fixture', body: 'Fixture', ...extra }));
+    assert.equal(r.status, 400); assert.equal(f.calls.some(c => c[0] === 'select'), false);
   });
 }

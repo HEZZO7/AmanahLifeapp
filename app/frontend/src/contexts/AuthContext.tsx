@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { releaseDevicePush } from '@/lib/devicePush';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -18,11 +20,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const previousActor = useRef<string | null>(null);
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      previousActor.current = session?.user.id ?? null;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -33,6 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        const nextActor = session?.user.id ?? null;
+        if (previousActor.current && previousActor.current !== nextActor) {
+          void releaseDevicePush().catch(() => toast.warning('تعذر إيقاف إشعارات الحساب السابق؛ عطّل الإشعارات من إعدادات المتصفح. / Previous account notifications could not be disabled; disable them in browser settings.'));
+        }
+        previousActor.current = nextActor;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -72,6 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Revoke delivery on a shared browser before ending the authenticated session.
+    // Report failed revocation without preventing the user from signing out.
+    try { await releaseDevicePush(); }
+    catch { toast.warning('تعذر إيقاف إشعارات الجهاز. عطّلها من إعدادات المتصفح قبل مشاركة الجهاز. / Device notifications could not be disabled. Disable them in browser settings before sharing this device.'); }
     // Only clear per-account caches that would otherwise leak into the next
     // signed-in session on this device. Do NOT blanket-clear localStorage —
     // nearly all user content (goals, tasks, finance, wellness, fasting,

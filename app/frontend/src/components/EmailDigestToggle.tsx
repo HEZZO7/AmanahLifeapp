@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'amanah-savings-challenges';
-const DIGEST_STATUS_KEY = 'amanah-email-digest-status';
 
 interface Challenge {
   id: string;
@@ -24,19 +25,31 @@ const CHALLENGE_META: Record<string, { nameEn: string; nameAr: string; icon: str
 
 export default function EmailDigestToggle() {
   const { language } = useLanguage();
+  const { user } = useAuth();
+  const actor = useRef(user?.id);
+  actor.current = user?.id;
   const isAr = language === 'ar';
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Load cached status
-    const cached = localStorage.getItem(DIGEST_STATUS_KEY);
-    if (cached === 'true') {
-      setEnabled(true);
-    }
-    setInitialized(true);
-  }, []);
+    let cancelled = false;
+    setEnabled(false);
+    setInitialized(false);
+    const load = async () => {
+      try {
+        if (!user) return;
+        const { data, error } = await supabase.functions.invoke('app_11941c8fec_weekly_digest', { body: { action: 'get_preferences' } });
+        if (error || typeof data?.enabled !== 'boolean') throw Error('Digest preferences unavailable');
+        if (!cancelled && actor.current === user.id) setEnabled(data.enabled);
+      } catch {
+        if (!cancelled) toast.error(language === 'ar' ? 'تعذر تحميل إعدادات الملخص البريدي.' : 'Email digest preferences could not be loaded.');
+      } finally { if (!cancelled) setInitialized(true); }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [user, language]);
 
   function getSavingsData(): { challenges: Challenge[] } {
     try {
@@ -69,16 +82,12 @@ export default function EmailDigestToggle() {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error('No active session');
-        setLoading(false);
-        return;
-      }
+      if (!session || !user || session.user.id !== user.id || actor.current !== user.id) throw Error('Account changed');
 
       const newEnabled = !enabled;
       const savingsData = newEnabled ? getSavingsData() : undefined;
 
-      const { error } = await supabase.functions.invoke('app_11941c8fec_weekly_digest', {
+      const { data, error } = await supabase.functions.invoke('app_11941c8fec_weekly_digest', {
         body: {
           action: 'subscribe',
           enabled: newEnabled,
@@ -86,14 +95,10 @@ export default function EmailDigestToggle() {
         },
       });
 
-      if (error) {
-        console.error('Failed to update digest preference:', error);
-      } else {
-        setEnabled(newEnabled);
-        localStorage.setItem(DIGEST_STATUS_KEY, String(newEnabled));
-      }
-    } catch (err) {
-      console.error('Error toggling digest:', err);
+      if (error || data?.success !== true) throw Error('Digest preference rejected');
+      if (actor.current === user.id) setEnabled(newEnabled);
+    } catch {
+      toast.error(isAr ? 'لم تُحفظ إعدادات الملخص البريدي. حاول مجدداً.' : 'Email digest preferences were not saved. Please retry.');
     } finally {
       setLoading(false);
     }

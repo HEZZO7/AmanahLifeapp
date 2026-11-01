@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
+import { accountPushSubscription, recordPushOwner } from '@/lib/devicePush';
 
 const EDGE_FUNCTION_URL = edgeFunctionUrl('app_11941c8fec_push_notify');
 
@@ -64,6 +65,13 @@ export function useNotifications() {
   const [loading, setLoading] = useState(true);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
+  const actor = useRef(user?.id);
+  actor.current = user?.id;
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [preferenceError, setPreferenceError] = useState(false);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+
   const isSupported = 'serviceWorker' in navigator && 'Notification' in window;
 
   useEffect(() => {
@@ -89,12 +97,16 @@ export function useNotifications() {
 
   // Load preferences from backend
   useEffect(() => {
+    let cancelled = false;
+    setPreferences(DEFAULT_PREFERENCES);
+    setPreferenceError(false);
+    setPreferencesReady(false);
     if (!user) return;
 
     const loadPreferences = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session || session.user.id !== user.id) throw Error('Account changed');
 
         const response = await fetch(EDGE_FUNCTION_URL, {
           method: 'POST',
@@ -107,7 +119,8 @@ export function useNotifications() {
 
         if (response.ok) {
           const data = await response.json();
-          if (data.preferences) {
+          if (!data.preferences || !Object.keys(DEFAULT_PREFERENCES).every(key => typeof data.preferences[key] === 'boolean')) throw Error('Invalid preference response');
+          if (!cancelled && actor.current === user.id) {
             setPreferences({
               prayer_reminders: data.preferences.prayer_reminders ?? true,
               bill_reminders: data.preferences.bill_reminders ?? true,
@@ -116,14 +129,16 @@ export function useNotifications() {
               savings_reminders: data.preferences.savings_reminders ?? true,
               general_activity: data.preferences.general_activity ?? true,
             });
+            setPreferencesReady(true);
           }
-        }
-      } catch (err) {
-        console.error('Failed to load notification preferences:', err);
+        } else throw Error('Preferences unavailable');
+      } catch {
+        if (!cancelled) setPreferenceError(true);
       }
     };
 
     loadPreferences();
+    return () => { cancelled = true; };
   }, [user]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -147,16 +162,11 @@ export function useNotifications() {
   const subscribeToPush = useCallback(async (): Promise<boolean> => {
     if (!swRegistration || !user) return false;
     try {
-      let subscription = await swRegistration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return false;
+      if (!session || session.user.id !== user.id || actor.current !== user.id) return false;
+
+      const subscription = await accountPushSubscription(swRegistration, session.user.id, urlBase64ToUint8Array(VAPID_PUBLIC_KEY));
+      if (actor.current !== user.id) { await subscription.unsubscribe(); return false; }
 
       const subJson = subscription.toJSON();
       const response = await fetch(EDGE_FUNCTION_URL, {
@@ -164,9 +174,12 @@ export function useNotifications() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ action: 'subscribe', subscription: subJson }),
       });
-      return response.ok;
-    } catch (err) {
-      console.error('Push subscribe failed:', err);
+      const saved = response.ok && (await response.json()).success === true && actor.current === user.id;
+      if (saved) recordPushOwner(user.id);
+      else await subscription.unsubscribe();
+      return saved;
+    } catch {
+      console.error('Device notification registration failed');
       return false;
     }
   }, [swRegistration, user]);
@@ -185,31 +198,30 @@ export function useNotifications() {
   // Update notification preferences. Values are still saved even for the
   // categories currently disabled in the UI, so nothing is lost once real
   // scheduling infrastructure lands for them.
-  const updatePreferences = useCallback(async (newPrefs: Partial<NotificationPreferences>) => {
-    const updated = { ...preferences, ...newPrefs };
-    setPreferences(updated);
-
-    if (!user) return;
-
+  const updatePreferences = useCallback(async (newPrefs: Partial<NotificationPreferences>): Promise<boolean> => {
+    if (!user || savingRef.current || !newPrefs || typeof newPrefs !== 'object' || Array.isArray(newPrefs) || !Object.keys(newPrefs).length ||
+        Object.entries(newPrefs).some(([key, value]) => !Object.prototype.hasOwnProperty.call(DEFAULT_PREFERENCES, key) || typeof value !== 'boolean')) return false;
+    savingRef.current = true;
+    setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      await fetch(EDGE_FUNCTION_URL, {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session || session.user.id !== user.id || actor.current !== user.id) return false;
+      const response = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'update_preferences',
-          preferences: updated,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        // Patch only the changed flags: never replay another account's cache.
+        body: JSON.stringify({ action: 'update_preferences', preferences: newPrefs }),
       });
-    } catch (err) {
-      console.error('Failed to update preferences:', err);
+      if (!response.ok || (await response.json()).success !== true || actor.current !== user.id) return false;
+      setPreferences(current => ({ ...current, ...newPrefs }));
+      return true;
+    } catch {
+      return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-  }, [preferences, user]);
+  }, [user]);
 
   // Send a local notification (for testing / immediate notifications) -
   // shows directly via the service worker, no network push involved.
@@ -238,5 +250,8 @@ export function useNotifications() {
     updatePreferences,
     sendLocalNotification,
     subscribeToPush,
+    saving,
+    preferenceError,
+    preferencesReady,
   };
 }

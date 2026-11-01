@@ -119,6 +119,15 @@ async function restoreSingleton(client: BackupClient, table: string, userId: str
   throw new Error('Backup insert failed');
 }
 
+// Live writers reject unknown fields; legacy backups deliberately strip them.
+export async function saveNotificationPreferences(client: BackupClient, userId: string, value: unknown): Promise<void> {
+  const source = record(value);
+  if (!userId || !Object.keys(source).length || Object.keys(source).some(key => !PORTABLE_TABLES[PREFERENCES_TABLE].includes(key))) {
+    throw new Error('Invalid notification preferences');
+  }
+  await restoreSingleton(client, PREFERENCES_TABLE, userId, portableRow(PREFERENCES_TABLE, source));
+}
+
 export async function restorePortableData(client: BackupClient, userId: string, input: unknown, storage: Pick<Storage, 'setItem'>): Promise<{ ignored: boolean }> {
   if (!userId) throw new Error('Authentication required');
   const backup = prepareBackup(input); // Validate everything before the first mutation.

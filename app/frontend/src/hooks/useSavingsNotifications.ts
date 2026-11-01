@@ -1,6 +1,7 @@
 import { edgeFunctionUrl } from '@/lib/serviceEnvironment';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const NOTIFICATION_STORAGE_KEY = 'amanah-savings-notifications';
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -17,16 +18,17 @@ const PUSH_NOTIFY_URL = edgeFunctionUrl('app_11941c8fec_push_notify');
 // different capabilities (foreground-only vs background-capable) with no
 // reason to force one shared toggle.
 async function sendRealMilestonePush(userId: string | null, title: string, body: string) {
-  if (!userId) return;
+  if (!userId) return false;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    await fetch(PUSH_NOTIFY_URL, {
+    if (!session || session.user.id !== userId) return false;
+    const response = await fetch(PUSH_NOTIFY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ action: 'send_notification', user_id: userId, notification_type: 'savings', title, body }),
     });
-  } catch { /* best-effort - the in-tab celebration above already covers the foreground case */ }
+    return response.ok && (await response.json()).success === true;
+  } catch { return false; }
 }
 
 interface NotificationPrefs {
@@ -138,7 +140,11 @@ export function useSavingsNotifications(language: string, userId: string | null 
     }
     // Real background-capable push - gated server-side by the account's
     // savings_reminders preference, independent of the local flag above.
-    sendRealMilestonePush(userId, title, body);
+    if (userId) void sendRealMilestonePush(userId, title, body).then(accepted => {
+      if (!accepted) toast.warning(isAr
+        ? 'تم تسجيل الإنجاز محلياً، لكن طلب إشعار الخلفية لم يكتمل.'
+        : 'Your milestone remains saved locally, but the background notification request failed.');
+    });
   }, [isAr, userId]);
 
   return {

@@ -70,6 +70,9 @@ after(async()=>{await db.close();assert.equal(db.closed,true);});
 test('original subscription/family/payment authority SQL assertions pass at their migration stages',()=>{
   assert.deepEqual(stagedRegressions,['subscription','family-helper','family-authority','payment-authority']);
 });
+test('notification 007 preserves rows and enforces cross-account, credential and column boundaries',async()=>{
+  await file('./notification-security-regression.sql');
+});
 test('original lifecycle SQL assertions pass unchanged',async()=>{
   await file('../subscription-lifecycle-security.sql');
 });
