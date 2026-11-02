@@ -22,7 +22,23 @@ TRUNCATE bypasses RLS but is not thereby a supported REST endpoint. Missing RLS
 definitions, grants, role membership, API exposure or collection provenance
 must not be inferred from frontend filtering or an empty metadata list.
 
-The three actual DDL definitions and a verified catalog snapshot remain absent.
+Update 2026-11-02, based on verified Supabase findings supplied by the user:
+all three public tables exist with RLS enabled and five policies in total.
+The Auth FKs are CASCADE for bill/goal and NO ACTION for email; all three are
+validated, non-deferrable and initially immediate. These are partial supplied
+facts, not a catalog collected by this session. Exact column mappings, policy
+definitions/distribution, effective grants, FORCE RLS and triggers remain unknown.
+The evidence index records their provenance separately from the historical run.
+
+Migration009 removes email rows in a BEFORE ROW Auth DELETE trigger, in the
+same statement as Auth deletion. NO ACTION does not itself require changing
+the FK: successful matching child cleanup can satisfy it. Hosted reliability
+still requires the deployed function/trigger/ACL definitions and SQL/Native
+execution. Migration011's retained customer-owner NO ACTION FK can separately
+block deletion when only that historical reference remains; preserve that record
+and rollback, rather than deleting billing evidence to force Auth deletion.
+
+The three complete DDL definitions and a verified full catalog snapshot remain absent.
 Historical GitHub files are preparation scripts/narrative reports, not that
 snapshot; their original CSV was explicitly kept outside GitHub. There is no
 demonstrated current authorization defect on these three tables from which to
@@ -35,8 +51,8 @@ exactly 001–005/008/009, applies `slice(0,6)`, parses single-digit migration
 numbers and explicitly repeats009 at `migrationFiles[6]`. Merely appending010/011
 would fail the guards or target the wrong stage. A full fixture needs
 the actual columns/defaults/constraints/policies/trigger topology, native Auth,
-the reminder FKs and deletion behavior, and additive metadata/HTTP assertions.
-Do not drop an unknown FK, invent CASCADE, weaken original metadata checks,
+the exact reminder FK mappings and deletion behavior, and additive metadata/HTTP assertions.
+Do not change a FK without demonstrated necessity, weaken original metadata checks,
 remove cleanup/ownership/isolation guards, or skip a group to force readiness.
 
 The evidence report records blocked package downloads from the exact lockfiles,

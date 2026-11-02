@@ -4,11 +4,61 @@
   "observedAt": "2026-11-01T18:44:37.623Z",
   "evidenceScope": "source_and_local_diagnostics_only",
   "hostedCatalogSnapshot": null,
-  "knownSchemaFacts": [],
-  "unknownHostedObjects": [
-    "public.app_11941c8fec_bill_reminders_sync",
-    "public.app_11941c8fec_goal_reminders_sync",
-    "public.app_11941c8fec_email_digest"
+  "knownSchemaFacts": [
+    {
+      "table": "public.app_11941c8fec_bill_reminders_sync",
+      "schema": "public",
+      "present": true,
+      "rlsEnabled": true,
+      "authForeignKey": {
+        "referencedTable": "auth.users",
+        "deleteAction": "CASCADE",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
+      "provenance": "user_supplied_verified_Supabase_findings_2026-11-02"
+    },
+    {
+      "table": "public.app_11941c8fec_goal_reminders_sync",
+      "schema": "public",
+      "present": true,
+      "rlsEnabled": true,
+      "authForeignKey": {
+        "referencedTable": "auth.users",
+        "deleteAction": "CASCADE",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
+      "provenance": "user_supplied_verified_Supabase_findings_2026-11-02"
+    },
+    {
+      "table": "public.app_11941c8fec_email_digest",
+      "schema": "public",
+      "present": true,
+      "rlsEnabled": true,
+      "authForeignKey": {
+        "referencedTable": "auth.users",
+        "deleteAction": "NO ACTION",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
+      "provenance": "user_supplied_verified_Supabase_findings_2026-11-02"
+    }
   ],
   "sourceFacts": {
     "tableContracts": {
@@ -224,14 +274,14 @@
     ],
     "originalIndex6MustBe009": true,
     "fullFixtureComplete": false,
-    "reason": "actual related-table definitions and locked dependencies unavailable; preserve rather than weaken original assertions",
+    "reason": "user-verified FK delete actions integrated; complete definitions, trigger topology and locked dependencies still unavailable; original assertions preserved",
     "reviewFindings": [
       "Original migration regex accepts single-digit migrations only",
       "schema_dependencies applies migrationFiles.slice(0,6)",
       "migration_idempotency_metadata pins migrationFiles[6] to009 and repeats it twice",
       "Marker-only preference fixture lacks007 required columns and unique user identity",
       "Original metadata asserts five selected Auth FKs; add separate checks for011 customer ownership and reminder dependencies rather than delete assertions",
-      "Actual reminder FK/actions and Auth trigger topology are unknown; no invented CASCADE"
+      "Reminder CASCADE and email NO ACTION supplied by user; exact FK mappings and Auth/child trigger topology still unknown; no FK changes"
     ]
   },
   "phase4bPinnedIntegrity": {
@@ -245,7 +295,7 @@
     "schemaEvidence": {
       "status": "BLOCKED",
       "sourceCommit": "a8e1321fa7ae60ec2e726853ec881bc8b9139105",
-      "reason": "no_verified_target_catalog_or_DDL"
+      "reason": "partial_user_verified_findings_full_schema_and_authorization_missing"
     },
     "lockedDependencies": {
       "status": "BLOCKED",
@@ -330,7 +380,7 @@
         "noEgress": true,
         "noProviderCalls": true
       },
-      "relatedReminderDeletion": "BLOCKED_UNKNOWN_FK_AND_TRIGGERS",
+      "relatedReminderDeletion": "BLOCKED_COLUMN_MAPPING_TRIGGERS_AND_EXECUTION",
       "notificationAuthorization": "BLOCKED_NO_SQL_EXECUTION",
       "guardEvidenceScope": "preserved_source_controls_only_not_runtime_validation"
     }
@@ -364,7 +414,7 @@
   },
   "migrationDecision": {
     "status": "WITHHELD",
-    "reason": "no demonstrated current target-table authorization defect from verified schema; do not infer it from unrelated 007 fixtures"
+    "reason": "no demonstrated necessity to change FKs or RLS; migration009 source explicitly cleans email before Auth deletion; hosted deployment and effective authorization remain unverified"
   },
   "productionReady": false,
   "liveBillingReady": false,
@@ -431,8 +481,18 @@
       "table": "public.app_11941c8fec_bill_reminders_sync",
       "creationDDLAtBase": "NOT_FOUND",
       "hostedGrants": "UNKNOWN",
-      "hostedRls": "UNKNOWN",
-      "hostedForeignKeys": "UNKNOWN",
+      "hostedRls": "ENABLED_USER_VERIFIED",
+      "hostedForeignKeys": {
+        "referencedTable": "auth.users",
+        "deleteAction": "CASCADE",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
       "hostedTriggers": "UNKNOWN",
       "applicationRequiredFields": [
         "id",
@@ -444,14 +504,24 @@
         "due_date_sent_at",
         "day_before_sent_at"
       ],
-      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+      "definitionStatus": "PARTIALLY_VERIFIED_FULL_DDL_AND_AUTHORIZATION_MISSING"
     },
     {
       "table": "public.app_11941c8fec_goal_reminders_sync",
       "creationDDLAtBase": "NOT_FOUND",
       "hostedGrants": "UNKNOWN",
-      "hostedRls": "UNKNOWN",
-      "hostedForeignKeys": "UNKNOWN",
+      "hostedRls": "ENABLED_USER_VERIFIED",
+      "hostedForeignKeys": {
+        "referencedTable": "auth.users",
+        "deleteAction": "CASCADE",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
       "hostedTriggers": "UNKNOWN",
       "applicationRequiredFields": [
         "id",
@@ -463,14 +533,24 @@
         "target_date_sent_at",
         "three_day_sent_at"
       ],
-      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+      "definitionStatus": "PARTIALLY_VERIFIED_FULL_DDL_AND_AUTHORIZATION_MISSING"
     },
     {
       "table": "public.app_11941c8fec_email_digest",
       "creationDDLAtBase": "NOT_FOUND",
       "hostedGrants": "UNKNOWN",
-      "hostedRls": "UNKNOWN",
-      "hostedForeignKeys": "UNKNOWN",
+      "hostedRls": "ENABLED_USER_VERIFIED",
+      "hostedForeignKeys": {
+        "referencedTable": "auth.users",
+        "deleteAction": "NO ACTION",
+        "validated": true,
+        "deferrable": false,
+        "initiallyDeferred": false,
+        "constraintName": null,
+        "columns": null,
+        "referencedColumns": null,
+        "updateAction": null
+      },
       "hostedTriggers": "UNKNOWN",
       "applicationRequiredFields": [
         "user_id",
@@ -478,7 +558,7 @@
         "savings_data",
         "last_sent_at"
       ],
-      "definitionStatus": "BLOCKED_NOT_EVIDENCED"
+      "definitionStatus": "PARTIALLY_VERIFIED_FULL_DDL_AND_AUTHORIZATION_MISSING"
     }
   ],
   "networkDiagnosis": {
@@ -488,5 +568,105 @@
     "githubConnector": "AVAILABLE",
     "controlsBypassed": false,
     "systemNetworkModified": false
+  },
+  "baselineResultsScope": "2026-11-01 diagnostic run at a8e1321fa7ae60ec2e726853ec881bc8b9139105; current findings and rerun results are under assessmentRevision",
+  "partiallyVerifiedHostedObjects": [
+    "public.app_11941c8fec_bill_reminders_sync",
+    "public.app_11941c8fec_goal_reminders_sync",
+    "public.app_11941c8fec_email_digest"
+  ],
+  "assessmentRevision": {
+    "recordedOn": "2026-11-02",
+    "baseCommit": "3d1bbfdb8aeaa0a1a6da92fb661850690d3cf9cf",
+    "evidenceKind": "user_supplied_verified_Supabase_findings",
+    "independentlyQueriedHostedDatabase": false,
+    "rawCatalogAttached": false,
+    "collectionTimestamp": null,
+    "policyCountAcrossThreeTables": 5,
+    "policyDistribution": null,
+    "policyDefinitions": null,
+    "effectivePrivileges": {
+      "anon": "REVIEW_REQUIRED",
+      "authenticated": "REVIEW_REQUIRED",
+      "service_role": "REVIEW_REQUIRED"
+    },
+    "hostedAuthorizationFullyVerified": false,
+    "deletionAssessment": {
+      "sourceCleanupStage": "BEFORE DELETE ON auth.users FOR EACH ROW",
+      "emailDigestCleanup": "DELETE WHERE user_id=OLD.id inside migration009 cleanup trigger, before RETURN OLD",
+      "sourceOrdering": "REVIEWED_CONDITIONALLY_COMPATIBLE_WITH_IMMEDIATE_NO_ACTION",
+      "hostedDeletionReliable": "NOT_PROVEN",
+      "reminderMirrors": "user-verified CASCADE; actual child triggers and column mappings still needed",
+      "billingHistory": "008 denies all payment accounts/intents/bindings/periods and paid subscription evidence without mode/status/expiry filters; no provider cancellation",
+      "customerOwnerRetention": "011 defines a separate NO ACTION Auth FK; an owner-only record may pass008 preflight then fail DELETE and roll back009 cleanup; this is a source-derived scenario, not an observed hosted failure",
+      "runtimeErrorHandling": "Auth delete error or absence not explicitly confirmed =>503 account_deletion_unconfirmed; no retries or separate HTTP child cleanup"
+    },
+    "remainingEvidence": [
+      "Exact FK names, child/referenced columns, ON UPDATE, other inbound references and complete table DDL",
+      "Five policy names/distribution/roles/commands/permissive flags/USING/WITH CHECK definitions; FORCE RLS and table owners",
+      "Effective table/column/PUBLIC/inherited grants for anon/authenticated/service_role, role memberships and BYPASSRLS",
+      "Deployed008/009/011 function bodies/owners/search_path/ACLs, full Auth and child trigger topology/enabled state, migration inventory and provenance timestamp",
+      "PostgREST schema/view/RPC exposure and controlled negative SQL/REST tests for accounts A/B",
+      "Exact locked PGlite0.3.14 and Supabase SDK2.110.0 package bytes with SRI verification",
+      "Disposable SQL success with email NO ACTION and reminder CASCADE; remaining-reference failure, cleanup veto/error and full transaction/trial restoration",
+      "Full immutable native fixture001-011 retaining21 groups plus notification authorization, reminder cascade/deletion, customer-owner retention and rollback/races"
+    ],
+    "localResults": {
+      "sourceRegressions": {
+        "files": 21,
+        "tests": 447,
+        "pass": 447,
+        "fail": 0,
+        "skipped": 0
+      },
+      "newSourceRegressions": 9,
+      "typeScript": "PASS",
+      "paymentTypes": "PASS",
+      "eslint": "PASS",
+      "build": "PASS",
+      "standardSourceCommand": {
+        "exit": 0,
+        "fileTests": 21,
+        "pass": 21,
+        "fail": 0,
+        "skipped": 0
+      },
+      "sql": {
+        "status": "BLOCKED",
+        "runnerExit": 1,
+        "harnessTests": 1,
+        "harnessPass": 0,
+        "harnessFail": 1,
+        "sqlStatementsExecuted": 0,
+        "sqlAssertionsExecuted": 0,
+        "reason": "ERR_MODULE_NOT_FOUND_@electric-sql/pglite"
+      },
+      "nativeReview": {
+        "exit": 1,
+        "nativeServicesExecuted": false,
+        "packageSourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427",
+        "tests": 135,
+        "pass": 134,
+        "fail": 1,
+        "skipped": 0,
+        "status": "BLOCKED",
+        "reason": "ERR_MODULE_NOT_FOUND_pinned_Supabase_SDK"
+      },
+      "phase4bPinnedIntegrity": {
+        "status": "PASS",
+        "inputs": 79,
+        "sourceCommit": "fece36e90b1f9eb79e1be36a39043ff5b697c427",
+        "generatedFiles": 27,
+        "executionStatus": "PREPARED_NOT_EXECUTED",
+        "profileScope": "original_7_migration_profile_only"
+      },
+      "dependencyRestorationAttemptedInThisRevision": false,
+      "catalogCollector": "UNCHANGED_NOT_EXECUTED",
+      "applicationMigrationsLocksNativeAndWorkflowChanges": false
+    },
+    "status": "BLOCKED",
+    "recommendHostedNativeValidation": false,
+    "productionReady": false,
+    "liveBillingReady": false
   }
 }
