@@ -1,4 +1,7 @@
--- PREPARED, NOT EXECUTED. One catalog-only SELECT; no table rows or RPC calls.
+-- Owner reports successful hosted SELECT on 2026-11-03, PostgreSQL17.6,
+-- from a7c9d7ad4cc33df6afec31946909a6add8e38385. No hosted execution by this assistant.
+-- See migration007-hosted-evidence.json: summary received, raw catalog absent.
+-- One catalog-only SELECT; no table rows or RPC calls. Query logic is unchanged.
 -- Run only with an already authorized read-only connection to the verified
 -- project. Project identity/deployed Edge/Frontend versions require separate
 -- Dashboard/build evidence; a database name alone does not establish identity.

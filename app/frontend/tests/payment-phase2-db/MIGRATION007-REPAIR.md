@@ -22,31 +22,38 @@ independent-connection concurrency. SQL service-role statements validate emitted
 operation contracts, not native execution of the Edge runtime. Existing source
 tests separately exercise the actual Edge and UI with doubles.
 
-Provided owner evidence establishes ordinary postgres-owned tables with RLS,
+The owner successfully executed the collector on PostgreSQL17.6 on2026-11-03;
+`docs/security/migration007-hosted-evidence.json` records the summary/provenance,
+not a fabricated raw snapshot or a hosted repair. Provided owner evidence
+establishes ordinary postgres-owned tables with RLS and FORCE RLS false,
 no custom triggers/inheritance, UUID user identity, required preference fields,
 the preference unique identity and composite `(user_id,endpoint)` Push index,
-effective anon/authenticated DML, the two PUBLIC TRUE policies, and unprivileged
-API roles. It does not provide full nullability/default/FK definitions or exact
+all eight effective anon/authenticated table privileges including MAINTAIN,
+17/7 columns, NOT NULL UUID identity and NO ACTION Auth FKs, no independent
+column ACLs, the two PUBLIC TRUE policies, and unprivileged API roles.
+It does not provide full remaining nullability/default/constraint definitions or exact
 definitions of the remaining six policies and grants.
 
 The fixture uses eight policies with the two exact vulnerable policy names and
-six explicitly synthetic own-user PERMISSIVE policies. The complete roles and
-permissive/restrictive flags of the hosted six policies are still needed to
-quantify effective exposure; a restrictive policy must not be ignored. Defaults,
-NOT NULL details, the Auth
-FK delete action, UUID/timestamp generation and marker columns are representative
-test assumptions. No claim of exact hosted-schema parity is made. Initial grants
-are DML only, matching the supplied effective privilege facts; inherited and
+six explicitly synthetic own-user PERMISSIVE policies. The owner confirms that
+the other six policies do not override the open policies, but their exact DDL
+is not provided. Defaults, other NOT NULL details, FK deferrability/ON UPDATE,
+UUID/timestamp generation and exact six policy bodies remain representative
+test assumptions. No claim of complete hosted-schema parity is made. The API
+roles now receive GRANT ALL at baseline, matching the verified PostgreSQL17
+eight-privilege facts, while service DML is a stated contract assumption. Inherited and
 grant-option mutations are additional adversarial fixture cases.
 
-The profile prepares16 cases: baseline exposure; data/index preservation and
+The profile prepares19 cases: verified baseline shape/ACL; baseline exposure;
+data/index preservation and
 idempotence; metadata collector and an application-first search_path collision;
 authenticated isolation and protected columns;
 anon denial and grant options; own/foreign INSERT; actual portable/legacy restore;
 malformed backup rejection; permission failure/local-state preservation;
 controlled singleton retry; composite Push registration/unregister and scheduler
-markers; plus four full-transaction rollback cases for inherited table/column,
-grant-option and PG17 MAINTAIN permissions. The last four compare original ACLs,
+markers; real TRUNCATE/TRIGGER/REFERENCES operations; plus five full-transaction
+rollback cases for inherited table/column, grant-option, PG17 MAINTAIN and the
+predefined pg_maintain role. They compare original ACLs, constraints, FK triggers,
 policies, indexes and row hashes after failed migration rollback. They never
 export the unsafe baseline as a production rollback script.
 
@@ -63,13 +70,14 @@ It returns column types/nullability, safe defaults or hashes, FK actions, indexe
 RLS, policy roles/commands, safe policy expressions or hashes, direct column/table
 ACLs and effective inherited privileges/grant options. Complex/redacted defaults
 or policies still require protected owner review; hashes cannot reconstruct DDL.
-The collector is prepared and statically checked, not PostgreSQL-validated.
+The collector was successfully run by the owner on hosted PostgreSQL17.6; that
+does not execute007 or its SQL/native tests. The assistant did not query hosted SQL.
 All catalog routines and cast types are explicitly qualified with pg_catalog.
 Column metadata includes the real attribute number so index attributeNumbers
 remain interpretable even if old dropped columns leave numbering gaps.
 The collision fixture adds application unnest(oid[])/unnest(int2[]) overloads,
 witnesses their failure on an unqualified call and expects the collector to avoid
-them. This SQL regression remains unexecuted while the engine is unavailable.
+them. This SQL regression remains unexecuted while the local engine is unavailable.
 
 Exact hosted rollback cannot be generated from missing definitions. Before any
 hosted change, obtain a verified original catalog/ACL snapshot and test recovery

@@ -1,0 +1,67 @@
+{
+  "formatVersion": 1,
+  "evidenceKind": "owner_verified_hosted_metadata_summary",
+  "projectReference": "nyhsnvjdgifphwkqzwel",
+  "observedOn": "2026-11-03",
+  "querySourceCommit": "a7c9d7ad4cc33df6afec31946909a6add8e38385",
+  "querySourceSha256": "57076376b034571a5c2580af04d4439352d3614f632aac6e813084ee73104ba9",
+  "queryExecutedByOwner": true,
+  "independentlyQueriedByAssistant": false,
+  "rawCatalogAttached": false,
+  "serverVersion": 170006,
+  "serverVersionLabel": "PostgreSQL 17.6",
+  "tableFacts": {
+    "kind": "r",
+    "owner": "postgres",
+    "rls": true,
+    "forceRls": false,
+    "customTriggers": 0,
+    "inheritanceLinks": 0,
+    "internalForeignKeyTriggersPresent": true,
+    "independentColumnAclEntries": 0,
+    "userId": { "type": "uuid", "notNull": true, "references": "auth.users(id)", "deleteAction": "NO ACTION" }
+  },
+  "tables": [
+    {
+      "name": "public.app_11941c8fec_notification_preferences",
+      "columnCount": 17,
+      "booleanFlags": ["prayer_reminders", "bill_reminders", "habit_reminders", "fasting_reminders", "savings_reminders", "general_activity"],
+      "locationColumnsPresent": ["timezone", "language", "prayer_calc_method", "prayer_location_mode", "prayer_manual_city"],
+      "uniqueKey": { "columns": ["user_id"], "valid": true, "ready": true, "partial": false }
+    },
+    {
+      "name": "public.app_11941c8fec_push_subscriptions",
+      "columnCount": 7,
+      "textColumns": ["endpoint", "p256dh", "auth_key"],
+      "uniqueKey": { "columns": ["user_id", "endpoint"], "valid": true }
+    }
+  ],
+  "effectiveTablePrivileges": {
+    "anon": ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "MAINTAIN"],
+    "authenticated": ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER", "MAINTAIN"]
+  },
+  "apiRoleFacts": {
+    "anon": { "superuser": false, "bypassRls": false, "createRole": false, "memberOfPostgresOrServiceRole": false },
+    "authenticated": { "superuser": false, "bypassRls": false, "createRole": false, "memberOfPostgresOrServiceRole": false },
+    "service_role": { "bypassRls": true }
+  },
+  "openPolicies": [
+    { "name": "service_role_all_prefs", "table": "public.app_11941c8fec_notification_preferences", "permissive": true, "roles": ["PUBLIC"], "command": "ALL", "using": "true", "withCheck": "true" },
+    { "name": "service_role_all_subscriptions", "table": "public.app_11941c8fec_push_subscriptions", "permissive": true, "roles": ["PUBLIC"], "command": "ALL", "using": "true", "withCheck": "true" }
+  ],
+  "otherPolicyCount": 6,
+  "otherPoliciesOwnershipScoped": true,
+  "otherPoliciesDoNotRestrictOpenPolicies": true,
+  "remainingUnknowns": [
+    "Raw catalog JSON and exact names/definitions of all constraints and six ownership policies; some supplied definitions are available only as hashes",
+    "Defaults, nullability of columns other than user_id and remaining column types/order not explicitly listed by the owner",
+    "FK validation/deferrability and ON UPDATE for these two tables, and all incoming references",
+    "Full role membership/grant-option provenance including pg_maintain; original service_role direct ACL",
+    "Deployed Frontend/Edge versions, verify_jwt/PostgREST exposure and other legacy writers",
+    "Verified hosted backup/PITR and tested recovery procedure"
+  ],
+  "exploitOrExfiltrationEvidence": "NOT_PROVIDED",
+  "hostedRepairExecuted": false,
+  "productionReady": false,
+  "liveBillingReady": false
+}

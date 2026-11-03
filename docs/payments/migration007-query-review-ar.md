@@ -1,5 +1,7 @@
 # Migration007 — مراجعة الاستعلام وتشغيله في SQL Editor
 
+تحديث الأدلة: أفاد المالك بنجاح الاستعلام على PostgreSQL17.6 بتاريخ2026-11-03 وقدّم نتائج schema/ACL إضافية. التقرير أدناه تاريخي عند `a7c9d7ad4cc33df6afec31946909a6add8e38385`؛ راجع [تقييم PostgreSQL17.6](migration007-pg176-assessment-ar.md) و`docs/security/migration007-hosted-evidence.json`. نجاح collector ليس نجاح migration007 أو اختبار SQL معزول.
+
 التاريخ: 2026-11-03. الفرع الوحيد المعدل: `repair/migration007-notification-security-20261102`. الأصل لهذه المراجعة `793c77e6877fa8e0d2988b9ad15c44ddfa0d9f5a`، والمستودع `HEZZO7/AmanahLifeapp`.
 
 **النتيجة: إصلاح المصدر وفحوصه PASS؛ تحقق PostgreSQL/SQL/RLS/Native BLOCKED؛ MERGE HOLD؛ Production وLive Billing NO-GO.** لم تُعدّل007 أو شيفرة التطبيق أو أي قاعدة مستضافة. لم تُشغّل providers أو Actions أو عمليات حذف حقيقية. لا Metadata كاملة وصلت في هذه الجولة، لذلك لم تُحوّل افتراضات fixture إلى حقائق.

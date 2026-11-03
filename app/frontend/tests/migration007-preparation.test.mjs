@@ -52,3 +52,15 @@ test('original native package and all79 immutable inputs remain unchanged', () =
     assert.equal(createHash('sha1').update(Buffer.concat([Buffer.from('blob ' + bytes.length + '\0'), bytes])).digest('hex'), expected.gitBlob, path);
   }
 });
+test('owner PG17.6 evidence upgrades ACL/FK facts without inventing missing DDL or hosted repair', () => {
+  const evidence = JSON.parse(read('../../../docs/security/migration007-hosted-evidence.json'));
+  assert.equal(evidence.serverVersion, 170006); assert.equal(evidence.queryExecutedByOwner, true);
+  assert.equal(evidence.independentlyQueriedByAssistant, false); assert.equal(evidence.rawCatalogAttached, false);
+  assert.equal(evidence.tableFacts.userId.deleteAction, 'NO ACTION'); assert.equal(evidence.tableFacts.userId.notNull, true);
+  assert.equal(evidence.tableFacts.independentColumnAclEntries, 0); assert.equal(evidence.tableFacts.forceRls, false);
+  assert.deepEqual(evidence.tables.map(t => t.columnCount), [17, 7]);
+  for (const role of ['anon', 'authenticated']) assert.deepEqual(evidence.effectiveTablePrivileges[role],
+    ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']);
+  assert.ok(evidence.remainingUnknowns.length); assert.equal(evidence.hostedRepairExecuted, false);
+  assert.equal(evidence.productionReady, false); assert.equal(evidence.liveBillingReady, false);
+});

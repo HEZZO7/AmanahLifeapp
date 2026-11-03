@@ -1,7 +1,7 @@
 // DISPOSABLE IN-MEMORY SQL ONLY. No database URL, HTTP, GoTrue or real Push.
-// Owner evidence supplies table shape/ACL/policy facts, not complete DDL.
-// Defaults, FK actions, extra marker columns and six ownership policies below
-// are explicit representative assumptions; this is not hosted-schema parity.
+// Owner evidence supplies PG17.6,17/7 columns, NO ACTION FKs, full API table
+// privileges and no column ACLs. Exact defaults/other nullability/constraint
+// and six policy definitions remain representative, not full hosted parity.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -18,6 +18,8 @@ const source = await readFile(new URL('../../supabase/migrations/202610180007_no
 assert.equal(createHash('sha256').update(source).digest('hex'), 'd82c9ec53d32ccdc1a5edff927671aaccd34925626934992f762f066d46cb3db');
 const migration = statements(source);
 const collector = await readFile(new URL('../../../../docs/security/migration007-evidence-readonly.sql', import.meta.url), 'utf8');
+const ownerEvidence = JSON.parse(await readFile(new URL('../../../../docs/security/migration007-hosted-evidence.json', import.meta.url), 'utf8'));
+const tablePrivileges = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN'];
 const fixture = `
 create role anon nologin nosuperuser nobypassrls nocreaterole;
 create role authenticated nologin nosuperuser nobypassrls nocreaterole;
@@ -28,19 +30,21 @@ create function auth.uid() returns uuid language sql stable as
 $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 grant usage on schema public,auth to anon,authenticated,service_role;
 create table public.${prefs}(
- id uuid primary key default gen_random_uuid(), user_id uuid not null unique references auth.users(id),
+ id uuid primary key default gen_random_uuid(), user_id uuid not null unique references auth.users(id) on delete no action,
  prayer_reminders boolean default true, bill_reminders boolean default true, habit_reminders boolean default true,
  fasting_reminders boolean default true, savings_reminders boolean default true, general_activity boolean default true,
  timezone text not null default 'UTC', language text not null default 'en', prayer_calc_method text,
  prayer_location_mode text, prayer_manual_city jsonb, last_suhoor_sent_date date, last_iftar_sent_date date,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 create table public.${push}(
- id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id),
+ id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete no action,
  endpoint text not null,p256dh text not null,auth_key text not null,
  created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(user_id,endpoint));
 alter table public.${prefs} enable row level security;
 alter table public.${push} enable row level security;
-grant select,insert,update,delete on public.${prefs},public.${push} to anon,authenticated,service_role;
+grant all privileges on public.${prefs},public.${push} to anon,authenticated;
+-- Service DML is a source-contract fixture assumption, not supplied direct ACL.
+grant select,insert,update,delete on public.${prefs},public.${push} to service_role;
 create policy service_role_all_prefs on public.${prefs} for all to public using(true) with check(true);
 create policy service_role_all_subscriptions on public.${push} for all to public using(true) with check(true);
 create policy fixture_pref_read on public.${prefs} for select to authenticated using(auth.uid()=user_id);
@@ -83,8 +87,10 @@ async function snapshot(db) {
     const acl = (await db.query('select relacl::text from pg_class where oid=$1::regclass', ['public.' + table])).rows;
     const columns = (await db.query('select attname,attacl::text from pg_attribute where attrelid=$1::regclass and attnum>0 order by attnum', ['public.' + table])).rows;
     const indexes = (await db.query('select indexdef from pg_indexes where schemaname=\'public\' and tablename=$1 order by indexname', [table])).rows;
+    const constraints = (await db.query('select conname,pg_get_constraintdef(oid) as definition from pg_constraint where conrelid=$1::regclass order by conname', ['public.' + table])).rows;
+    const triggers = (await db.query('select tgname,tgisinternal,tgenabled,tgtype from pg_trigger where tgrelid=$1::regclass order by tgname', ['public.' + table])).rows;
     // Hash rows so failed assertions do not print even synthetic device material.
-    result.push({ table, rowsHash: createHash('sha256').update(JSON.stringify(rows)).digest('hex'), policies, acl, columns, indexes });
+    result.push({ table, rowsHash: createHash('sha256').update(JSON.stringify(rows)).digest('hex'), policies, acl, columns, indexes, constraints, triggers });
   }
   return result;
 }
@@ -109,7 +115,26 @@ function adapter(db, interceptInsert) {
   };
 }
 
-test('representative permissive-policy baseline reproduces anon cross-account access despite eight RLS policies', () => fresh(async db => {
+test('baseline matches all owner-confirmed PG17 table, role, FK and eight-privilege facts', () => fresh(async db => {
+  assert.equal(ownerEvidence.serverVersion, 170006);
+  assert.equal(Math.floor(Number(await scalar(db, "select current_setting('server_version_num')::int as value")) / 10000), 17);
+  const result = (await db.query(collector)).rows[0].migration007_catalog_evidence;
+  for (const table of result.tables) {
+    const expected = ownerEvidence.tables.find(t => t.name === table.name); assert.ok(expected);
+    assert.equal(table.columns.length, expected.columnCount); assert.equal(table.kind, 'r'); assert.equal(table.owner, 'postgres');
+    assert.equal(table.rls, true); assert.equal(table.forceRls, false); assert.deepEqual(table.inheritance, []);
+    assert.equal(table.triggers.filter(t => !t.internal).length, 0); assert.equal(table.columnAcl.length, 0);
+    assert.ok(table.constraints.some(c => c.type === 'f' && c.columns.join(',') === 'user_id' && c.referencedTable === 'auth.users' && c.deleteAction === 'a'));
+    assert.ok(table.columns.some(c => c.name === 'user_id' && c.type === 'uuid' && c.notNull));
+    for (const actor of ['anon', 'authenticated']) {
+      const access = table.effective.find(r => r.role === actor);
+      assert.equal(access.superuser, false); assert.equal(access.bypassRls, false);
+      for (const privilege of tablePrivileges) assert.equal(access.table[privilege].allowed, true);
+    }
+    assert.equal(table.effective.find(r => r.role === 'service_role').bypassRls, true);
+  }
+}));
+test('owner-confirmed open policy baseline reproduces anon cross-account access despite eight RLS policies', () => fresh(async db => {
   const before = await snapshot(db);
   assert.equal(await scalar(db, 'select count(*)::int as value from pg_policy'), 8);
   await db.exec('begin'); await role(db, 'anon');
@@ -169,17 +194,38 @@ test('authenticated A can update allowed fields but cannot select/update B, inte
   for (const column of ['user_id', 'updated_at', 'last_suhoor_sent_date', 'last_iftar_sent_date'])
     await denied(db, `update public.${prefs} set ${column}=${column} where user_id=$1`, [A]);
   await denied(db, `select * from public.${prefs}`); await denied(db, `delete from public.${prefs}`);
-  for (const command of [`select endpoint from public.${push}`, `insert into public.${push}(user_id,endpoint,p256dh,auth_key) values('${A}','x','x','x')`, `update public.${push} set endpoint=endpoint`, `delete from public.${push}`]) await denied(db, command);
+  for (const command of [`select endpoint from public.${push}`, `select p256dh,auth_key from public.${push}`, `insert into public.${push}(user_id,endpoint,p256dh,auth_key) values('${A}','x','x','x')`, `update public.${push} set endpoint=endpoint`, `delete from public.${push}`]) await denied(db, command);
   await role(db, 'postgres'); assert.equal(await scalar(db, `select language as value from public.${prefs} where user_id=$1`, [B]), 'en');
 }));
-test('anon loses every direct data operation; no API role receives TRUNCATE or grant options', () => fresh(async db => {
+test('anon loses data access and all API roles lose TRUNCATE/REFERENCES/TRIGGER/MAINTAIN and every grant option', () => fresh(async db => {
   await apply(db); await role(db, 'anon');
   for (const table of [prefs, push]) for (const command of [`select user_id from public.${table}`, `insert into public.${table}(user_id) values('${A}')`, `update public.${table} set user_id=user_id`, `delete from public.${table}`]) await denied(db, command);
+  await denied(db, `select p256dh,auth_key from public.${push}`);
   await role(db, 'postgres');
   for (const actor of ['anon', 'authenticated', 'service_role']) for (const table of [prefs, push]) {
-    assert.equal(await scalar(db, 'select has_table_privilege($1,$2,\'TRUNCATE\') as value', [actor, 'public.' + table]), false);
-    for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) assert.equal(await scalar(db, 'select has_table_privilege($1,$2,$3) as value', [actor, 'public.' + table, privilege + ' WITH GRANT OPTION']), false);
+    for (const privilege of ['TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']) assert.equal(await scalar(db, 'select has_table_privilege($1,$2,$3) as value', [actor, 'public.' + table, privilege]), false);
+    for (const privilege of tablePrivileges) assert.equal(await scalar(db, 'select has_table_privilege($1,$2,$3) as value', [actor, 'public.' + table, privilege + ' WITH GRANT OPTION']), false);
+    for (const column of ['user_id', 'id']) assert.equal(await scalar(db, 'select has_column_privilege($1,$2,$3,\'REFERENCES\') as value', [actor, 'public.' + table, column]), false);
   }
+}));
+test('TRUNCATE bypass and trigger/reference creation are witnessed before007 and denied after007', () => fresh(async db => {
+  await db.exec('create function public.fixture007_trigger() returns trigger language plpgsql as $$begin return new; end$$');
+  await db.exec('grant execute on function public.fixture007_trigger() to anon');
+  // A permanent fixture-only schema avoids the unrelated PostgreSQL restriction
+  // that temporary-table FKs cannot reference permanent tables. No CREATE on
+  // public is granted to the API role.
+  await db.exec('create schema fixture007 authorization anon');
+  const before = await snapshot(db);
+  await db.exec('begin'); await role(db, 'anon');
+  await db.exec(`create table fixture007.reference_probe(user_id uuid references public.${prefs}(user_id))`);
+  await db.exec(`create trigger fixture007_custom after insert on public.${prefs} for each row execute function public.fixture007_trigger()`);
+  await db.exec(`truncate public.${push}`);
+  assert.equal(await scalar(db, `select count(*)::int as value from public.${push}`), 0);
+  await db.exec('rollback'); assert.deepEqual(await snapshot(db), before);
+  await apply(db); await role(db, 'anon');
+  await denied(db, `truncate public.${push}`);
+  await denied(db, `create table fixture007.reference_probe(user_id uuid references public.${prefs}(user_id))`);
+  await denied(db, `create trigger fixture007_custom after insert on public.${prefs} for each row execute function public.fixture007_trigger()`);
 }));
 test('missing own singleton INSERT succeeds while a foreign INSERT fails RLS', () => fresh(async db => {
   await apply(db); await db.query(`delete from public.${prefs} where user_id=$1`, [B]);
@@ -236,7 +282,7 @@ test('service-role SQL operations preserve other registrations, use composite co
   await db.query(`update public.${prefs} set last_suhoor_sent_date='2026-02-01',last_iftar_sent_date='2026-02-01' where user_id=$1`, [A]);
   assert.equal(await scalar(db, `select last_suhoor_sent_date::text as value from public.${prefs} where user_id=$1`, [A]), '2026-02-01');
 }));
-for (const [label, privilege] of [['inherited table SELECT', `grant select on public.${prefs} to fixture_carrier`], ['inherited protected column UPDATE', `grant update(user_id) on public.${prefs} to fixture_carrier`], ['inherited column grant option', `grant select(language) on public.${prefs} to fixture_carrier with grant option`], ['PG17 inherited MAINTAIN', `grant maintain on public.${prefs} to fixture_carrier`]]) {
+for (const [label, privilege] of [['inherited table SELECT', `grant select on public.${prefs} to fixture_carrier`], ['inherited protected column UPDATE', `grant update(user_id) on public.${prefs} to fixture_carrier`], ['inherited column grant option', `grant select(language) on public.${prefs} to fixture_carrier with grant option`], ['PG17 inherited MAINTAIN', `grant maintain on public.${prefs} to fixture_carrier`], ['PG17 predefined pg_maintain membership', 'grant pg_maintain to authenticated']]) {
   test('postcondition failure rolls back the entire policy/ACL replacement on ' + label, () => fresh(async db => {
     assert.equal(Math.floor(Number(await scalar(db, "select current_setting('server_version_num')::int as value")) / 10000), 17);
     await db.exec('create role fixture_carrier nologin; grant fixture_carrier to authenticated; ' + privilege);
