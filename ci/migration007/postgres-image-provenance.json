@@ -1,0 +1,13 @@
+{
+  "repository": "docker-library/repo-info",
+  "commit": "ab035ece34e102cc24d3238b7290a14b85c5123b",
+  "path": "repos/postgres/remote/17.6-bookworm.md",
+  "url": "https://github.com/docker-library/repo-info/blob/ab035ece34e102cc24d3238b7290a14b85c5123b/repos/postgres/remote/17.6-bookworm.md",
+  "verifiedBy": "read-only GitHub connector retrieval on 2026-11-03",
+  "tag": "17.6-bookworm",
+  "platform": "linux/amd64",
+  "manifestDigest": "sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3",
+  "expectedImageId": "sha256:567d5d704a3e5a4864393b623a0d50eb1b5a4ad134cdac7cf19555cb2d8ffe9e",
+  "expectedServerVersionNum": 170006,
+  "imageDownloadedOrExecutedInExecutor": false
+}

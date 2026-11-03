@@ -1,0 +1,23 @@
+{
+  "sourceBase": "7c7e6694144c6cdb1f9b924803031f7830f97966",
+  "pgliteIntegrity": "sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q==",
+  "postgresImage": "postgres:17.6-bookworm@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3",
+  "sha256": {
+    ".github/workflows/migration007-isolated-security.yml": "99a518d38fc5ab3e54b2d501d319081a3e3335cf68a4e9c8c42bb6180a978b13",
+    "ci/migration007/Run-Migration007.ps1": "8cc7422eb9b904bda8b8f34449fb488e55302e77c9932643fdf819dc8f1a9192",
+    "ci/migration007/install.mjs": "2d5b5984418db5de0da8e381f15b7066babf7e6ed0126313b1b2f0b3577e2d87",
+    "ci/migration007/native-cases.mjs": "6267f1a642d48f25f0424548b99934721ba26691e676a2b6cb6e9e692578de28",
+    "ci/migration007/postgres-image-provenance.json": "7e6f5017dd4b8500c0fd2ea3fa58cd0bbef4c359986bf7931481d9dbef9d9b40",
+    "ci/migration007/reporter.mjs": "2f7fe747737c4f53bcd9786fbf71efe7d9ab1178c4091b54a2c55b6dc9c05ef2",
+    "ci/migration007/run.mjs": "a967083725ebcb5903c69eabec0326421bdf60883118066b1421faaf22303bad",
+    "app/frontend/tests/payment-phase2-db/package.json": "55d609d1ff555c9c1dd8a733c6b2d7ebfe36864f84d8f7fb35f27fff4e65f6a7",
+    "app/frontend/tests/payment-phase2-db/package-lock.json": "50c7667bb51d88b946b2e67386c53549414725566ae5206487eea9f42fd86b5e",
+    "app/frontend/tests/payment-phase2-db/migration007-repair.test.mjs": "0e0c0fb809c82c6cfa9f77e9fbf36f899d58ef8a12c4a1cd076a1317a5d6dd85",
+    "app/frontend/tests/payment-phase2-db/sql-statements.mjs": "f1c8133b8eac51789fd0f201639c9172f66f82b05e6c4ca7ad616eca5c47ba47",
+    "app/frontend/tests/deny-network.mjs": "f98571ddcba60f9eb5eb2dead312ac4dec56060f2acf41b9953871d4a7c942a7",
+    "app/frontend/src/lib/notificationBackup.ts": "55683d680c940700f1966fe88cff7cd634f8927c53bfcade8afe440f9981cca7",
+    "app/frontend/supabase/migrations/202610180007_notification_table_authority.sql": "d82c9ec53d32ccdc1a5edff927671aaccd34925626934992f762f066d46cb3db",
+    "docs/security/migration007-evidence-readonly.sql": "5479ac92a45e9806033ed062e8339d05c882bb2baa1fd670c053eb6423fb4579",
+    "docs/security/migration007-hosted-evidence.json": "a9f56a68a5a9e434f8012a6007fc0a389f5b742d1ea9dd09aed4e17c80cbcd9e"
+  }
+}
