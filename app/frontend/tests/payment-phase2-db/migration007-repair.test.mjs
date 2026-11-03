@@ -133,12 +133,32 @@ test('the metadata-only collector returns both table definitions without any see
   assert.equal(result.deployedVersions, 'NOT_COLLECTED');
   for (const table of result.tables) {
     assert.equal(table.present, true); assert.equal(table.owner, 'postgres'); assert.equal(table.rls, true);
-    assert.ok(table.columns.some(c => c.name === 'user_id' && c.type === 'uuid'));
+    const identity = table.columns.find(c => c.name === 'user_id' && c.type === 'uuid');
+    assert.ok(identity && Number.isInteger(identity.number));
     assert.ok(table.constraints.some(c => c.type === 'f' && c.referencedTable === 'auth.users'));
     assert.ok(table.indexes.some(i => i.unique)); assert.ok(table.effective.some(r => r.role === 'authenticated'));
+    if (table.name.endsWith('_notification_preferences')) assert.ok(table.indexes.some(i =>
+      i.unique && i.valid && !i.partial && !i.expressionIndex && i.keyAttributes === 1 &&
+      i.attributeNumbers.trim().split(/\s+/)[0] === String(identity.number)));
   }
   const encoded = JSON.stringify(result);
   for (const secret of ['synthetic-not-a-key', 'synthetic-not-an-auth', 'https://fixture.invalid/', A, B]) assert.equal(encoded.includes(secret), false);
+}));
+test('collector avoids application unnest overloads under an explicit application-first search_path', () => fresh(async db => {
+  await db.exec(`
+    create function public.unnest(pg_catalog.oid[]) returns setof pg_catalog.oid language plpgsql as
+    $$begin raise exception 'Synthetic catalog collision' using errcode='ZX007'; end$$;
+    create function public.unnest(pg_catalog.int2[]) returns setof pg_catalog.int2 language plpgsql as
+    $$begin raise exception 'Synthetic catalog collision' using errcode='ZX007'; end$$;
+    set search_path=public,pg_catalog;
+  `);
+  // Witness the collision first. A collector failure or a harmless overload
+  // must not stand in for proving that the fixture exercises the lookup risk.
+  for (const type of ['oid', 'int2'])
+    await assert.rejects(db.query(`select * from unnest(array[1::pg_catalog.${type}])`), error => error.code === 'ZX007');
+  const result = (await db.query(collector)).rows[0].migration007_catalog_evidence;
+  assert.equal(result.tables.length, 2);
+  assert.ok(result.tables.every(t => t.present && t.constraints.some(c => c.type === 'f')));
 }));
 test('authenticated A can update allowed fields but cannot select/update B, internal columns, identity or Push rows', () => fresh(async db => {
   await apply(db); await role(db, 'authenticated');

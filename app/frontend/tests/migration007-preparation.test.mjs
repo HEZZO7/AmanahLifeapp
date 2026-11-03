@@ -24,6 +24,15 @@ test('the repair profile pins the unchanged007 SQL and uses only an in-memory en
   assert.doesNotMatch(profile, /process\.env|\.skip\(|\.todo\(|fetch\(|createClient\(/);
   assert.match(profile, /rollback; reset role/);
 });
+test('catalog routine and type resolution does not depend on the application search_path', () => {
+  const raw = read('../../../docs/security/migration007-evidence-readonly.sql');
+  const code = raw.replace(/--[^\n]*/g, '').replace(/'(?:''|[^'])*'/g, "''");
+  assert.equal([...code.matchAll(/pg_catalog\.unnest\s*\(/g)].length, 3);
+  assert.doesNotMatch(code, /(?<![a-zA-Z0-9_.])unnest\s*\(/i);
+  assert.doesNotMatch(code, /::(?!pg_catalog\.)[a-zA-Z_]/);
+  assert.match(code, /pg_catalog\.current_setting\(''\)::pg_catalog\.int4>=170000/);
+  assert.match(raw, /'number',a\.attnum/);
+});
 test('current consumers match the supplied composite Push index and use the007-compatible location writer', () => {
   const edge = read('../supabase/functions/app_11941c8fec_push_notify/index.ts');
   assert.match(edge, /onConflict: 'user_id,endpoint'/); assert.doesNotMatch(edge, /onConflict: 'endpoint'/);

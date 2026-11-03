@@ -39,8 +39,9 @@ test assumptions. No claim of exact hosted-schema parity is made. Initial grants
 are DML only, matching the supplied effective privilege facts; inherited and
 grant-option mutations are additional adversarial fixture cases.
 
-The profile prepares15 cases: baseline exposure; data/index preservation and
-idempotence; metadata collector; authenticated isolation and protected columns;
+The profile prepares16 cases: baseline exposure; data/index preservation and
+idempotence; metadata collector and an application-first search_path collision;
+authenticated isolation and protected columns;
 anon denial and grant options; own/foreign INSERT; actual portable/legacy restore;
 malformed backup rejection; permission failure/local-state preservation;
 controlled singleton retry; composite Push registration/unregister and scheduler
@@ -63,6 +64,12 @@ RLS, policy roles/commands, safe policy expressions or hashes, direct column/tab
 ACLs and effective inherited privileges/grant options. Complex/redacted defaults
 or policies still require protected owner review; hashes cannot reconstruct DDL.
 The collector is prepared and statically checked, not PostgreSQL-validated.
+All catalog routines and cast types are explicitly qualified with pg_catalog.
+Column metadata includes the real attribute number so index attributeNumbers
+remain interpretable even if old dropped columns leave numbering gaps.
+The collision fixture adds application unnest(oid[])/unnest(int2[]) overloads,
+witnesses their failure on an unqualified call and expects the collector to avoid
+them. This SQL regression remains unexecuted while the engine is unavailable.
 
 Exact hosted rollback cannot be generated from missing definitions. Before any
 hosted change, obtain a verified original catalog/ACL snapshot and test recovery
