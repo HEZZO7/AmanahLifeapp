@@ -1,0 +1,88 @@
+# Preparation only. Dispatch requires separate owner approval and default-branch
+# registration. This file on the repair branch cannot register itself on main.
+name: Migration 007 isolated SQL and PostgreSQL 17
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: 'Separately approved full repair commit SHA (40 hex characters)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration007-isolated-security
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [pglite, native]
+    env:
+      REPORT_DIR: ${{ runner.temp }}/migration007-${{ matrix.phase }}
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Require GitHub-hosted disposable Linux
+        env:
+          APPROVED_COMMIT: ${{ inputs.expected_commit }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = HEZZO7/AmanahLifeapp
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/repair/migration007-notification-security-20261102
+          [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$APPROVED_COMMIT" = "$GITHUB_SHA"
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$(uname -m)" = x86_64
+
+      - name: Check out exactly the dispatched immutable commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set exact project-compatible Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          check-latest: false
+
+      - name: Verify branch, base ancestry and all input digests
+        run: |
+          set -euo pipefail
+          # Checkout by SHA is detached; compare the approved event ref separately.
+          git switch --create repair/migration007-notification-security-20261102
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node ci/migration007/run.mjs verify "$REPORT_DIR"
+
+      - name: Install only the existing PGlite lockfile
+        if: matrix.phase == 'pglite'
+        run: node ci/migration007/install.mjs "$REPORT_DIR"
+
+      - name: Execute exact security profile
+        env:
+          PHASE: ${{ matrix.phase }}
+        run: node ci/migration007/run.mjs "$PHASE" "$REPORT_DIR"
+
+      - name: Preserve sanitized results, versions and errors
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: migration007-${{ matrix.phase }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.REPORT_DIR }}/*.json*
+          if-no-files-found: error
+          retention-days: 14
+          include-hidden-files: false
