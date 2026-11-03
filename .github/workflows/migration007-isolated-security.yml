@@ -30,7 +30,7 @@ jobs:
       matrix:
         phase: [pglite, native]
     env:
-      REPORT_DIR: ${{ runner.temp }}/migration007-${{ matrix.phase }}
+      REPORT_DIR: ${{ github.workspace }}/../migration007-${{ matrix.phase }}
       DO_NOT_TRACK: '1'
     steps:
       - name: Require GitHub-hosted disposable Linux
