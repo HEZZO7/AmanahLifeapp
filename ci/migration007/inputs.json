@@ -3,7 +3,7 @@
   "pgliteIntegrity": "sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q==",
   "postgresImage": "postgres:17.6-bookworm@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3",
   "sha256": {
-    ".github/workflows/migration007-isolated-security.yml": "99a518d38fc5ab3e54b2d501d319081a3e3335cf68a4e9c8c42bb6180a978b13",
+    ".github/workflows/migration007-isolated-security.yml": "035c89735e9622789c4a889b75a64b57e99fe8dcb69742db915c6ab5687c9db2",
     "ci/migration007/Run-Migration007.ps1": "8cc7422eb9b904bda8b8f34449fb488e55302e77c9932643fdf819dc8f1a9192",
     "ci/migration007/install.mjs": "2d5b5984418db5de0da8e381f15b7066babf7e6ed0126313b1b2f0b3577e2d87",
     "ci/migration007/native-cases.mjs": "6267f1a642d48f25f0424548b99934721ba26691e676a2b6cb6e9e692578de28",
