@@ -40,7 +40,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = HEZZO7/AmanahLifeapp
           test "$GITHUB_EVENT_NAME" = workflow_dispatch
-          test "$GITHUB_REF" = refs/heads/repair/migration007-notification-security-20261102
+          test "$GITHUB_REF" = refs/heads/fix/migration007-artifact-canonical-path-20261104
           [[ "$APPROVED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           test "$APPROVED_COMMIT" = "$GITHUB_SHA"
           test "$RUNNER_ENVIRONMENT" = github-hosted
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           # Checkout by SHA is detached; compare the approved event ref separately.
-          git switch --create repair/migration007-notification-security-20261102
+          git switch --create fix/migration007-artifact-canonical-path-20261104
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node ci/migration007/run.mjs verify "$REPORT_DIR"
 
@@ -77,12 +77,18 @@ jobs:
           PHASE: ${{ matrix.phase }}
         run: node ci/migration007/run.mjs "$PHASE" "$REPORT_DIR"
 
+      - name: Resolve artifact path without parent traversal
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          printf 'ARTIFACT_DIR=%s\n' "$(realpath -m "$REPORT_DIR")" >> "$GITHUB_ENV"
+
       - name: Preserve sanitized results, versions and errors
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: migration007-${{ matrix.phase }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.REPORT_DIR }}/*.json*
+          path: ${{ env.ARTIFACT_DIR }}/*.json*
           if-no-files-found: error
           retention-days: 14
           include-hidden-files: false
