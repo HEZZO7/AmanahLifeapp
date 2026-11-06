@@ -128,12 +128,14 @@ export default function PrayerReminderSettings() {
   );
 }
 
+type PrayerTimerWindow = Window & { __prayerTimers?: number[] };
+
 // Setup prayer time reminders using setTimeout
 function setupPrayerTimers(config: PrayerReminderConfig) {
   // Clear any existing timers
-  const existingTimers = (window as any).__prayerTimers || [];
+  const existingTimers = (window as PrayerTimerWindow).__prayerTimers || [];
   existingTimers.forEach((t: number) => clearTimeout(t));
-  (window as any).__prayerTimers = [];
+  (window as PrayerTimerWindow).__prayerTimers = [];
 
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   if (!('serviceWorker' in navigator)) return;
@@ -233,5 +235,5 @@ function schedulePrayerNotifications(timings: Record<string, string>, config: Pr
     }
   }
 
-  (window as any).__prayerTimers = timers;
+  (window as PrayerTimerWindow).__prayerTimers = timers;
 }

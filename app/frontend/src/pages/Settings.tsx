@@ -231,20 +231,30 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Profile Section */}
+        {/* Profile Section: guests must never appear to have a member account. */}
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="text-sm text-muted-foreground mb-3">{t('profile')}</h3>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1FC7C1] to-[#178F8A] flex items-center justify-center">
-              <span className="text-white text-lg font-bold">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
-              </span>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1FC7C1] to-[#178F8A] flex items-center justify-center">
+                <span className="text-white text-lg font-bold">{user.email?.charAt(0).toUpperCase() || 'U'}</span>
+              </div>
+              <div>
+                <p className="text-foreground font-medium text-sm break-all">{user.email || (isAr ? 'حسابي' : 'My Account')}</p>
+                <p className="text-xs text-muted-foreground">AmanahLife Member</p>
+              </div>
             </div>
-            <div>
-              <p className="text-foreground font-medium text-sm">{user?.email || 'User'}</p>
-              <p className="text-xs text-muted-foreground">AmanahLife Member</p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{isAr ? 'سجّل الدخول أو أنشئ حساباً لحفظ اشتراكك وإدارة خطتك.' : 'Sign in or create an account to manage your subscription.'}</p>
+              <button
+                onClick={() => { sessionStorage.setItem('amanahlife_auth_return', '/subscription'); navigate('/login?next=%2Fsubscription'); }}
+                className="w-full bg-[#178F8A] hover:bg-[#117873] text-white py-3 rounded-xl text-sm font-semibold transition-colors"
+              >
+                {isAr ? 'تسجيل الدخول أو إنشاء حساب' : 'Sign In / Create Account'}
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Theme */}
@@ -438,7 +448,7 @@ export default function Settings() {
         </div>
 
         {/* Sign Out */}
-        <button
+        {user && <button
           onClick={async () => {
             setSignOutLoading(true);
             await signOut();
@@ -447,7 +457,7 @@ export default function Settings() {
           className="w-full bg-red-500/10 border border-red-500/30 text-red-400 py-3 rounded-2xl text-sm font-medium hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {signOutLoading ? (isAr ? 'جارٍ تسجيل الخروج...' : 'Signing out...') : t('signOut')}
-        </button>
+        </button>}
       </main>
 
       {/* Delete Account Confirmation Dialog */}
