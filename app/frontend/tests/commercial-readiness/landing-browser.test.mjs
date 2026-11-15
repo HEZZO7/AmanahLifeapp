@@ -30,7 +30,17 @@ test('landing conversion routes on desktop and mobile without live authenticatio
         }
       }
       await page.goto('http://127.0.0.1:4173/landing.html');
-      await Promise.all([page.waitForURL('**/login?mode=signup'),page.locator('[data-i18n="hero_cta_primary"]').click()]);
+      for (const lang of ['en','ar']) {
+        await page.goto('http://127.0.0.1:4173/landing.html');
+        await page.evaluate(lang => window.setLanguage(lang), lang);
+        await Promise.all([
+          page.waitForURL(url => url.pathname === '/login'),
+          page.locator('[data-i18n="hero_cta_primary"]').click()
+        ]);
+        const url = new URL(page.url());
+        assert.equal(url.searchParams.get('mode'), 'signup');
+        assert.equal(url.searchParams.get('lang'), lang);
+      }
       await page.close();
     }
   } finally { await browser.close(); }
