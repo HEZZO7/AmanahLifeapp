@@ -20,7 +20,7 @@ test('paid status and trial floor',()=>{
 });
 test('lookup error and plan hierarchy',async()=>{
  const client=(data,error)=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data,error})})})})});
- assert.equal(await hasEntitlement(client({tier:'family',status:'active'},true),'family'),false);
- assert.equal(await hasEntitlement(client({tier:'balanced',status:'active'},null),'family'),false);
- assert.equal(await hasEntitlement(client({tier:'balanced',status:'active'},null),'balanced'),true);
+ assert.equal(await hasEntitlement(client({tier:'family',status:'active'},true),'test-user','family'),false);
+ assert.equal(await hasEntitlement(client({tier:'balanced',status:'active'},null),'test-user','family'),false);
+ assert.equal(await hasEntitlement(client({tier:'balanced',status:'active'},null),'test-user','balanced'),true);
 });
