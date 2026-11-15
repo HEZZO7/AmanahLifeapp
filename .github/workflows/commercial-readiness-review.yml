@@ -54,3 +54,5 @@ jobs:
         run: |
           npm audit --omit=dev --json > /tmp/amanah-audit.json || true
           node -e 'const a=require("/tmp/amanah-audit.json"); if(a.error || !a.vulnerabilities) throw Error("Audit unavailable"); for(const [name,v] of Object.entries(a.vulnerabilities)) if(["critical","high"].includes(v.severity)) console.log(JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via})); console.log(JSON.stringify(a.metadata.vulnerabilities));'
+      - name: Isolated Edge handler authorization
+        run: deno test --node-modules-dir=auto --allow-env --allow-read --allow-sys tests/commercial-readiness/edge-runtime.test.ts
