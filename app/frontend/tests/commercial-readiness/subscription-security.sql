@@ -17,9 +17,9 @@ CREATE POLICY allow_read_own_subscription ON public.app_11941c8fec_subscriptions
 GRANT ALL ON public.app_11941c8fec_subscriptions TO anon, authenticated, service_role;
 INSERT INTO public.app_11941c8fec_subscriptions(user_id,trial_used,trial_started_at) VALUES ('00000000-0000-0000-0000-000000000003',true,now()-interval '10 days');
 \ir ../../supabase/review-migrations/staged/01_install_trial_rpc.sql
-DO $ BEGIN
+DO $legacy$ BEGIN
  IF NOT EXISTS (SELECT 1 FROM public.app_11941c8fec_subscriptions WHERE user_id='00000000-0000-0000-0000-000000000003' AND trial_expires_at=trial_started_at+interval '14 days') THEN RAISE EXCEPTION 'legacy trial lost'; END IF;
-END $;
+END $legacy$;
 \ir ../../supabase/review-migrations/staged/02_lockdown_subscription_writes.sql
 INSERT INTO public.app_11941c8fec_subscriptions(user_id,tier) VALUES ('00000000-0000-0000-0000-000000000002','balanced');
 SET ROLE authenticated;
