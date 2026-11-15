@@ -1459,7 +1459,8 @@ function handleCheckout(plan) {
   // Never open an anonymous hosted checkout: subscription attribution
   // requires the authenticated account and app ID.
   window.top.location.href = '/login?mode=signup&next=subscription&plan=' +
-    encodeURIComponent(plan) + '&billing=' + (isYearly ? 'yearly' : 'monthly');
+    encodeURIComponent(plan) + '&billing=' + (isYearly ? 'yearly' : 'monthly') +
+    '&lang=' + (document.documentElement.lang === 'ar' ? 'ar' : 'en');
 }
 
 // ===== PRICING TOGGLE =====
@@ -1566,8 +1567,10 @@ function setLanguage(lang) {
 
 function updateInternalLinks(lang) {
   document.querySelectorAll('a[href^="/"]').forEach(function(a) {
-    var href = a.getAttribute('href').split('?')[0];
-    a.setAttribute('href', href + '?lang=' + lang);
+    var url = new URL(a.getAttribute('href'), window.location.origin);
+    if (url.origin !== window.location.origin) return;
+    url.searchParams.set('lang', lang);
+    a.setAttribute('href', url.pathname + url.search + url.hash);
   });
 }
 
