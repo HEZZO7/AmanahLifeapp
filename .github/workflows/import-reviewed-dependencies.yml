@@ -1,0 +1,32 @@
+name: Import reviewed web dependencies
+on:
+  push:
+    branches: [review/commercial-readiness-sprint-01]
+    paths: ['.github/workflows/import-reviewed-dependencies.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  import:
+    if: github.ref == 'refs/heads/review/commercial-readiness-sprint-01'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/commercial-readiness-sprint-01
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependency-remediation-candidate
+          run-id: 43750944891
+          github-token: ${{ github.token }}
+          path: /tmp/reviewed-dependencies
+      - name: Verify and commit reviewed files only
+        run: |
+          cmp app/frontend/package.json /tmp/reviewed-dependencies/package.json
+          cp /tmp/reviewed-dependencies/package-lock.json app/frontend/package-lock.json
+          git add -- app/frontend/package-lock.json
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --cached --quiet || git commit -m "Adopt tested web dependency lockfile from run 43750944891"
+          git push origin HEAD:refs/heads/review/commercial-readiness-sprint-01
