@@ -48,6 +48,7 @@ export default function Subscription() {
   const isAr = language === 'ar';
   const { tier: currentTier, status: currentStatus, billingCycle, currentPeriodEnd, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
+  const requestedPlan = new URLSearchParams(window.location.search).get('plan');
   const requestedBilling = new URLSearchParams(window.location.search).get('billing');
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(
     requestedBilling === 'yearly' || requestedBilling === 'monthly' ? requestedBilling : billingCycle
@@ -466,6 +467,7 @@ export default function Subscription() {
           <div className="space-y-3">
             {PLANS.map((plan) => {
               const isCurrent = currentTier === plan.id;
+              const isRequested = requestedPlan === plan.id && plan.id !== 'free';
               const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
               const isLoading = checkoutLoading === plan.id;
               return (
@@ -481,6 +483,7 @@ export default function Subscription() {
                       <span className="text-foreground font-bold">
                         {isAr ? plan.nameAr : plan.nameEn}
                       </span>
+                      {isRequested && !isCurrent && <span className="text-xs text-muted-foreground">{isAr ? 'اختيارك' : 'Your selection'}</span>}
                     </div>
                     <div className="text-end">
                       {price === 0 ? (
