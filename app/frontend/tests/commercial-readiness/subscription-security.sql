@@ -15,6 +15,7 @@ ALTER TABLE public.app_11941c8fec_subscriptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY allow_insert_own_subscription ON public.app_11941c8fec_subscriptions FOR INSERT TO authenticated WITH CHECK (auth.uid()=user_id);
 CREATE POLICY allow_read_own_subscription ON public.app_11941c8fec_subscriptions FOR SELECT USING (auth.uid()=user_id);
 GRANT ALL ON public.app_11941c8fec_subscriptions TO anon, authenticated, service_role;
+GRANT INSERT (tier), UPDATE (tier) ON public.app_11941c8fec_subscriptions TO authenticated, anon;
 INSERT INTO public.app_11941c8fec_subscriptions(user_id,trial_used,trial_started_at) VALUES ('00000000-0000-0000-0000-000000000003',true,now()-interval '10 days');
 \ir ../../supabase/review-migrations/staged/01_install_trial_rpc.sql
 DO $legacy$ BEGIN
