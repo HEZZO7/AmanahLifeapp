@@ -48,7 +48,10 @@ export default function Subscription() {
   const isAr = language === 'ar';
   const { tier: currentTier, status: currentStatus, billingCycle, currentPeriodEnd, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
+  const requestedBilling = new URLSearchParams(window.location.search).get('billing');
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(
+    requestedBilling === 'yearly' || requestedBilling === 'monthly' ? requestedBilling : billingCycle
+  );
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
@@ -102,7 +105,7 @@ export default function Subscription() {
     if (params.get('success') === 'true') {
       setMessage({
         type: 'success',
-        text: isAr ? 'تم تفعيل اشتراكك بنجاح!' : 'Your subscription has been activated successfully!',
+        text: isAr ? 'جارٍ التحقق من حالة اشتراكك. راجع الباقة الحالية أدناه.' : 'Checking your subscription status. Please review your current plan below.',
       });
       refetch();
       window.history.replaceState({}, '', window.location.pathname);
@@ -117,8 +120,8 @@ export default function Subscription() {
 
   // Update billing toggle when subscription data loads
   useEffect(() => {
-    setBilling(billingCycle);
-  }, [billingCycle]);
+    if (requestedBilling !== 'yearly' && requestedBilling !== 'monthly') setBilling(billingCycle);
+  }, [billingCycle, requestedBilling]);
 
   const handleUpgrade = async (tier: 'balanced' | 'family') => {
     setCheckoutLoading(tier);
