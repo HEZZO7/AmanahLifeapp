@@ -22,3 +22,14 @@ jobs:
       - run: node --experimental-strip-types --test tests/commercial-readiness/subscription-intent.test.mjs
       - run: npm ci --ignore-scripts
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Isolated landing browser checks
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist > /tmp/amanahlife-review-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/landing.html > /dev/null; then break; fi
+            sleep 1
+          done
+          node --test tests/commercial-readiness/landing-browser.test.mjs
