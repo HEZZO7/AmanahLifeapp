@@ -1,0 +1,24 @@
+name: Commercial readiness review
+on:
+  push:
+    branches:
+      - review/commercial-readiness-sprint-01
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --experimental-strip-types --test tests/commercial-readiness/subscription-intent.test.mjs
+      - run: npm ci --ignore-scripts
+      - run: npm run build
