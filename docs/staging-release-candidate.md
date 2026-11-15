@@ -1,0 +1,13 @@
+# Release candidate — staging plan (not production approved)
+Web lockfile adoption 71a2a91, import run 43751444168 success, temporary workflow removed 5130276. Native lockfile b9466c8, cleanup 08011dd, post-adoption run 43751304315 success: 22 advisories, zero critical, five high. Web post-adoption CI and targeted Axios 1.21.1 candidate pending. Pin final commit SHAs only after all checks; no release tag or deployment yet.
+## Isolated staging prerequisites
+Separate Supabase project or disposable local stack, synthetic accounts, Lemon test mode and test variants, no production keys or customer data. Verify provider dashboards independently before production. No paid staging resources without approval.
+## Acceptance matrix
+- Signup/login/email callback, existing session, four plan/billing routes, mobile deep links and both languages.
+- New trial 7 days, repeated RPC denied, expired legacy trial preserved, concurrent starts, forged timestamps and cross-user writes denied, service role webhook upsert succeeds.
+- Free/Balanced/Family plus expired and invalid token: coach/search/receipt/invite; actual HTTP responses, no external paid calls for denied requests.
+- Lemon test checkout all four variants, authenticated identity, no duplicate trial, signed webhook activation, replay/out-of-order events, renewal, cancellation, expiry, failed payment, cross-provider conflict. Paddle new checkout denied; historical webhook retained.
+- Android device and iOS compatibility, account switching, offline cache and expiry, no privilege escalation. Android export alone is insufficient.
+- Verify static production deployment does not expose Vite dev server, MCP or source locator; inspect shipped bundle and dependency paths. Axios same-major candidate, Zod major migration separate. Native malformed deep links and image parsing paths; PostCSS build-only assumption must be verified.
+## Pass criteria
+All authorization/payment assertions pass; no reachable critical/high issue without remediation or documented owner acceptance; verified provider reconciliation, backups/restore and coordinated release/rollback. Recheck live aggregate immediately before approved cutover. Rollback preserves write lockdown and paid records. NO-GO production until evidence and explicit approval.
