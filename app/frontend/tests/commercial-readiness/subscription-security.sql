@@ -15,7 +15,11 @@ ALTER TABLE public.app_11941c8fec_subscriptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY allow_insert_own_subscription ON public.app_11941c8fec_subscriptions FOR INSERT TO authenticated WITH CHECK (auth.uid()=user_id);
 CREATE POLICY allow_read_own_subscription ON public.app_11941c8fec_subscriptions FOR SELECT USING (auth.uid()=user_id);
 GRANT ALL ON public.app_11941c8fec_subscriptions TO anon, authenticated, service_role;
+INSERT INTO public.app_11941c8fec_subscriptions(user_id,trial_used,trial_started_at) VALUES ('00000000-0000-0000-0000-000000000003',true,now()-interval '10 days');
 \ir ../../supabase/review-migrations/staged/01_install_trial_rpc.sql
+DO $ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.app_11941c8fec_subscriptions WHERE user_id='00000000-0000-0000-0000-000000000003' AND trial_expires_at=trial_started_at+interval '14 days') THEN RAISE EXCEPTION 'legacy trial lost'; END IF;
+END $;
 \ir ../../supabase/review-migrations/staged/02_lockdown_subscription_writes.sql
 INSERT INTO public.app_11941c8fec_subscriptions(user_id,tier) VALUES ('00000000-0000-0000-0000-000000000002','balanced');
 SET ROLE authenticated;
@@ -27,7 +31,7 @@ BEGIN
  IF public.amanahlife_start_trial() <> 'ok' THEN RAISE EXCEPTION 'first trial failed'; END IF;
  IF public.amanahlife_start_trial() <> 'trial_already_used' THEN RAISE EXCEPTION 'repeat trial accepted'; END IF;
  IF (SELECT count(*) FROM public.app_11941c8fec_subscriptions) <> 1 THEN RAISE EXCEPTION 'cross user read'; END IF;
- IF NOT EXISTS (SELECT 1 FROM public.app_11941c8fec_subscriptions WHERE tier='free' AND trial_used AND trial_started_at BETWEEN now()-interval '1 minute' AND now()) THEN RAISE EXCEPTION 'invalid trial state'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM public.app_11941c8fec_subscriptions WHERE tier='free' AND trial_used AND trial_expires_at=trial_started_at+interval '7 days' AND trial_started_at BETWEEN now()-interval '1 minute' AND now()) THEN RAISE EXCEPTION 'invalid trial state'; END IF;
 END $$;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',false);
 DO $$ BEGIN
