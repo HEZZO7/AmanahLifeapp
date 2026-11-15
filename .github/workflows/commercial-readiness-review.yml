@@ -45,3 +45,8 @@ jobs:
           install -D -m 644 supabase/review-migrations/staged/01_install_trial_rpc.sql "$review_dir/supabase/review-migrations/staged/01_install_trial_rpc.sql"
           install -D -m 644 supabase/review-migrations/staged/02_lockdown_subscription_writes.sql "$review_dir/supabase/review-migrations/staged/02_lockdown_subscription_writes.sql"
           sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$review_dir/tests/commercial-readiness/subscription-security.sql"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check premium edge functions
+        run: deno check supabase/functions/app_11941c8fec_ai_life_coach/index.ts supabase/functions/app_11941c8fec_ai_search/index.ts supabase/functions/app_11941c8fec_receipt_scan/index.ts supabase/functions/app_11941c8fec_family_invite/index.ts
