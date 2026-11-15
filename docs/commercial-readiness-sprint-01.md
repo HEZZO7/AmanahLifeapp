@@ -30,3 +30,9 @@ Review only; no production deployment, migration, payment, or price changes.
 
 ## Test command
 From app/frontend: `node --experimental-strip-types --test tests/commercial-readiness/subscription-intent.test.mjs`
+
+## Browser validation — 2026-11-15
+- Run 43679664952 failed: language link rewriting removed signup query parameters.
+- Fixed query preservation and added language to paid navigation. Run 43680064599 at 1d45bc83d62f57ef9b27b0633dde9eb80049a9dd passed all steps, including build, two intent tests and twelve isolated browser scenarios (desktop/mobile, four paid choices and free signup in both languages).
+- Browser test intercepts login; does not validate real authentication, payment, entitlement or live schema.
+- External Netlify store remains unchanged per owner; coordinate store subscription links with approved app release. No merge or deployment authorized.
