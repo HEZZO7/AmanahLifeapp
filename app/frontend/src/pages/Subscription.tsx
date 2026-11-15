@@ -498,6 +498,7 @@ export default function Subscription() {
                           <span className="text-muted-foreground text-xs">
                             {' '}{isAr ? '/شهر' : '/mo'}
                           </span>
+                          {billing === 'yearly' && <p className="text-xs text-muted-foreground">{isAr ? 'يُدفع سنوياً' : 'Billed annually'} ${(plan.yearlyPrice * 12).toFixed(2)} USD</p>}
                         </div>
                       )}
                     </div>
