@@ -15,7 +15,8 @@ ALTER TABLE public.app_11941c8fec_subscriptions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY allow_insert_own_subscription ON public.app_11941c8fec_subscriptions FOR INSERT TO authenticated WITH CHECK (auth.uid()=user_id);
 CREATE POLICY allow_read_own_subscription ON public.app_11941c8fec_subscriptions FOR SELECT USING (auth.uid()=user_id);
 GRANT ALL ON public.app_11941c8fec_subscriptions TO anon, authenticated, service_role;
-\ir ../../supabase/review-migrations/20261115_subscription_security.sql
+\ir ../../supabase/review-migrations/staged/01_install_trial_rpc.sql
+\ir ../../supabase/review-migrations/staged/02_lockdown_subscription_writes.sql
 INSERT INTO public.app_11941c8fec_subscriptions(user_id,tier) VALUES ('00000000-0000-0000-0000-000000000002','balanced');
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
