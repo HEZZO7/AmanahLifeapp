@@ -741,7 +741,7 @@ iframe[src*="atoms"],
 </div>
 <button id="theme-toggle" onclick="toggleTheme()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(31,199,193,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:all 0.2s" aria-label="Toggle theme">🌙</button>
 <a href="/login" target="_top" class="btn btn-outline btn-sm" data-i18n="nav_login">Log In</a>
-<a href="/login" target="_top" class="btn btn-primary btn-sm" data-i18n="nav_start">Get Started</a>
+<a href="/login?mode=signup" target="_top" class="btn btn-primary btn-sm" data-i18n="nav_start">Get Started</a>
 </div>
 <div class="nav-mobile-actions">
 <div class="lang-toggle-container">
@@ -762,7 +762,7 @@ iframe[src*="atoms"],
 <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
 <a href="#about" data-i18n="nav_about">About</a>
 <a href="/login" target="_top" data-i18n="nav_login">Log In</a>
-<a href="/login" target="_top" class="btn btn-primary" data-i18n="nav_start">Get Started</a>
+<a href="/login?mode=signup" target="_top" class="btn btn-primary" data-i18n="nav_start">Get Started</a>
 </div>
 <main id="main">
 <section class="hero" id="hero">
@@ -772,7 +772,7 @@ iframe[src*="atoms"],
 <h1 class="hero-title"><span data-i18n="hero_title_1">Your Complete</span><br><span class="highlight" data-i18n="hero_title_2">Smart Life</span><br><span data-i18n="hero_title_3">Companion</span></h1>
 <p class="hero-desc" data-i18n="hero_desc">Manage finances, track habits, plan goals, and grow spiritually &#8212; all in one beautifully designed app powered by AI.</p>
 <div class="hero-ctas">
-<a href="/login" target="_top" class="btn btn-primary" data-i18n="hero_cta_primary">Start Free Today</a>
+<a href="/login?mode=signup" target="_top" class="btn btn-primary" data-i18n="hero_cta_primary">Start Free Today</a>
 <a href="#features" class="btn btn-outline" data-i18n="hero_cta_secondary">Explore Features</a>
 </div>
 <div class="hero-stats">
@@ -914,7 +914,7 @@ iframe[src*="atoms"],
 <li data-i18n="plan_free_f6">Basic habit streaks</li>
 <li data-i18n="plan_free_f7">Islamic calendar</li>
 </ul>
-<a href="/login" target="_top" class="btn btn-outline" data-i18n="plan_free_cta">Get Started Free</a>
+<a href="/login?mode=signup" target="_top" class="btn btn-outline" data-i18n="plan_free_cta">Get Started Free</a>
 </div>
 <div class="pricing-card popular">
 <div class="popular-badge" data-i18n="plan_popular_badge">Most Popular</div>
@@ -1067,7 +1067,7 @@ iframe[src*="atoms"],
 <div class="container reveal">
 <h2 data-i18n="cta_title">Ready to Transform Your Life?</h2>
 <p data-i18n="cta_desc">Join thousands who are already managing their lives with clarity, purpose, and peace of mind.</p>
-<a href="/login" target="_top" class="btn btn-primary" style="padding:14px 32px;font-size:1rem" data-i18n="cta_button">Start Your Free Journey</a>
+<a href="/login?mode=signup" target="_top" class="btn btn-primary" style="padding:14px 32px;font-size:1rem" data-i18n="cta_button">Start Your Free Journey</a>
 </div>
 </section>
 
@@ -1455,28 +1455,11 @@ function showToast(message, type) {
 
 // ===== CHECKOUT HANDLER =====
 function handleCheckout(plan) {
-  var url;
-  if (plan === 'balanced') {
-    url = isYearly ? LS_BALANCED_YEARLY : LS_BALANCED_MONTHLY;
-  } else {
-    url = isYearly ? LS_FAMILY_YEARLY : LS_FAMILY_MONTHLY;
-  }
-  if (!url || url === 'PASTE_URL_HERE') {
-    showToast(translations[currentLang].toast_checkout_error, 'error');
-    return;
-  }
-  var checkoutUrl = url + (url.indexOf('?') > -1 ? '&' : '?') + 'checkout[custom][source]=landing';
-  try {
-    if (window.LemonSqueezy && window.LemonSqueezy.Url && window.LemonSqueezy.Url.Open) {
-      window.LemonSqueezy.Url.Open(checkoutUrl);
-    } else {
-      showToast(translations[currentLang].toast_checkout_fallback, 'success');
-      window.open(checkoutUrl, '_blank');
-    }
-  } catch (err) {
-    showToast(translations[currentLang].toast_checkout_fallback, 'success');
-    window.open(checkoutUrl, '_blank');
-  }
+  if (plan !== 'balanced' && plan !== 'family') return;
+  // Never open an anonymous hosted checkout: subscription attribution
+  // requires the authenticated account and app ID.
+  window.top.location.href = '/login?mode=signup&next=subscription&plan=' +
+    encodeURIComponent(plan) + '&billing=' + (isYearly ? 'yearly' : 'monthly');
 }
 
 // ===== PRICING TOGGLE =====
