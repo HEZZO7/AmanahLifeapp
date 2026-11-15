@@ -1,0 +1,10 @@
+# Final release gate — NO-GO until evidence complete
+Review branches only. Owner evidence 2026-11-15: two subscription rows, one free active, one expired Balanced with Lemon ID, zero Paddle IDs, two expired used trials, no anomalies in aggregate checks. Recheck immediately before cutover; reconcile both provider dashboards.
+## Candidate
+Lemon Squeezy new sales; Paddle checkout default denied unless explicit env opt-in. Retain historical webhook; do not deploy unverified Paddle webhook changes. Confirm all client purchase routes and provider dashboards. Staged SQL adds server expiry, preserves legacy starts, revokes table and independent column grants, scopes own-row read. Historical combined migration is NOT release candidate.
+## Gates
+Review runtime dependency advisories and remediate reachable high/critical issues; verify latest CI including SQL column grant and isolated Edge handler tests. Extend runtime tests to search, receipt, family invite, invalid tokens, expired trials and provider failures. Verify production-shaped schema, inherited roles, actual staging API and payment lifecycle. Android export is not device/AAB certification. Confirm iOS and native release/update strategy. Verify Lemon variants and webhook ordering/idempotency. No production secrets in CI.
+## Cutover
+Explicit owner approval required. Backup and verify restore, record current deployment versions, reconcile provider events, pause new trial/checkout writes during maintenance. Apply staged scripts in controlled window with no old writers; deploy compatible clients and shared Edge functions once; verify trial expiry, paid access, cross-user isolation, webhook and cancellation. Update store only after app route verification. Reopen traffic only after smoke tests.
+## Rollback
+Keep write lockdown; restore compatible client/Edge versions or suspend trial/new checkout temporarily. Never restore unrestricted grants. Preserve provider webhooks and paid records; reconcile events before any authorized data restore. No production change performed.
