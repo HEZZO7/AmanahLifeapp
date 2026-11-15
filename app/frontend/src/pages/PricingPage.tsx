@@ -158,6 +158,9 @@ export default function PricingPage() {
                     /{isAr ? 'شهر' : 'mo'}
                   </span>
                 )}
+                {isYearly && plan.price.monthly > 0 && (
+                  <p className="text-xs text-muted-foreground">{isAr ? 'يُدفع سنوياً' : 'Billed annually'} ${(plan.price.yearly * 12).toFixed(2)}</p>
+                )}
               </div>
               <ul className="space-y-2 mb-6">
                 {plan.features.map((feature, i) => (
