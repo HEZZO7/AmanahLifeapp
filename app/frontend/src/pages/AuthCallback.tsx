@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { consumeSubscriptionIntent } from '@/lib/subscriptionIntent';
 import { supabase } from '@/lib/supabase';
 
 // A client-side navigate('/') here leaves the SPA's existing document/layout
@@ -12,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 // actual device viewport, so do that instead of a client-side route change
 // for this one post-auth transition.
 function goToDashboard() {
-  window.location.replace('/');
+  window.location.replace(consumeSubscriptionIntent());
 }
 
 export default function AuthCallback() {
