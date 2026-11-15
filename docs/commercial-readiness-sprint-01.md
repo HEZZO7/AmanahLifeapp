@@ -6,17 +6,22 @@ Review only; no production deployment, migration, payment, or price changes.
 - Base main: d1d035717004f3a98222463268f19d418646ce8e.
 - Subscription 009 native run 41200953611 and Phase 3 dispatcher 41282660777 succeeded. Do not rerun the entire suite without a relevant change.
 - Migration 007 run 41775996702: both security execution steps succeeded; both artifact upload steps failed because upload-artifact rejects paths containing ../. This does not establish detailed SQL assertions or live schema readiness. Keep the repair branch separate; recover sanitized evidence using an absolute normalized path under a separately approved disposable run if necessary.
-- Current live Supabase schema and actual Lemon Squeezy annual prices are not verified. Public checkout retrieval failed.
+- Current live Supabase schema remains unverified. Owner confirmed annual prices: Balanced $59.88, Family $119.88; public checkout retrieval failed.
 
 ## Changes
 - Landing free CTAs open signup; paid CTAs route to authenticated subscription journey instead of anonymous checkout.
 - Allowlisted same-tab subscription intent carries selected plan and billing; Google callback and password sign-in consume it. Email confirmation in another tab/device may lose intent; customer must select plan again. No automatic payment.
 - Subscription return message is pending verification, not proof of activation.
 - Focused Node tests added; local copied source passed 2/2 with Node 22.16.0. Full build/browser integration not run (local clone DNS unavailable).
-- No changes to payment backend, entitlement logic, database, or CI.
+- No changes to payment backend, entitlement logic or database. Added branch-only frontend validation workflow; execution not yet confirmed.
+
+## Additional review changes
+- Annual billing totals disclosed in both React pages; Arabic sticky price and CTA corrected.
+- Removed unsupported thousands-of-users claim and corrected Family savings.
+- Full build and browser verification remain pending.
 
 ## Release gates
-1. Owner confirms all four Lemon Squeezy variant prices and billing intervals. Landing and PricingPage currently show annual equivalents 4.89/9.09; Subscription shows 4.99/9.99. Landing totals 58.69/109.09. Do not change until authoritative prices confirmed.
+1. Owner-confirmed annual prices aligned in landing, PricingPage and Subscription: $4.99/$9.99 monthly equivalents, $59.88/$119.88 annually. Static review found no old annual prices in these three files. Savings $24/$36. External store remains separate.
 2. Verify production schema against approved migration evidence; no production migration authorized.
 3. Build/typecheck and focused browser regression: free signup, existing account, Google OAuth same tab, email confirmation same/new tab, both plans and billing cycles, cancellation and return pending state. Confirm no anonymous checkout from landing.
 4. External planner store subscription CTAs must route through app; store is outside this repository.
