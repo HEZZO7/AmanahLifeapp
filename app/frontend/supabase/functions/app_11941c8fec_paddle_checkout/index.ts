@@ -21,6 +21,13 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // New Paddle sales are disabled by default; historical webhook remains intact.
+  if (Deno.env.get("AMANAH_ENABLE_PADDLE_NEW_CHECKOUT") !== "true") {
+    return new Response(JSON.stringify({ error: "paddle_new_checkout_disabled" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = await req.json().catch(() => null);
     if (!body || !body.tier || !body.billing) {
