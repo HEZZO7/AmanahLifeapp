@@ -56,7 +56,7 @@ export default function Subscription() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'canceled' | 'pending'; text: string } | null>(null);
   const [userCurrency, setUserCurrency] = useState<string>(() => getUserCurrency());
 
   const handleCurrencyChange = (newCurrency: string) => {
@@ -105,7 +105,7 @@ export default function Subscription() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
       setMessage({
-        type: 'success',
+        type: 'pending',
         text: isAr ? 'جارٍ التحقق من حالة اشتراكك. راجع الباقة الحالية أدناه.' : 'Checking your subscription status. Please review your current plan below.',
       });
       refetch();
@@ -312,7 +312,9 @@ export default function Subscription() {
             className={`rounded-xl p-4 border ${
               message.type === 'success'
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
+                : message.type === 'pending'
+                  ? 'bg-muted border-border text-foreground'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
             }`}
           >
             <p className="text-sm font-medium">{message.text}</p>
