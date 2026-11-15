@@ -207,11 +207,16 @@ Deno.serve(async (req: Request) => {
     // from variant_id, never trust client-supplied custom_data). A client
     // could reach this endpoint directly and claim anything; it cannot make
     // this query return something other than the truth.
-    const { data: existingSub } = await supabase
+    const { data: existingSub, error: trialLookupError } = await supabase
       .from("app_11941c8fec_subscriptions")
       .select("trial_used")
       .eq("user_id", user.id)
       .maybeSingle();
+    if (trialLookupError) {
+      return new Response(JSON.stringify({ error: "subscription_lookup_failed" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const skipTrial = !!existingSub?.trial_used;
     console.log(JSON.stringify({ requestId, userId: user.id, skipTrial }));
 
