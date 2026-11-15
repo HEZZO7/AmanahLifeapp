@@ -72,3 +72,17 @@ jobs:
             app/frontend/package.json
             app/frontend/package-lock.json
           retention-days: 7
+      - name: Targeted Axios compatible candidate
+        run: |
+          npm install --package-lock-only --ignore-scripts --save-exact axios@1.21.1
+          npm ci --ignore-scripts
+          npm run build
+          npm audit --omit=dev --json > /tmp/axios-audit.json || true
+          node -e 'const a=require("/tmp/axios-audit.json"); if(!a.vulnerabilities) throw Error("Audit unavailable"); if(a.vulnerabilities.axios) throw Error("Axios advisory remains"); console.log(JSON.stringify(a.metadata.vulnerabilities));'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: axios-reviewed-candidate
+          path: |
+            app/frontend/package.json
+            app/frontend/package-lock.json
+          retention-days: 7
