@@ -33,3 +33,8 @@ jobs:
             sleep 1
           done
           node --test tests/commercial-readiness/landing-browser.test.mjs
+      - name: Isolated PostgreSQL subscription security
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres createdb amanahlife_security_review
+          sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$PWD/tests/commercial-readiness/subscription-security.sql"
