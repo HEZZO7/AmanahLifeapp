@@ -19,11 +19,10 @@ const ENTITLING_STATUSES: ReadonlySet<SubscriptionStatus> = new Set(['active', '
 const TRIAL_KEY = 'amanah-trial-start';
 const TRIAL_DURATION_DAYS = 7;
 
-function computeTrialState(trialStartedAt: string | null): { isTrialActive: boolean; trialDaysRemaining: number } {
-  if (!trialStartedAt || !Number.isFinite(Date.parse(trialStartedAt)) || Date.parse(trialStartedAt) > Date.now()) return { isTrialActive: false, trialDaysRemaining: 0 };
-  const diffDays = Math.floor((Date.now() - new Date(trialStartedAt).getTime()) / (1000 * 60 * 60 * 24));
-  const remaining = TRIAL_DURATION_DAYS - diffDays;
-  return { isTrialActive: remaining > 0, trialDaysRemaining: Math.max(0, remaining) };
+function computeTrialState(start: string | null, expires: string | null, used: boolean): { isTrialActive: boolean; trialDaysRemaining: number } {
+  const now = Date.now(), a = Date.parse(start ?? ''), b = Date.parse(expires ?? '');
+  if (!used || !Number.isFinite(a) || !Number.isFinite(b) || a > now || b <= now) return { isTrialActive: false, trialDaysRemaining: 0 };
+  return { isTrialActive: true, trialDaysRemaining: Math.ceil((b-now)/86400000) };
 }
 
 interface SubscriptionContextType {
@@ -107,7 +106,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setPaymentProvider(fetchedProvider);
         setCurrentPeriodEnd(data.current_period_end ?? null);
         setTrialUsed(!!data.trial_used);
-        const computed = computeTrialState(data.trial_started_at ?? null);
+        const computed = computeTrialState(data.trial_started_at ?? null, data.trial_expires_at ?? null, !!data.trial_used);
         setIsTrialActive(computed.isTrialActive);
         setTrialDaysRemaining(computed.trialDaysRemaining);
         // Server is authoritative - keep the local cache in sync with it
