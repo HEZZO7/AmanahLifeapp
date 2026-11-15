@@ -37,4 +37,9 @@ jobs:
         run: |
           sudo systemctl start postgresql
           sudo -u postgres createdb amanahlife_security_review
-          sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$PWD/tests/commercial-readiness/subscription-security.sql"
+          review_dir=$(mktemp -d /tmp/amanahlife-security.XXXXXX)
+          trap 'rm -rf "$review_dir"' EXIT
+          chmod 755 "$review_dir"
+          install -D -m 644 tests/commercial-readiness/subscription-security.sql "$review_dir/tests/commercial-readiness/subscription-security.sql"
+          install -D -m 644 supabase/review-migrations/20261115_subscription_security.sql "$review_dir/supabase/review-migrations/20261115_subscription_security.sql"
+          sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$review_dir/tests/commercial-readiness/subscription-security.sql"
