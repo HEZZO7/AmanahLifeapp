@@ -50,3 +50,7 @@ jobs:
           deno-version: v2.x
       - name: Check premium edge functions
         run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_ai_life_coach/index.ts supabase/functions/app_11941c8fec_ai_search/index.ts supabase/functions/app_11941c8fec_receipt_scan/index.ts supabase/functions/app_11941c8fec_family_invite/index.ts
+      - name: Runtime dependency advisory inventory
+        run: |
+          npm audit --omit=dev --json > /tmp/amanah-audit.json || true
+          node -e 'const a=require("/tmp/amanah-audit.json"); if(a.error || !a.vulnerabilities) throw Error("Audit unavailable"); for(const [name,v] of Object.entries(a.vulnerabilities)) if(["critical","high"].includes(v.severity)) console.log(JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via})); console.log(JSON.stringify(a.metadata.vulnerabilities));'
