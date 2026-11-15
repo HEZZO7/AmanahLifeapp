@@ -42,4 +42,6 @@ jobs:
           chmod 755 "$review_dir"
           install -D -m 644 tests/commercial-readiness/subscription-security.sql "$review_dir/tests/commercial-readiness/subscription-security.sql"
           install -D -m 644 supabase/review-migrations/20261115_subscription_security.sql "$review_dir/supabase/review-migrations/20261115_subscription_security.sql"
+          install -D -m 644 supabase/review-migrations/staged/01_install_trial_rpc.sql "$review_dir/supabase/review-migrations/staged/01_install_trial_rpc.sql"
+          install -D -m 644 supabase/review-migrations/staged/02_lockdown_subscription_writes.sql "$review_dir/supabase/review-migrations/staged/02_lockdown_subscription_writes.sql"
           sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$review_dir/tests/commercial-readiness/subscription-security.sql"
