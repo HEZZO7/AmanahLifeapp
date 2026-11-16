@@ -56,36 +56,8 @@ jobs:
           node -e 'const a=require("/tmp/amanah-audit.json"); if(a.error || !a.vulnerabilities) throw Error("Audit unavailable"); for(const [name,v] of Object.entries(a.vulnerabilities)) if(["critical","high"].includes(v.severity)) console.log(JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via})); console.log(JSON.stringify(a.metadata.vulnerabilities));'
       - name: Isolated Edge handler authorization
         run: deno test --node-modules-dir=auto --allow-env --allow-read --allow-sys tests/commercial-readiness/edge-runtime.test.ts tests/commercial-readiness/checkout-runtime.test.ts tests/commercial-readiness/webhook-mode.test.ts
-      - name: Candidate non-major dependency remediation
-        run: |
-          npm audit fix --package-lock-only --ignore-scripts --omit=dev || true
-          npm ci --ignore-scripts
-          npm audit --omit=dev --json > /tmp/amanah-candidate-audit.json || true
-          node -e 'const a=require("/tmp/amanah-candidate-audit.json"); if(a.error || !a.vulnerabilities) throw Error("Audit unavailable"); console.log(JSON.stringify(a.metadata.vulnerabilities)); for(const [name,v] of Object.entries(a.vulnerabilities)) if(["critical","high"].includes(v.severity)) console.log(JSON.stringify({name,severity:v.severity,fixAvailable:v.fixAvailable}));'
-          git diff --stat -- package.json package-lock.json
-          npm run build
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dependency-remediation-candidate
-          path: |
-            app/frontend/package.json
-            app/frontend/package-lock.json
-          retention-days: 7
-      - name: Targeted Axios compatible candidate
-        run: |
-          npm install --package-lock-only --ignore-scripts --save-exact axios@1.21.1
-          npm ci --ignore-scripts
-          npm run build
-          npm audit --omit=dev --json > /tmp/axios-audit.json || true
-          node -e 'const a=require("/tmp/axios-audit.json"); if(!a.vulnerabilities) throw Error("Audit unavailable"); if(a.vulnerabilities.axios) throw Error("Axios advisory remains"); console.log(JSON.stringify(a.metadata.vulnerabilities));'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: axios-reviewed-candidate
-          path: |
-            app/frontend/package.json
-            app/frontend/package-lock.json
-          retention-days: 7
+      - name: Staging network guard tests
+        run: node --experimental-strip-types --test tests/staging-fetch.test.mjs
       - name: Inventory remaining live references and build staging
         env:
           VITE_AMANAH_ENV: staging
@@ -93,4 +65,5 @@ jobs:
           VITE_SUPABASE_ANON_KEY: fixture-public-key
         run: |
           git grep -l -E 'nyhsnvjdgifphwkqzwel|amanahlife\.lemonsqueezy\.com' -- src public || true
+          if git grep -l 'nyhsnvjdgifphwkqzwel' -- src public ':!src/lib/supabase.ts'; then exit 1; fi
           npm run build
