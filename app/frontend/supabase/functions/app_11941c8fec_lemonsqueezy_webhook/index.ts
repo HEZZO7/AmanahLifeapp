@@ -288,7 +288,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: jsonHeaders }
     );
   } catch (error) {
-    console.error(JSON.stringify({ requestId, error: error.message, stack: error.stack }));
+    console.error(JSON.stringify({ requestId, error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: jsonHeaders }
