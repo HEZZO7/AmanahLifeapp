@@ -3,7 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // This endpoint is called directly from the browser (unlike the webhook),
 // so it does need real CORS handling — but scoped to our own first-party
 // origins, not a wildcard, and only the headers this function actually uses.
-const ALLOWED_ORIGINS = new Set([
+const IS_STAGING = Deno.env.get("AMANAH_ENV") === "staging";
+const STAGING_ORIGIN = Deno.env.get("AMANAH_STAGING_ORIGIN") || "";
+const ALLOWED_ORIGINS = new Set(IS_STAGING ? [STAGING_ORIGIN] : [
   "https://app.amanahlife.com",
   "https://amanahlife.com",
 ]);
@@ -11,7 +13,7 @@ const ALLOWED_ORIGINS = new Set([
 function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") || "";
   return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.amanahlife.com",
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : (IS_STAGING ? STAGING_ORIGIN : "https://app.amanahlife.com"),
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
@@ -69,6 +71,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    if (IS_STAGING && (!STAGING_ORIGIN || /nyhsnvjdgifphwkqzwel/.test(supabaseUrl) || /^(https:\/\/)?(app\.)?amanahlife\.com\/?$/.test(STAGING_ORIGIN))) {
+      return new Response(JSON.stringify({error:"invalid_staging_configuration"}), {status:503, headers:corsHeaders});
+    }
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -247,6 +252,7 @@ Deno.serve(async (req: Request) => {
       data: {
         type: "checkouts",
         attributes: {
+          test_mode: IS_STAGING,
           checkout_data: {
             // Prefills (and Lemon Squeezy's hosted checkout lets the buyer
             // edit) the checkout's email - without this, nothing ties the
