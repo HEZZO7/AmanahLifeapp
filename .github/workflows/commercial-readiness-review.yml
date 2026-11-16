@@ -86,3 +86,11 @@ jobs:
             app/frontend/package.json
             app/frontend/package-lock.json
           retention-days: 7
+      - name: Inventory remaining live references and build staging
+        env:
+          VITE_AMANAH_ENV: staging
+          VITE_SUPABASE_URL: https://stagingfixture.supabase.co
+          VITE_SUPABASE_ANON_KEY: fixture-public-key
+        run: |
+          git grep -l -E 'nyhsnvjdgifphwkqzwel|amanahlife\.lemonsqueezy\.com' -- src public || true
+          npm run build
