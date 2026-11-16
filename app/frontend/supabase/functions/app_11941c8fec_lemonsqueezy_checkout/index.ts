@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (IS_STAGING && action === "manage") {
+    if (IS_STAGING && body.action === "manage") {
       return new Response(JSON.stringify({error:"staging_portal_disabled"}), {status:403, headers:corsHeaders});
     }
     // Handle "manage" action — return Lemon Squeezy customer portal URL
