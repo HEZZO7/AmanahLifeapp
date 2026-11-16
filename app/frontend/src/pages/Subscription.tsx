@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, IS_STAGING } from '@/lib/supabase';
 import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
 import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
@@ -146,7 +146,7 @@ export default function Subscription() {
       // (The Edge Function independently re-derives trial_used from the
       // database - this branch is purely an optimization, not the source of
       // enforcement.)
-      if (trialUsed) {
+      if (IS_STAGING || trialUsed) {
         const response = await fetch(CHECKOUT_ENDPOINT, {
           method: 'POST',
           headers: {
