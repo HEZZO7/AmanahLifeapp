@@ -10,4 +10,10 @@ if (IS_STAGING && (!stageUrl || !stageKey || !/^https:\/\/[a-z0-9]+\.supabase\.c
   throw new Error('Staging requires an independent Supabase project and public key');
 }
 export const SUPABASE_URL = IS_STAGING ? stageUrl : LIVE_URL;
-export const supabase = createClient(SUPABASE_URL, IS_STAGING ? stageKey : LIVE_KEY);
+export const supabase = createClient(SUPABASE_URL, IS_STAGING ? stageKey : LIVE_KEY, IS_STAGING ? {
+  global: { fetch: (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.origin !== new URL(SUPABASE_URL).origin) throw new Error('Blocked non-staging Supabase request');
+    return fetch(input, init);
+  } }
+} : undefined);
