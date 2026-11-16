@@ -123,6 +123,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload = JSON.parse(rawBody);
+    const staging = Deno.env.get("AMANAH_ENV") === "staging";
+    const eventMode = payload.meta?.test_mode;
+    const attributeMode = payload.data?.attributes?.test_mode;
+    if (typeof eventMode !== "boolean" || eventMode !== staging ||
+        (attributeMode !== undefined && attributeMode !== eventMode) ||
+        (staging && (Deno.env.get("SUPABASE_URL") || "").includes("nyhsnvjdgifphwkqzwel"))) {
+      return new Response(JSON.stringify({error:"webhook_environment_mismatch"}), {status:400, headers:{"Content-Type":"application/json"}});
+    }
     const eventName = payload.meta?.event_name;
     console.log(JSON.stringify({ requestId, event: eventName }));
 
