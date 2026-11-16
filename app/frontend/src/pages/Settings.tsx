@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTimeFormat } from '@/contexts/TimeFormatContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
 import NotificationSettings from '@/components/NotificationSettings';
@@ -138,7 +138,7 @@ export default function Settings() {
       }
 
       const response = await fetch(
-        'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_delete_account',
+        `${SUPABASE_URL}/functions/v1/app_11941c8fec_delete_account`,
         {
           method: 'POST',
           headers: {
