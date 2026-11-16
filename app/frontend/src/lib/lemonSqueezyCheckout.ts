@@ -1,3 +1,4 @@
+import { IS_STAGING, SUPABASE_URL } from './supabase';
 /**
  * Single source of truth for Lemon Squeezy checkout construction - shared by
  * Subscription.tsx's real "Upgrade" button and PromoBanner.tsx's discount
@@ -8,7 +9,7 @@
  * moved here as the app consolidates onto Lemon Squeezy only.
  */
 export const LEMONSQUEEZY_CHECKOUT_ENDPOINT =
-  'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_lemonsqueezy_checkout';
+  `${SUPABASE_URL}/functions/v1/app_11941c8fec_lemonsqueezy_checkout`;
 
 // One buy-link per (tier, billing) variant - confirmed by live-checking each
 // of the 4 URLs in a browser: each shows a single fixed price with no
@@ -49,6 +50,7 @@ export function buildCheckoutUrl(
   if (!user?.id) {
     throw new Error('buildCheckoutUrl requires an authenticated user');
   }
+  if (IS_STAGING) throw new Error('Hosted live checkout disabled in staging');
   const base = BUY_LINKS[tier][billing];
   const params = new URLSearchParams();
   if (user.email) params.set('checkout[email]', user.email);
