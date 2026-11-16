@@ -1,3 +1,4 @@
+import { stagingFetch } from './stagingFetch';
 import { createClient } from '@supabase/supabase-js';
 
 const LIVE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
@@ -11,9 +12,5 @@ if (IS_STAGING && (!stageUrl || !stageKey || !/^https:\/\/[a-z0-9]+\.supabase\.c
 }
 export const SUPABASE_URL = IS_STAGING ? stageUrl : LIVE_URL;
 export const supabase = createClient(SUPABASE_URL, IS_STAGING ? stageKey : LIVE_KEY, IS_STAGING ? {
-  global: { fetch: (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.origin !== new URL(SUPABASE_URL).origin) throw new Error('Blocked non-staging Supabase request');
-    return fetch(input, init);
-  } }
+  global: { fetch: stagingFetch(SUPABASE_URL) }
 } : undefined);
