@@ -87,6 +87,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (IS_STAGING && action === "manage") {
+      return new Response(JSON.stringify({error:"staging_portal_disabled"}), {status:403, headers:corsHeaders});
+    }
     // Handle "manage" action — return Lemon Squeezy customer portal URL
     if (body.action === "manage") {
       console.log(JSON.stringify({ requestId, userId: user.id, action: "manage" }));
@@ -317,6 +320,14 @@ Deno.serve(async (req: Request) => {
 
     const lsData = await lsResponse.json();
     const checkoutUrl = lsData.data?.attributes?.url;
+    if (IS_STAGING) {
+      let valid = false;
+      try {
+        const url = new URL(checkoutUrl);
+        valid = url.protocol === "https:" && url.hostname === "amanahlife.lemonsqueezy.com" && !url.username && !url.password && !url.port && url.pathname.startsWith("/checkout/") && lsData.data?.attributes?.test_mode === true;
+      } catch { /* fail closed */ }
+      if (!valid) return new Response(JSON.stringify({error:"unverified_test_checkout"}), {status:502, headers:corsHeaders});
+    }
 
     console.log(JSON.stringify({ requestId, action: "checkout_created", checkoutId: lsData.data?.id }));
 
