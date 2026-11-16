@@ -1,0 +1,13 @@
+# Production release preparation — review only
+## Evidence
+Web branch uses amanahlife_start_trial RPC. Native repository HEZZO7/amanahlife-rn master src/contexts/SubscriptionContext.tsx still uses direct upsert and AsyncStorage optimistic trial. No native edits authorized in this web branch. Shared edge functions: Lemon Squeezy checkout/webhook and Paddle webhook use service role; delete-account uses service role. Family invite send checks tier only, not status/trial. AI coach and receipt scan authenticate but do not directly enforce subscription entitlement; AI search requires further review. Paddle webhook derives tier/billing from custom_data; verify whether provider is enabled and authoritative price mapping before release.
+## Cutover (not authorized)
+1. Inventory all writers, deployed versions, effective grants, RPC owner, and provider settings. Back up and reconcile paid/trial rows without automatic changes. Verify native release strategy.
+2. Install staged/01_install_trial_rpc.sql in staging first; verify RPC auth, concurrency, timestamps and existing rows. Installing RPC alone does not close vulnerability.
+3. Prepare web/native clients and shared backend entitlement checks; test against staging. Approve coordinated maintenance window, minimize exposure before lockdown; old clients must update or trial initiation will fail safely.
+4. Execute staged/02_lockdown_subscription_writes.sql only after approval. Verify effective grants including inherited/column grants, service role and payment webhook. No production credentials in CI.
+5. Smoke test sign-up, trial, paid monthly/yearly, cancellation, account deletion and cross-user isolation. Reconcile provider events.
+## Rollback
+Before lockdown, revert client release if needed; leave additive RPC installed unless dependency audit permits removal. After lockdown, never restore unrestricted client writes or TRUNCATE. Roll back UI to a compatible RPC-capable build or disable trial initiation temporarily while preserving paid access. If RPC fails, restore last verified RPC definition in a reviewed transaction. Restore database from backup only under explicit incident authorization; reconcile payment events to avoid losing legitimate purchases. No executable insecure rollback supplied.
+## Gates
+Existing isolated CI run 43720741315 passed combined migration against simplified fixture. Staged scripts need independent equivalence test, production-shaped schema, concurrency and real staging API verification. Native compatibility and backend entitlement findings remain blockers. No merge, deploy or production changes.

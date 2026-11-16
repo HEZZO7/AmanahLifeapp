@@ -3,7 +3,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // This endpoint is called directly from the browser (unlike the webhook),
 // so it does need real CORS handling — but scoped to our own first-party
 // origins, not a wildcard, and only the headers this function actually uses.
-const ALLOWED_ORIGINS = new Set([
+const IS_STAGING = Deno.env.get("AMANAH_ENV") === "staging";
+const STAGING_ORIGIN = Deno.env.get("AMANAH_STAGING_ORIGIN") || "";
+const ALLOWED_ORIGINS = new Set(IS_STAGING ? [STAGING_ORIGIN] : [
   "https://app.amanahlife.com",
   "https://amanahlife.com",
 ]);
@@ -11,7 +13,7 @@ const ALLOWED_ORIGINS = new Set([
 function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") || "";
   return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : "https://app.amanahlife.com",
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.has(origin) ? origin : (IS_STAGING ? STAGING_ORIGIN : "https://app.amanahlife.com"),
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
@@ -69,6 +71,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    if (IS_STAGING && (!STAGING_ORIGIN || /nyhsnvjdgifphwkqzwel/.test(supabaseUrl) || /^(https:\/\/)?(app\.)?amanahlife\.com\/?$/.test(STAGING_ORIGIN))) {
+      return new Response(JSON.stringify({error:"invalid_staging_configuration"}), {status:503, headers:corsHeaders});
+    }
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -82,6 +87,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (IS_STAGING && body.action === "manage") {
+      return new Response(JSON.stringify({error:"staging_portal_disabled"}), {status:403, headers:corsHeaders});
+    }
     // Handle "manage" action — return Lemon Squeezy customer portal URL
     if (body.action === "manage") {
       console.log(JSON.stringify({ requestId, userId: user.id, action: "manage" }));
@@ -207,11 +215,16 @@ Deno.serve(async (req: Request) => {
     // from variant_id, never trust client-supplied custom_data). A client
     // could reach this endpoint directly and claim anything; it cannot make
     // this query return something other than the truth.
-    const { data: existingSub } = await supabase
+    const { data: existingSub, error: trialLookupError } = await supabase
       .from("app_11941c8fec_subscriptions")
       .select("trial_used")
       .eq("user_id", user.id)
       .maybeSingle();
+    if (trialLookupError) {
+      return new Response(JSON.stringify({ error: "subscription_lookup_failed" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const skipTrial = !!existingSub?.trial_used;
     console.log(JSON.stringify({ requestId, userId: user.id, skipTrial }));
 
@@ -242,6 +255,7 @@ Deno.serve(async (req: Request) => {
       data: {
         type: "checkouts",
         attributes: {
+          test_mode: IS_STAGING,
           checkout_data: {
             // Prefills (and Lemon Squeezy's hosted checkout lets the buyer
             // edit) the checkout's email - without this, nothing ties the
@@ -306,6 +320,14 @@ Deno.serve(async (req: Request) => {
 
     const lsData = await lsResponse.json();
     const checkoutUrl = lsData.data?.attributes?.url;
+    if (IS_STAGING) {
+      let valid = false;
+      try {
+        const url = new URL(checkoutUrl);
+        valid = url.protocol === "https:" && url.hostname === "amanahlife.lemonsqueezy.com" && !url.username && !url.password && !url.port && url.pathname.startsWith("/checkout/") && lsData.data?.attributes?.test_mode === true;
+      } catch { /* fail closed */ }
+      if (!valid) return new Response(JSON.stringify({error:"unverified_test_checkout"}), {status:502, headers:corsHeaders});
+    }
 
     console.log(JSON.stringify({ requestId, action: "checkout_created", checkoutId: lsData.data?.id }));
 
@@ -314,7 +336,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error(JSON.stringify({ requestId, error: error.message, stack: error.stack }));
+    console.error(JSON.stringify({ requestId, error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

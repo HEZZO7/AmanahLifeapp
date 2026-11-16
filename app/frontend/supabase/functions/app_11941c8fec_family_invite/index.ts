@@ -1,3 +1,4 @@
+import { hasEntitlement } from "../_shared/entitlement.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer";
 
@@ -79,12 +80,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing or invalid email" }, 400, corsHeaders);
     }
 
-    const { data: sub } = await supabase
-      .from("app_11941c8fec_subscriptions")
-      .select("tier")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (sub?.tier !== "family") {
+    if (!(await hasEntitlement(supabase, user.id, "family"))) {
       return json({ error: "family_plan_required" }, 403, corsHeaders);
     }
 

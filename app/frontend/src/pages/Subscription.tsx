@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTimeFormat } from '@/contexts/TimeFormatContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, IS_STAGING } from '@/lib/supabase';
 import { formatPrice, getUserCurrency, fetchExchangeRates, CURRENCY_SYMBOLS } from '@/lib/currency';
 import type { ExchangeRateResult } from '@/lib/currency';
 import BottomNav from '@/components/BottomNav';
@@ -48,11 +48,15 @@ export default function Subscription() {
   const isAr = language === 'ar';
   const { tier: currentTier, status: currentStatus, billingCycle, currentPeriodEnd, loading: subLoading, isTrialActive, trialDaysRemaining, trialUsed, startTrial, refetch } = useSubscription();
 
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>(billingCycle);
+  const requestedPlan = new URLSearchParams(window.location.search).get('plan');
+  const requestedBilling = new URLSearchParams(window.location.search).get('billing');
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(
+    requestedBilling === 'yearly' || requestedBilling === 'monthly' ? requestedBilling : billingCycle
+  );
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'canceled'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'canceled' | 'pending'; text: string } | null>(null);
   const [userCurrency, setUserCurrency] = useState<string>(() => getUserCurrency());
 
   const handleCurrencyChange = (newCurrency: string) => {
@@ -101,8 +105,8 @@ export default function Subscription() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true') {
       setMessage({
-        type: 'success',
-        text: isAr ? 'تم تفعيل اشتراكك بنجاح!' : 'Your subscription has been activated successfully!',
+        type: 'pending',
+        text: isAr ? 'جارٍ التحقق من حالة اشتراكك. راجع الباقة الحالية أدناه.' : 'Checking your subscription status. Please review your current plan below.',
       });
       refetch();
       window.history.replaceState({}, '', window.location.pathname);
@@ -117,8 +121,8 @@ export default function Subscription() {
 
   // Update billing toggle when subscription data loads
   useEffect(() => {
-    setBilling(billingCycle);
-  }, [billingCycle]);
+    if (requestedBilling !== 'yearly' && requestedBilling !== 'monthly') setBilling(billingCycle);
+  }, [billingCycle, requestedBilling]);
 
   const handleUpgrade = async (tier: 'balanced' | 'family') => {
     setCheckoutLoading(tier);
@@ -142,7 +146,7 @@ export default function Subscription() {
       // (The Edge Function independently re-derives trial_used from the
       // database - this branch is purely an optimization, not the source of
       // enforcement.)
-      if (trialUsed) {
+      if (IS_STAGING || trialUsed) {
         const response = await fetch(CHECKOUT_ENDPOINT, {
           method: 'POST',
           headers: {
@@ -308,7 +312,9 @@ export default function Subscription() {
             className={`rounded-xl p-4 border ${
               message.type === 'success'
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
+                : message.type === 'pending'
+                  ? 'bg-muted border-border text-foreground'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
             }`}
           >
             <p className="text-sm font-medium">{message.text}</p>
@@ -463,6 +469,7 @@ export default function Subscription() {
           <div className="space-y-3">
             {PLANS.map((plan) => {
               const isCurrent = currentTier === plan.id;
+              const isRequested = requestedPlan === plan.id && plan.id !== 'free';
               const price = billing === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
               const isLoading = checkoutLoading === plan.id;
               return (
@@ -478,6 +485,7 @@ export default function Subscription() {
                       <span className="text-foreground font-bold">
                         {isAr ? plan.nameAr : plan.nameEn}
                       </span>
+                      {isRequested && !isCurrent && <span className="text-xs text-muted-foreground">{isAr ? 'اختيارك' : 'Your selection'}</span>}
                     </div>
                     <div className="text-end">
                       {price === 0 ? (
@@ -490,6 +498,7 @@ export default function Subscription() {
                           <span className="text-muted-foreground text-xs">
                             {' '}{isAr ? '/شهر' : '/mo'}
                           </span>
+                          {billing === 'yearly' && <p className="text-xs text-muted-foreground">{isAr ? 'يُدفع سنوياً' : 'Billed annually'} ${(plan.yearlyPrice * 12).toFixed(2)} USD</p>}
                         </div>
                       )}
                     </div>

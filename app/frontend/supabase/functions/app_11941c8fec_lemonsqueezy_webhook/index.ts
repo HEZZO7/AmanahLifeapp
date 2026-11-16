@@ -123,6 +123,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload = JSON.parse(rawBody);
+    const staging = Deno.env.get("AMANAH_ENV") === "staging";
+    const eventMode = payload.meta?.test_mode;
+    const attributeMode = payload.data?.attributes?.test_mode;
+    if (typeof eventMode !== "boolean" || eventMode !== staging ||
+        (attributeMode !== undefined && attributeMode !== eventMode) ||
+        (staging && (Deno.env.get("SUPABASE_URL") || "").includes("nyhsnvjdgifphwkqzwel"))) {
+      return new Response(JSON.stringify({error:"webhook_environment_mismatch"}), {status:400, headers:{"Content-Type":"application/json"}});
+    }
     const eventName = payload.meta?.event_name;
     console.log(JSON.stringify({ requestId, event: eventName }));
 
@@ -280,7 +288,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: jsonHeaders }
     );
   } catch (error) {
-    console.error(JSON.stringify({ requestId, error: error.message, stack: error.stack }));
+    console.error(JSON.stringify({ requestId, error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: jsonHeaders }

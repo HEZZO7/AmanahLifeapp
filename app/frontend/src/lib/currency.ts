@@ -1,3 +1,4 @@
+import { SUPABASE_URL } from './supabase';
 // Currency conversion utilities for subscription pricing
 // Base prices are in USD
 
@@ -70,7 +71,7 @@ const WHOLE_NUMBER_CURRENCIES = new Set(['IQD', 'LBP', 'SYP', 'IDR', 'PKR', 'BDT
 // --- Live exchange rate fetching ---
 
 const EXCHANGE_RATE_ENDPOINT =
-  'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_exchange_rates';
+  `${SUPABASE_URL}/functions/v1/app_11941c8fec_exchange_rates`;
 
 // Module-level client-side cache
 let cachedRates: Record<string, number> | null = null;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PageHeader from '@/components/PageHeader';
@@ -30,7 +30,7 @@ const CATEGORIES = {
 // to pick a random string out of a fixed, hardcoded array per category, with
 // no AI involved at all despite the screen's name. Same endpoint the RN app
 // uses (see amanahlife-rn's Phase 4 audit notes).
-const AI_COACH_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_ai_life_coach';
+const AI_COACH_ENDPOINT = `${SUPABASE_URL}/functions/v1/app_11941c8fec_ai_life_coach`;
 
 const WISDOM_QUOTES = {
   en: [

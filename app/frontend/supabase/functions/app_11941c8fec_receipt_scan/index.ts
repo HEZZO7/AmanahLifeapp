@@ -1,3 +1,4 @@
+import { hasEntitlement } from "../_shared/entitlement.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // NOTE: this Edge Function is intentionally duplicated verbatim in both
@@ -91,6 +92,10 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: userError } = await supabase.auth.getUser(token);
   if (userError || !user) {
     return json({ error: "Invalid token" }, 401, corsHeaders);
+  }
+
+  if (!(await hasEntitlement(supabase, user.id, "balanced"))) {
+    return json({ error: "balanced_plan_required" }, 403, corsHeaders);
   }
 
   const body = await req.json().catch(() => null);

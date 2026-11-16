@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Download, Upload, AlertTriangle } from 'lucide-react';
 
 const APP_VERSION = '2.0.0';
-const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 
 // Tables that contain user data
 const USER_TABLES = [

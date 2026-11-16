@@ -1,0 +1,69 @@
+name: Commercial readiness review
+on:
+  push:
+    branches:
+      - review/commercial-readiness-sprint-01
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --experimental-strip-types --test tests/commercial-readiness/subscription-intent.test.mjs tests/commercial-readiness/entitlement.test.mjs
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Isolated landing browser checks
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory dist > /tmp/amanahlife-review-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/landing.html > /dev/null; then break; fi
+            sleep 1
+          done
+          node --test tests/commercial-readiness/landing-browser.test.mjs
+      - name: Isolated PostgreSQL subscription security
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres createdb amanahlife_security_review
+          review_dir=$(mktemp -d /tmp/amanahlife-security.XXXXXX)
+          trap 'rm -rf "$review_dir"' EXIT
+          chmod 755 "$review_dir"
+          install -D -m 644 tests/commercial-readiness/subscription-security.sql "$review_dir/tests/commercial-readiness/subscription-security.sql"
+          install -D -m 644 supabase/review-migrations/20261115_subscription_security.sql "$review_dir/supabase/review-migrations/20261115_subscription_security.sql"
+          install -D -m 644 supabase/review-migrations/staged/01_install_trial_rpc.sql "$review_dir/supabase/review-migrations/staged/01_install_trial_rpc.sql"
+          install -D -m 644 supabase/review-migrations/staged/02_lockdown_subscription_writes.sql "$review_dir/supabase/review-migrations/staged/02_lockdown_subscription_writes.sql"
+          sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d amanahlife_security_review -f "$review_dir/tests/commercial-readiness/subscription-security.sql"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check premium edge functions
+        run: deno check --node-modules-dir=auto supabase/functions/app_11941c8fec_ai_life_coach/index.ts supabase/functions/app_11941c8fec_ai_search/index.ts supabase/functions/app_11941c8fec_receipt_scan/index.ts supabase/functions/app_11941c8fec_family_invite/index.ts
+      - name: Runtime dependency advisory inventory
+        run: |
+          npm audit --omit=dev --json > /tmp/amanah-audit.json || true
+          node -e 'const a=require("/tmp/amanah-audit.json"); if(a.error || !a.vulnerabilities) throw Error("Audit unavailable"); for(const [name,v] of Object.entries(a.vulnerabilities)) if(["critical","high"].includes(v.severity)) console.log(JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via})); console.log(JSON.stringify(a.metadata.vulnerabilities));'
+      - name: Isolated Edge handler authorization
+        run: deno test --node-modules-dir=auto --allow-env --allow-read --allow-sys tests/commercial-readiness/edge-runtime.test.ts tests/commercial-readiness/checkout-runtime.test.ts tests/commercial-readiness/webhook-mode.test.ts tests/commercial-readiness/staging-checkout.test.ts
+      - name: Staging network guard tests
+        run: node --experimental-strip-types --test tests/staging-fetch.test.mjs
+      - name: Inventory remaining live references and build staging
+        env:
+          VITE_AMANAH_ENV: staging
+          VITE_SUPABASE_URL: https://stagingfixture.supabase.co
+          VITE_SUPABASE_ANON_KEY: fixture-public-key
+        run: |
+          git grep -l -E 'nyhsnvjdgifphwkqzwel|amanahlife\.lemonsqueezy\.com' -- src public || true
+          if git grep -l 'nyhsnvjdgifphwkqzwel' -- src public ':!src/lib/supabase.ts'; then exit 1; fi
+          npm run build

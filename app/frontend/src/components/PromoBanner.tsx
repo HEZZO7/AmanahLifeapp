@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, IS_STAGING } from '@/lib/supabase';
 import { LEMONSQUEEZY_CHECKOUT_ENDPOINT, buildCheckoutUrl } from '@/lib/lemonSqueezyCheckout';
 
 const FIRST_USE_KEY = 'amanahlife_first_use';
@@ -94,7 +94,7 @@ export default function PromoBanner() {
         return;
       }
 
-      if (trialUsed) {
+      if (IS_STAGING || trialUsed) {
         const response = await fetch(LEMONSQUEEZY_CHECKOUT_ENDPOINT, {
           method: 'POST',
           headers: {

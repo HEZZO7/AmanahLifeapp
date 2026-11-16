@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-const SUPABASE_URL = 'https://nyhsnvjdgifphwkqzwel.supabase.co';
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/app_11941c8fec_push_notify`;
 
 // Real VAPID public key - safe to ship in client source (that's the whole

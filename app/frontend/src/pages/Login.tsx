@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { consumeSubscriptionIntent, rememberSubscriptionIntent, subscriptionIntent } from '@/lib/subscriptionIntent';
 import AppLogo from '@/components/AppLogo';
 
 export default function Login() {
@@ -19,11 +20,21 @@ export default function Login() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user, loading: authLoading } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
 
   const isAr = language === 'ar';
+  const { search } = useLocation();
+  const signupMode = new URLSearchParams(search).get('mode') === 'signup';
+  useEffect(() => {
+    rememberSubscriptionIntent(search);
+    const intent = subscriptionIntent(search);
+    if (!authLoading && user && intent) {
+      consumeSubscriptionIntent();
+      navigate(intent, { replace: true });
+    }
+  }, [search, authLoading, user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +43,9 @@ export default function Login() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Welcome back!');
-      navigate('/');
+      toast.success(isAr ? 'مرحباً بعودتك!' : 'Welcome back!');
+      navigate(subscriptionIntent(search) ?? consumeSubscriptionIntent());
+      consumeSubscriptionIntent();
     }
     setLoading(false);
   };
@@ -45,7 +57,7 @@ export default function Login() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Account created! Please check your email to verify.');
+      toast.success(isAr ? 'تم إنشاء الحساب! يرجى التحقق من بريدك الإلكتروني.' : 'Account created! Please check your email to verify.');
     }
     setLoading(false);
   };
@@ -98,11 +110,11 @@ export default function Login() {
         </div>
 
         <Card className="border-0 shadow-xl">
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue={signupMode ? "signup" : "signin"} className="w-full">
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">{isAr ? "تسجيل الدخول" : "Sign In"}</TabsTrigger>
+                <TabsTrigger value="signup">{isAr ? "إنشاء حساب" : "Sign Up"}</TabsTrigger>
               </TabsList>
             </CardHeader>
 
