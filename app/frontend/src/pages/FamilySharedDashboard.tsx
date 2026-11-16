@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 // to a real member list would wrongly imply they're actually shared.
 const FAMILIES_TABLE = 'app_11941c8fec_families';
 const MEMBERS_TABLE = 'app_11941c8fec_family_members';
-const FAMILY_INVITE_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_family_invite';
+const FAMILY_INVITE_ENDPOINT = `${SUPABASE_URL}/functions/v1/app_11941c8fec_family_invite`;
 
 type AgeGroup = 'adult' | 'minor';
 
