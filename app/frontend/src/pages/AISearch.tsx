@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, SUPABASE_URL } from '@/lib/supabase';
 import { toast } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import PremiumGate from '@/components/PremiumGate';
@@ -28,7 +28,7 @@ const SUGGESTION_CHIPS_EN = ['My budget this month', 'Today\'s tasks', 'Goals pr
 // (no server tables for any of them - confirmed while building this), so
 // the client gathers its own local data and sends it in the request body;
 // Claude interprets the query against it and returns real matches.
-const AI_SEARCH_ENDPOINT = 'https://nyhsnvjdgifphwkqzwel.supabase.co/functions/v1/app_11941c8fec_ai_search';
+const AI_SEARCH_ENDPOINT = `${SUPABASE_URL}/functions/v1/app_11941c8fec_ai_search`;
 
 function gatherLocalData() {
   const readJson = (key: string, fallback: unknown) => {
