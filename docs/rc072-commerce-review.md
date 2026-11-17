@@ -1,0 +1,5 @@
+# RC07.2 commerce review
+Independent store review, no deployment. Private commercial assets and ZIPs retained in Drive; no paid product binaries or private links committed to this public repository.
+Catalog USD cents: green Royal Green 999; navy Royal Navy 999; gold Desert Gold 999; white Clean White 999; bundle Complete Collection 1999. Checkout disabled. SaaS excluded.
+Offline validator tests: 16 passed locally; static HTML references and 15 inline JS syntax checks passed. Browser navigation blocked; no browser pass claimed. Gold individual cover naming still requires correction. Generated covers are illustrative.
+Managed Payments eligibility, official API configuration, tax codes and real sandbox lifecycle remain unverified. Server-side order creation, raw signature verification, session retrieval, transactionally unique event/session records, private object storage, verified purchaser access and expiring signed URLs required. No success URL fulfillment. Refund/dispute handling, replay/concurrency, delivery and rollback tests are release gates. No live changes.
